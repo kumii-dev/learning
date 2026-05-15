@@ -1,41 +1,15 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "server.js",
-      "use": "@vercel/node"
-    },
-    {
-      "src": "package.json",
-      "use": "@vercel/static-build",
-      "config": {
-        "distDir": "dist"
-      }
+  "buildCommand": "npm run vercel-build",
+  "functions": {
+    "server.js": {
+      "includeFiles": "dist/**"
     }
-  ],
+  },
   "rewrites": [
     {
-      "source": "/api/(.*)",
-      "destination": "server.js"
-    },
-    {
-      "source": "/health",
-      "destination": "server.js"
-    }
-  ],
-  "headers": [
-    {
       "source": "/(.*)",
-      "headers": [
-        {
-          "key": "Content-Security-Policy",
-          "value": "frame-ancestors https://kumii.africa https://www.kumii.africa https://*.lovable.app https://*.lovableproject.com"
-        },
-        {
-          "key": "X-Frame-Options",
-          "value": "ALLOWALL"
-        }
-      ]
+      "destination": "/server.js"
     }
   ],
   "env": {
