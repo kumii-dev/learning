@@ -85,11 +85,17 @@ export async function initAuthBridge() {
   }
 
   // Step 2: Request token from Kumii host via postMessage
+  // Retry every 500 ms — Kumii may not have mounted its listener yet when
+  // the hub loads faster (race condition with Lovable's React hydration).
   return new Promise((resolve, reject) => {
+    const TIMEOUT_MS = 15_000;
+    const RETRY_MS   = 500;
+
     const timeout = setTimeout(() => {
+      clearInterval(retryInterval);
       window.removeEventListener('message', handler);
       reject(new Error('[authBridge] Timed out waiting for KUMII_AUTH_TOKEN'));
-    }, 10_000);
+    }, TIMEOUT_MS);
 
     function handler(event) {
       if (!TRUSTED_ORIGINS.includes(event.origin)) {
@@ -105,6 +111,7 @@ export async function initAuthBridge() {
 
       if (type === 'KUMII_AUTH_TOKEN' && token) {
         clearTimeout(timeout);
+        clearInterval(retryInterval);
         window.removeEventListener('message', handler);
         _token   = token;
         _persona = persona ?? 'learner';
@@ -122,8 +129,11 @@ export async function initAuthBridge() {
 
     window.addEventListener('message', handler);
 
-    // Step 3: Send REQUEST_AUTH_TOKEN to parent
+    // Fire immediately, then keep retrying until Kumii responds
     sendToParent({ type: 'REQUEST_AUTH_TOKEN' });
+    const retryInterval = setInterval(() => {
+      sendToParent({ type: 'REQUEST_AUTH_TOKEN' });
+    }, RETRY_MS);
   });
 }
 
