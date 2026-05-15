@@ -24,7 +24,7 @@ const logger            = require('../utils/logger');
 
 const HUB_JWT_SECRET = process.env.HUB_JWT_SECRET;
 if (!HUB_JWT_SECRET) {
-  throw new Error('[HUB:AUTH] HUB_JWT_SECRET env var is required but not set');
+  logger.warn('[HUB:AUTH] HUB_JWT_SECRET is not set — all authenticated requests will fail');
 }
 
 /**
@@ -63,6 +63,11 @@ async function authenticate(req, res, next) {
     }
 
     const token = authHeader.slice(7);
+
+    if (!HUB_JWT_SECRET) {
+      logger.error('[HUB:AUTH] HUB_JWT_SECRET is not configured');
+      return res.status(500).json({ error: 'Server misconfiguration: missing JWT secret' });
+    }
 
     let decoded;
     try {

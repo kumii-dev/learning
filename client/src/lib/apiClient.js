@@ -31,14 +31,18 @@ apiClient.interceptors.request.use((config) => {
 apiClient.interceptors.response.use(
   (res) => res,
   (err) => {
-    const status  = err.response?.status;
-    const detail  = err.response?.data?.detail  ?? '';
-    const message =
-      err.response?.data?.error ||
-      err.response?.data?.errors?.[0] ||
+    const status   = err.response?.status;
+    const data     = err.response?.data;
+    // Vercel serverless errors return { code, message } — handle both string and object .error
+    const rawError = data?.error;
+    const message  =
+      (typeof rawError === 'string' ? rawError : rawError?.message) ||
+      data?.message ||
+      data?.errors?.[0] ||
       err.message ||
       'An unexpected error occurred';
-    console.error('[HUB:API] response error', status, err.config?.url, '—', message, detail);
+    const detail   = data?.detail ?? '';
+    console.error('[HUB:API] response error', status, err.config?.url, '—', { message, detail });
     return Promise.reject(new Error(message));
   }
 );

@@ -5,7 +5,24 @@
  * Flow:
  *  1. Try own Supabase session (dev / standalone mode)
  *  2. If not found → send REQUEST_AUTH_TOKEN to parent (retry every 500 ms)
- *  3. Listen for KUMII_AUTH_TOKEN from a trusted parent origin → store in memory
+ *  3. Listen for KUMII_AUTH_TOKEN from a t      // Capture parentOrigin from the first trusted reply
+      _parentOrigin = event.origin;
+      _token        = token;   // temporarily the Kumii JWT
+      _persona      = persona ?? 'learner';
+      _isAdmin      = isAdmin === true; // provisional — server will confirm
+      _email        = email ?? null;
+
+      // Await sync so _token is the hub JWT before initAuthBridge() resolves.
+      // This prevents race conditions where API calls fire with the Kumii JWT.
+      try {
+        await syncWithHub(token);
+      } catch (syncErr) {
+        console.warn('[HUB:BRIDGE] syncWithHub failed during handshake:', syncErr?.message);
+      }
+
+      scheduleRefresh();
+      resolve(_token); // now the hub JWT (or falls back to Kumii JWT if sync failed)
+    } origin → store in memory
  *  4. Kumii then fetches the user profile and posts KUMII_USER_PROFILE (separate
  *     persistent listener — arrives shortly after the token).
  *  5. Call POST /api/auth/sync with the JWT + profile → hub upserts user into
@@ -26,10 +43,6 @@ import { createClient } from '@supabase/supabase-js';
 // ── Config ────────────────────────────────────────────────────────────────────
 const OWN_SUPABASE_URL      = import.meta.env.VITE_SUPABASE_URL;
 const OWN_SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-// Kumii's Supabase project — the JWT we receive IS a session on this project
-const KUMII_SUPABASE_URL      = 'https://qypazgkngxhazgkuevwq.supabase.co';
-const KUMII_SUPABASE_ANON_KEY = import.meta.env.VITE_KUMII_SUPABASE_ANON_KEY ?? '';
 
 const TIMEOUT_MS      = 15_000;
 const RETRY_MS        = 500;
@@ -81,23 +94,6 @@ function getOwnSupabase() {
     });
   }
   return _ownSupabase;
-}
-
-/** Kumii's Supabase — hydrated with the JWT received from the parent */
-let _kumiiSupabase = null;
-export function getKumiiSupabase() {
-  if (!_kumiiSupabase && KUMII_SUPABASE_ANON_KEY) {
-    _kumiiSupabase = createClient(KUMII_SUPABASE_URL, KUMII_SUPABASE_ANON_KEY, {
-      auth: { persistSession: false, autoRefreshToken: false },
-    });
-  }
-  return _kumiiSupabase;
-}
-
-async function hydrateKumiiSession(token) {
-  const client = getKumiiSupabase();
-  if (!client) return;
-  await client.auth.setSession({ access_token: token, refresh_token: '' });
 }
 
 // ── isEmbedded ────────────────────────────────────────────────────────────────
@@ -270,7 +266,7 @@ function doHandshake(reason = 'initial') {
       reject(new Error('[authBridge] Timed out waiting for KUMII_AUTH_TOKEN'));
     }, TIMEOUT_MS);
 
-    function handler(event) {
+    async function handler(event) {
       if (!isTrustedParent(event.origin)) {
         // Log untrusted origins so we can detect if the message comes from
         // an unexpected origin (e.g. different subdomain, HTTP instead of HTTPS)

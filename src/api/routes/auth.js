@@ -26,7 +26,7 @@ const router = express.Router();
 
 const HUB_JWT_SECRET = process.env.HUB_JWT_SECRET;
 if (!HUB_JWT_SECRET) {
-  throw new Error('[HUB:SYNC] HUB_JWT_SECRET env var is required but not set');
+  logger.warn('[HUB:SYNC] HUB_JWT_SECRET is not set — /api/auth/sync will fail');
 }
 
 /**
@@ -61,6 +61,10 @@ router.post('/sync', async (req, res) => {
   }
   if (!email || typeof email !== 'string') {
     return res.status(400).json({ error: 'email is required' });
+  }
+  if (!HUB_JWT_SECRET) {
+    logger.error('[HUB:SYNC] HUB_JWT_SECRET is not configured');
+    return res.status(500).json({ error: 'Server misconfiguration: missing JWT secret' });
   }
 
   const name = profile?.first_name && profile?.last_name
