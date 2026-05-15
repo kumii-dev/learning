@@ -44,7 +44,7 @@ const KUMII_JWKS = createRemoteJWKSet(
  * Response 401: invalid token
  */
 router.post('/sync', async (req, res) => {
-  const { token } = req.body ?? {};
+  const { token, profile, startup } = req.body ?? {};
 
   if (!token || typeof token !== 'string') {
     return res.status(400).json({ error: 'token is required' });
@@ -61,33 +61,82 @@ router.post('/sync', async (req, res) => {
   }
 
   const kumiiUserId = payload.sub;            // Kumii's UUID for this user
-  const email       = payload.email ?? '';
-  const name        = payload.user_metadata?.full_name
+  const email       = profile?.email   ?? payload.email ?? '';
+  const name        = profile?.first_name && profile?.last_name
+                    ? `${profile.first_name} ${profile.last_name}`.trim()
+                    : profile?.first_name
+                   || payload.user_metadata?.full_name
                    || payload.user_metadata?.name
                    || email.split('@')[0];
 
   // ── Upsert into hub's profiles table ──────────────────────────────────────
-  // The profiles table mirrors the user just enough for the hub to function.
   // Schema expected:
   //   public.profiles (
-  //     id          uuid primary key,   -- Kumii's user UUID
-  //     email       text,
-  //     full_name   text,
-  //     kumii_id    uuid,               -- same as id; kept for clarity
-  //     updated_at  timestamptz
+  //     id                          uuid primary key,   -- Kumii's user UUID
+  //     email                       text,
+  //     full_name                   text,
+  //     kumii_id                    uuid,
+  //     phone                       text,
+  //     location                    text,
+  //     bio                         text,
+  //     organization                text,
+  //     persona_type                text,
+  //     profile_picture_url         text,
+  //     industry_sectors            jsonb,
+  //     skills                      jsonb,
+  //     interests                   jsonb,
+  //     profile_completion_pct      int,
+  //     linkedin_url                text,
+  //     twitter_url                 text,
+  //     startup_company_name        text,
+  //     startup_industry            text,
+  //     startup_stage               text,
+  //     startup_description         text,
+  //     startup_location            text,
+  //     startup_website             text,
+  //     startup_team_size           int,
+  //     startup_founded_year        int,
+  //     startup_key_products        text,
+  //     updated_at                  timestamptz
   //   )
+  const upsertRow = {
+    id:                      kumiiUserId,
+    email,
+    full_name:               name,
+    kumii_id:                kumiiUserId,
+    updated_at:              new Date().toISOString(),
+    // Enrich from profile if provided (all fields are optional)
+    ...(profile && {
+      phone:                       profile.phone                        ?? null,
+      location:                    profile.location                     ?? null,
+      bio:                         profile.bio                          ?? null,
+      organization:                profile.organization                 ?? null,
+      persona_type:                profile.persona_type                 ?? null,
+      profile_picture_url:         profile.profile_picture_url          ?? null,
+      industry_sectors:            profile.industry_sectors             ?? null,
+      skills:                      profile.skills                       ?? null,
+      interests:                   profile.interests                    ?? null,
+      profile_completion_pct:      profile.profile_completion_percentage ?? null,
+      linkedin_url:                profile.linkedin_url                 ?? null,
+      twitter_url:                 profile.twitter_url                  ?? null,
+    }),
+    // Flatten startup into profile row (avoids a separate table join on every read)
+    ...(startup && {
+      startup_company_name:   startup.company_name        ?? null,
+      startup_industry:       startup.industry            ?? null,
+      startup_stage:          startup.stage               ?? null,
+      startup_description:    startup.description         ?? null,
+      startup_location:       startup.location            ?? null,
+      startup_website:        startup.website             ?? null,
+      startup_team_size:      startup.team_size           ?? null,
+      startup_founded_year:   startup.founded_year        ?? null,
+      startup_key_products:   startup.key_products_services ?? null,
+    }),
+  };
+
   const { error: upsertError } = await supabaseAdmin
     .from('profiles')
-    .upsert(
-      {
-        id:         kumiiUserId,
-        email,
-        full_name:  name,
-        kumii_id:   kumiiUserId,
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: 'id' }
-    );
+    .upsert(upsertRow, { onConflict: 'id' });
 
   if (upsertError) {
     // Non-fatal: log and continue — the user can still browse, just without

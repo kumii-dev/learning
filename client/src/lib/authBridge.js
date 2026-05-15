@@ -6,17 +6,19 @@
  *  1. Try own Supabase session (dev / standalone mode)
  *  2. If not found → send REQUEST_AUTH_TOKEN to parent (retry every 500 ms)
  *  3. Listen for KUMII_AUTH_TOKEN from a trusted parent origin → store in memory
- *  4. Call POST /api/auth/sync with the JWT → hub upserts user into its own DB
- *  5. Server returns { id, email, isAdmin } from hub's user_roles table
- *  6. Refresh the token every 50 min (re-request with reason:"refresh")
+ *  4. Kumii then fetches the user profile and posts KUMII_USER_PROFILE (separate
+ *     persistent listener — arrives shortly after the token).
+ *  5. Call POST /api/auth/sync with the JWT + profile → hub upserts user into
+ *     its own Supabase DB; server returns { id, email, isAdmin }.
+ *  6. Refresh the token every 50 min (re-request with reason:"refresh").
  *
  * SECURITY:
- *  - Token stored in module-level memory only (never localStorage / sessionStorage)
+ *  - Token/profile stored in module-level memory only (never localStorage/sessionStorage)
  *  - Incoming messages validated against a strict origin allow-list
  *  - REQUEST_AUTH_TOKEN sent with "*" (parent origin unknown from inside iframe)
  *  - Outgoing events sent to captured parentOrigin — never "*"
  *  - isAdmin is authoritative from the SERVER (hub's own user_roles), not from Kumii
- *  - JWT is never logged
+ *  - JWT, user_id and email are never logged
  */
 
 import { createClient } from '@supabase/supabase-js';
@@ -53,11 +55,20 @@ let _isAdmin      = false;
 let _email        = null;
 let _parentOrigin = null; // captured from first trusted KUMII_AUTH_TOKEN message
 
+/** Full profile from KUMII_USER_PROFILE message (null until received). */
+let _profile      = null;
+/** Startup profile from KUMII_USER_PROFILE message (null if user has no startup). */
+let _startup      = null;
+
 export const getToken        = () => _token;
 export const getPersona      = () => _persona;
 export const getIsAdmin      = () => _isAdmin;
 export const getEmail        = () => _email;
 export const getParentOrigin = () => _parentOrigin;
+/** Returns the full Kumii profile object, or null if not yet received. */
+export const getProfile      = () => _profile;
+/** Returns the Kumii startup object, or null if user has no startup or not yet received. */
+export const getStartup      = () => _startup;
 
 // ── Supabase clients ──────────────────────────────────────────────────────────
 
@@ -108,20 +119,22 @@ export function sendToParent(message) {
 
 // ── Hub sync ──────────────────────────────────────────────────────────────────
 /**
- * Send the Kumii JWT to the hub's own backend.
- * The server verifies it, upserts the user into hub's Supabase, and returns
+ * Send the Kumii JWT (and optional profile snapshot) to the hub's own backend.
+ * The server verifies the JWT, upserts the user into hub's Supabase, and returns
  * { id, email, isAdmin } sourced from the hub's own user_roles table.
- * This makes the hub fully self-contained — Kumii's Supabase is never touched
- * server-side after this point.
+ *
+ * @param {string} token  - Kumii JWT
+ * @param {object|null} profile  - KUMII_USER_PROFILE.profile (optional)
+ * @param {object|null} startup  - KUMII_USER_PROFILE.startup (optional)
  */
-async function syncWithHub(token) {
+async function syncWithHub(token, profile = null, startup = null) {
   const apiBase = import.meta.env.VITE_API_BASE_URL
     ? import.meta.env.VITE_API_BASE_URL.replace(/\/$/, '')
     : '';
   const res = await fetch(`${apiBase}/api/auth/sync`, {
     method:  'POST',
     headers: { 'Content-Type': 'application/json' },
-    body:    JSON.stringify({ token }),
+    body:    JSON.stringify({ token, profile, startup }),
   });
   if (!res.ok) {
     console.warn('[authBridge] /api/auth/sync failed', res.status);
@@ -135,6 +148,46 @@ async function syncWithHub(token) {
     _persona = isAdmin ? 'admin' : 'learner';
   }
 }
+
+// ── KUMII_USER_PROFILE listener ───────────────────────────────────────────────
+/**
+ * Persistent listener for the profile message that Kumii sends AFTER the JWT.
+ * Installed once at module load time. Safe to fire multiple times (refresh).
+ *
+ * On receipt:
+ *  - Stores profile + startup in memory (accessible via getProfile / getStartup)
+ *  - Re-syncs the hub backend so the profiles table is enriched with real names,
+ *    avatar, organisation, etc. Uses the already-cached token.
+ *  - Dispatches a DOM CustomEvent ("kumii:profile") so React components can
+ *    react without polling.
+ */
+(function installProfileListener() {
+  if (typeof window === 'undefined') return;
+  window.addEventListener('message', (event) => {
+    if (!isTrustedParent(event.origin)) return;
+    const { type, profile, startup, isAdmin, persona } = event.data ?? {};
+    if (type !== 'KUMII_USER_PROFILE') return;
+
+    // Store profile data
+    if (profile) _profile = profile;
+    if (startup !== undefined) _startup = startup ?? null; // null = no startup
+
+    // isAdmin from Kumii is provisional; server is the source of truth.
+    // Update immediately for fast UX, then the syncWithHub call below corrects it.
+    if (typeof isAdmin  === 'boolean') { _isAdmin = isAdmin; }
+    if (typeof persona  === 'string')  { _persona = persona; }
+
+    // Re-sync hub backend with enriched profile data (token already cached)
+    if (_token) {
+      syncWithHub(_token, profile ?? null, startup ?? null).catch(() => {});
+    }
+
+    // Notify React components
+    window.dispatchEvent(
+      new CustomEvent('kumii:profile', { detail: { profile: _profile, startup: _startup } })
+    );
+  });
+})();
 
 // ── Handshake ─────────────────────────────────────────────────────────────────
 let _refreshTimer = null;
