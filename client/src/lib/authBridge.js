@@ -119,25 +119,58 @@ export function sendToParent(message) {
 
 // ── Hub sync ──────────────────────────────────────────────────────────────────
 /**
- * Send the Kumii JWT (and optional profile snapshot) to the hub's own backend.
- * The server verifies the JWT, upserts the user into hub's Supabase, and returns
- * { id, email, isAdmin } sourced from the hub's own user_roles table.
- *
- * @param {string} token  - Kumii JWT
- * @param {object|null} profile  - KUMII_USER_PROFILE.profile (optional)
- * @param {object|null} startup  - KUMII_USER_PROFILE.startup (optional)
+ * Extract the `sub` (user UUID) from a Kumii JWT without verifying it.
+ * We only need the identity claim; signature verification happens server-side
+ * when the hub's own DB is used to check roles.
+ * @param {string} kumiiJwt
+ * @returns {string|null}
  */
-async function syncWithHub(token, profile = null, startup = null) {
+function extractSubFromJwt(kumiiJwt) {
+  try {
+    const payload = JSON.parse(atob(kumiiJwt.split('.')[1]));
+    return payload.sub ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Send the user identity (NOT the Kumii JWT) to the hub's own backend.
+ * The server upserts the user into hub's Supabase, checks hub-side roles,
+ * and returns a HUB JWT signed with HUB_JWT_SECRET.
+ *
+ * The Kumii JWT is only used locally to extract `userId`; it is never forwarded.
+ *
+ * @param {string} kumiiJwt  - Kumii JWT (used only to extract userId)
+ * @param {object|null} profile  - from KUMII_USER_PROFILE postMessage
+ * @param {object|null} startup  - from KUMII_USER_PROFILE postMessage
+ */
+async function syncWithHub(kumiiJwt, profile = null, startup = null) {
+  const userId = extractSubFromJwt(kumiiJwt)
+    ?? profile?.user_id
+    ?? profile?.id
+    ?? null;
+
+  if (!userId) {
+    console.warn('[HUB:BRIDGE] syncWithHub — could not extract userId, skipping sync');
+    return;
+  }
+
+  const email   = _email ?? profile?.email ?? '';
+  const persona = _persona ?? 'learner';
+  const isAdmin = _isAdmin ?? false;
+
   const apiBase = import.meta.env.VITE_API_BASE_URL
     ? import.meta.env.VITE_API_BASE_URL.replace(/\/$/, '')
     : '';
   const url = `${apiBase}/api/auth/sync`;
   console.log('[HUB:BRIDGE] syncWithHub →', url,
-    '| hasProfile:', !!profile, '| hasStartup:', !!startup);
+    '| userId redacted | hasProfile:', !!profile, '| hasStartup:', !!startup);
+
   const res = await fetch(url, {
     method:  'POST',
     headers: { 'Content-Type': 'application/json' },
-    body:    JSON.stringify({ token, profile, startup }),
+    body:    JSON.stringify({ userId, email, isAdmin, persona, profile, startup }),
   });
   console.log('[HUB:BRIDGE] syncWithHub ←', res.status);
   if (!res.ok) {
@@ -145,13 +178,16 @@ async function syncWithHub(token, profile = null, startup = null) {
     console.warn('[HUB:BRIDGE] /api/auth/sync failed', res.status, body);
     return;
   }
-  const { id, email, isAdmin } = await res.json();
-  console.log('[HUB:BRIDGE] syncWithHub resolved — isAdmin:', isAdmin);
-  // Update in-memory store with server-authoritative values
-  if (id)    _email   = email   ?? _email;
-  if (typeof isAdmin === 'boolean') {
-    _isAdmin = isAdmin;
-    _persona = isAdmin ? 'admin' : 'learner';
+  const { token: hubToken, isAdmin: serverIsAdmin } = await res.json();
+  console.log('[HUB:BRIDGE] syncWithHub resolved — isAdmin:', serverIsAdmin);
+
+  // Store the HUB JWT — this replaces the Kumii JWT for all API calls
+  if (hubToken) _token = hubToken;
+
+  // Update admin/persona from server-authoritative value
+  if (typeof serverIsAdmin === 'boolean') {
+    _isAdmin = serverIsAdmin;
+    _persona = serverIsAdmin ? 'admin' : 'learner';
   }
 }
 
@@ -268,9 +304,9 @@ function doHandshake(reason = 'initial') {
       _isAdmin      = isAdmin === true; // provisional — server will confirm
       _email        = email ?? null;
 
-      // Sync user into hub's Supabase DB; let server confirm real admin status
+      // Sync user into hub's Supabase DB; server confirms real admin status
+      // and returns a hub-issued JWT stored as _token by syncWithHub
       syncWithHub(token).catch(() => {});
-      hydrateKumiiSession(token).catch(() => {});
       scheduleRefresh();
       resolve(token);
     }

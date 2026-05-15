@@ -3,74 +3,28 @@
  * JWT authentication middleware for every protected Express route.
  *
  * Auth flow:
- *  1.  Kumii/Lovable sends the logged-in user via postMessage.
- *  2.  The hub frontend calls POST /api/auth/sync which upserts the user
- *      into the hub's own Supabase (njcancswtqnxihxavshl).
- *  3.  Every subsequent API request carries the Kumii JWT as Bearer token.
- *  4.  This middleware validates the token by calling auth.getUser() on
- *      Kumii's Supabase using their public ANON key — Kumii's own auth
- *      server verifies the HS256 signature. No Kumii secret is required.
- *  5.  Admin status is checked in the hub's OWN user_roles table.
+ *  1.  Kumii/Lovable sends the logged-in user via postMessage (origin-validated).
+ *  2.  The hub frontend calls POST /api/auth/sync with the user identity fields.
+ *  3.  /api/auth/sync upserts the user into hub's own Supabase and returns a
+ *      HUB JWT signed with HUB_JWT_SECRET.
+ *  4.  Every subsequent API request carries that hub JWT as the Bearer token.
+ *  5.  This middleware verifies the hub JWT locally — no external call needed.
+ *  6.  Admin status is checked in the hub's OWN user_roles table.
  *
- * Why not JWKS?  Supabase issues HS256 (symmetric HMAC) tokens by default.
- * createRemoteJWKSet only supports asymmetric algorithms (RS256/ES256).
- * Using auth.getUser() delegates verification to Kumii's auth server, which
- * is the correct approach for symmetric JWTs from a third-party project.
+ * Kumii/Lovable's Supabase is NEVER contacted here.
  *
- * Attaches:  req.user = { id, email, persona, isAdmin }
+ * Attaches: req.user = { id, email, persona, isAdmin }
  */
 
 'use strict';
 
-const { createClient }  = require('@supabase/supabase-js');
+const jwt               = require('jsonwebtoken');
 const { supabaseAdmin } = require('../integrations/supabase');
 const logger            = require('../utils/logger');
 
-// ── Kumii's Supabase — used only for auth.getUser() token validation ──────────
-// The anon key is the PUBLIC key (same one every browser user already has).
-// No service-role key or secret is needed.
-const KUMII_SUPABASE_URL      = process.env.KUMII_SUPABASE_URL
-  || 'https://qypazgkngxhazgkuevwq.supabase.co';
-const KUMII_SUPABASE_ANON_KEY = process.env.KUMII_SUPABASE_ANON_KEY;
-
-if (!KUMII_SUPABASE_ANON_KEY) {
-  logger.warn('[HUB:AUTH] KUMII_SUPABASE_ANON_KEY is not set — token validation will fail');
-}
-
-// Single shared client (no session persistence — stateless per request)
-const kumiiAuthClient = createClient(KUMII_SUPABASE_URL, KUMII_SUPABASE_ANON_KEY || 'missing', {
-  auth: { persistSession: false, autoRefreshToken: false },
-});
-
-/**
- * Validate the bearer token by asking Kumii's auth server.
- * Returns { id, email } on success, throws on failure.
- */
-async function verifyToken(token) {
-  const preview = token ? `${token.slice(0, 40)}…` : '(empty)';
-  logger.info('[HUB:AUTH] verifyToken called', {
-    tokenLength:  token?.length ?? 0,
-    looksLikeJWT: token?.startsWith('eyJ') ?? false,
-    tokenPreview: preview,
-  });
-
-  const { data, error } = await kumiiAuthClient.auth.getUser(token);
-
-  if (error || !data?.user) {
-    logger.warn('[HUB:AUTH] getUser FAILED', {
-      errorMessage: error?.message,
-      errorStatus:  error?.status,
-      tokenPreview: preview,
-      kumiiUrl:     KUMII_SUPABASE_URL,
-      hasAnonKey:   !!KUMII_SUPABASE_ANON_KEY,
-    });
-    throw Object.assign(new Error(error?.message || 'Token invalid'), {
-      name: 'TokenValidationFailed',
-    });
-  }
-
-  logger.info('[HUB:AUTH] getUser OK', { id: data.user.id });
-  return { id: data.user.id, email: data.user.email ?? '' };
+const HUB_JWT_SECRET = process.env.HUB_JWT_SECRET;
+if (!HUB_JWT_SECRET) {
+  throw new Error('[HUB:AUTH] HUB_JWT_SECRET env var is required but not set');
 }
 
 /**
@@ -108,14 +62,26 @@ async function authenticate(req, res, next) {
       return res.status(401).json({ error: 'Missing or malformed Authorization header' });
     }
 
-    const token           = authHeader.split(' ')[1];
-    const { id, email }   = await verifyToken(token);
-    const isAdmin         = await checkHasRole(id, 'admin');
+    const token = authHeader.slice(7);
+
+    let decoded;
+    try {
+      decoded = jwt.verify(token, HUB_JWT_SECRET);
+    } catch (err) {
+      logger.warn('[HUB:AUTH] hub JWT invalid', {
+        name: err.name, message: err.message, path: req.path,
+      });
+      return res.status(401).json({ error: 'Unauthorised', detail: err.name });
+    }
+
+    const userId  = decoded.sub;
+    const email   = decoded.email ?? '';
+    const isAdmin = await checkHasRole(userId, 'admin');
 
     logger.info('[HUB:AUTH] authenticate OK', { isAdmin });
 
     req.user = {
-      id,
+      id:      userId,
       email,
       persona: isAdmin ? 'admin' : 'learner',
       isAdmin,
@@ -123,11 +89,8 @@ async function authenticate(req, res, next) {
 
     next();
   } catch (err) {
-    logger.warn('[HUB:AUTH] authenticate rejected', {
-      name:    err.name,
-      message: err.message,
-    });
-    return res.status(401).json({ error: 'Unauthorised', detail: err.name });
+    logger.error('[HUB:AUTH] unexpected error', { message: err.message });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 }
 
