@@ -1,0 +1,18 @@
+/* app/courses/[id]/page.module.css */
+.page        { max-width: 860px; margin: 0 auto; padding: 2rem 1rem; }
+.back        { font-size: .875rem; margin-bottom: 1rem; display: inline-block; }
+.heading     { font-size: 1.75rem; font-weight: 700; margin-bottom: .5rem; }
+.desc        { color: var(--color-muted); margin-bottom: 1.5rem; }
+.btn         { background: var(--color-primary); color: #fff; border: none; border-radius: var(--radius); padding: .5rem 1.25rem; cursor: pointer; font-weight: 600; margin-bottom: 2rem; }
+.btn:hover   { opacity: .9; }
+.state       { color: var(--color-muted); }
+.error       { color: #b91c1c; }
+.modules     { margin-bottom: 2rem; }
+.modules h2, .assessments h2 { font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; }
+.moduleList  { list-style: decimal; padding-left: 1.5rem; }
+.moduleItem  { margin-bottom: 1.5rem; }
+.moduleItem h3 { font-weight: 600; margin-bottom: .25rem; }
+.content     { font-size: .9rem; color: var(--color-muted); }
+.assessments ul { list-style: disc; padding-left: 1.5rem; }
+.assessments li { margin-bottom: .5rem; }
+.type        { color: var(--color-muted); font-size: .8rem; }

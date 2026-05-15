@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<!--
+  public/test-parent.html
+  ─────────────────────────────────────────────────────────────────────────────
+  Development harness that simulates the Kumii host platform.
+  Embeds the Learning Hub in an iframe and performs the auth handshake.
+
+  Usage:
+    Open this file via a local web server (e.g. npx serve public) and
+    ensure the Learning Hub dev server is running on http://localhost:3000.
+
+  ⚠️  NEVER deploy this file to production.
+-->
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kumii Host — Test Harness</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; background: #0f172a; color: #f1f5f9; display: flex; flex-direction: column; height: 100vh; }
+    header { background: #1e293b; padding: .75rem 1.5rem; display: flex; align-items: center; gap: 1rem; border-bottom: 1px solid #334155; }
+    header h1 { font-size: 1rem; font-weight: 600; }
+    .badge { background: #22c55e; color: #052e16; font-size: .7rem; font-weight: 700; padding: .15rem .5rem; border-radius: 999px; }
+    .controls { display: flex; gap: .5rem; margin-left: auto; }
+    button { background: #3b82f6; color: #fff; border: none; border-radius: 6px; padding: .4rem .9rem; cursor: pointer; font-size: .8rem; font-weight: 600; }
+    button:hover { opacity: .85; }
+    iframe { flex: 1; border: none; width: 100%; }
+    #log { position: fixed; bottom: 0; left: 0; right: 0; max-height: 180px; overflow-y: auto; background: #0f172a; border-top: 1px solid #334155; padding: .5rem 1rem; font-family: monospace; font-size: .75rem; }
+    #log p { margin-bottom: .2rem; }
+    .in  { color: #86efac; }
+    .out { color: #93c5fd; }
+    .warn { color: #fbbf24; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>🧪 Kumii Host Test Harness</h1>
+  <span class="badge">DEV ONLY</span>
+  <div class="controls">
+    <button onclick="sendToken()">Send Token</button>
+    <button onclick="setPersona('admin')">Set Admin</button>
+    <button onclick="setPersona('learner')">Set Learner</button>
+    <button onclick="clearLog()">Clear Log</button>
+  </div>
+</header>
+
+<iframe
+  id="hub"
+  src="http://localhost:3000"
+  allow="same-origin"
+  title="Kumii Learning Hub"
+></iframe>
+
+<div id="log"></div>
+
+<script>
+  const HUB_ORIGIN = 'http://localhost:3000';
+  // In a real test, replace with a valid Supabase JWT for the test user.
+  const TEST_TOKEN = 'REPLACE_WITH_VALID_SUPABASE_JWT';
+
+  const hub = document.getElementById('hub');
+  const log = document.getElementById('log');
+
+  function addLog(dir, msg) {
+    const p = document.createElement('p');
+    p.className = dir;
+    p.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+    log.appendChild(p);
+    log.scrollTop = log.scrollHeight;
+  }
+
+  function sendToHub(message) {
+    hub.contentWindow.postMessage(message, HUB_ORIGIN);
+    addLog('out', `→ hub: ${JSON.stringify(message)}`);
+  }
+
+  function sendToken() {
+    sendToHub({ type: 'KUMII_AUTH_TOKEN', token: TEST_TOKEN, persona: 'learner' });
+  }
+
+  function setPersona(persona) {
+    sendToHub({ type: 'SET_PERSONA', persona });
+  }
+
+  function clearLog() {
+    log.innerHTML = '';
+  }
+
+  // Listen for messages from the Learning Hub
+  window.addEventListener('message', (event) => {
+    if (event.origin !== HUB_ORIGIN) {
+      addLog('warn', `⚠ Ignored message from unknown origin: ${event.origin}`);
+      return;
+    }
+
+    const { type, ...payload } = event.data ?? {};
+    addLog('in', `← hub: ${type} ${Object.keys(payload).length ? JSON.stringify(payload) : ''}`);
+
+    switch (type) {
+      case 'REQUEST_AUTH_TOKEN':
+        // Auto-respond with the test token
+        sendToken();
+        break;
+
+      case 'NAVIGATE_TO_COURSES':
+        addLog('in', '  → [host would navigate to /courses]');
+        break;
+
+      case 'NAVIGATE_TO_PROFILE':
+        addLog('in', '  → [host would navigate to /profile]');
+        break;
+
+      case 'COURSE_COMPLETED':
+        addLog('in', `  → [host notified: course ${payload.courseId} completed]`);
+        break;
+
+      case 'CERTIFICATE_ISSUED':
+        addLog('in', `  → [host notified: cert ${payload.certId} issued]`);
+        break;
+
+      default:
+        break;
+    }
+  });
+
+  addLog('out', 'Test harness ready — waiting for Learning Hub…');
+</script>
+</body>
+</html>

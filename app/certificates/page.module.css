@@ -1,0 +1,13 @@
+/* app/certificates/page.module.css */
+.page    { max-width: 900px; margin: 0 auto; padding: 2rem 1rem; }
+.heading { font-size: 1.75rem; font-weight: 700; margin-bottom: 1.5rem; }
+.state   { color: var(--color-muted); }
+.error   { color: #b91c1c; }
+.grid    { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1.25rem; }
+.card    { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius); padding: 1.5rem; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: .5rem; }
+.icon    { font-size: 2.5rem; }
+.card h3 { font-size: 1rem; font-weight: 600; }
+.meta    { font-size: .8rem; color: var(--color-muted); }
+.actions { display: flex; gap: .5rem; margin-top: .5rem; flex-wrap: wrap; }
+.link    { font-size: .8rem; background: var(--color-primary); color: #fff; padding: .35rem .75rem; border-radius: var(--radius); }
+.btnSecondary { font-size: .8rem; background: transparent; border: 1px solid var(--color-primary); color: var(--color-primary); padding: .35rem .75rem; border-radius: var(--radius); cursor: pointer; }
