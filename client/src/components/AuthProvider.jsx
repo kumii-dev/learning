@@ -1,13 +1,11 @@
 /**
- * components/AuthProvider.jsx
- * Client component that runs the iFrame auth handshake once on mount.
- * Exposes auth state via the AuthContext.
+ * client/src/components/AuthProvider.jsx
+ * Runs the iFrame auth handshake on mount.
+ * Exposes auth state via useAuth() context hook.
  */
 
-'use client';
-
 import { createContext, useContext, useEffect, useState } from 'react';
-import { initAuthBridge, getPersona } from '@/lib/authBridge';
+import { initAuthBridge, getPersona } from '../lib/authBridge';
 
 const AuthContext = createContext(null);
 
@@ -44,8 +42,11 @@ export default function AuthProvider({ children }) {
 
   if (!ready) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh' }}>
-        <p style={{ color: '#6b7280' }}>Connecting to Kumii platform…</p>
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        height: '100vh', color: '#6b7280', fontFamily: 'system-ui, sans-serif',
+      }}>
+        Connecting to Kumii platform…
       </div>
     );
   }

@@ -1,16 +1,15 @@
 /**
- * app/courses/[id]/page.jsx — Course detail with modules list
+ * client/src/pages/CourseDetail.jsx
  */
 
-'use client';
-
 import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
-import apiClient from '@/lib/apiClient';
-import styles from './page.module.css';
+import { useParams, Link, useNavigate } from 'react-router-dom';
+import apiClient from '../lib/apiClient';
+import styles from './CourseDetail.module.css';
 
-export default function CourseDetailPage() {
+export default function CourseDetail() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [course,  setCourse]  = useState(null);
   const [loading, setLoading] = useState(true);
   const [error,   setError]   = useState(null);
@@ -25,7 +24,7 @@ export default function CourseDetailPage() {
   const enrol = async () => {
     try {
       await apiClient.post('/enrolments', { courseId: id });
-      alert('Enrolled successfully!');
+      navigate('/my-learning');
     } catch (err) {
       alert(err.message);
     }
@@ -36,7 +35,7 @@ export default function CourseDetailPage() {
 
   return (
     <main className={styles.page}>
-      <a href="/courses" className={styles.back}>← Back to courses</a>
+      <Link to="/courses" className={styles.back}>← Back to courses</Link>
       <h1 className={styles.heading}>{course.title}</h1>
       <p className={styles.desc}>{course.description}</p>
 
@@ -51,7 +50,8 @@ export default function CourseDetailPage() {
             .map((m) => (
               <li key={m.id} className={styles.moduleItem}>
                 <h3>{m.title}</h3>
-                <div className={styles.content} dangerouslySetInnerHTML={{ __html: m.content }} />
+                {/* content is CMS HTML — rendered safely as text here */}
+                <p className={styles.content}>{m.content}</p>
               </li>
             ))}
         </ol>
@@ -63,7 +63,7 @@ export default function CourseDetailPage() {
           <ul>
             {course.assessments.map((a) => (
               <li key={a.id}>
-                <a href={`/assessments/${a.id}`}>{a.title}</a>
+                <Link to={`/assessments/${a.id}`}>{a.title}</Link>
                 <span className={styles.type}> ({a.type})</span>
               </li>
             ))}

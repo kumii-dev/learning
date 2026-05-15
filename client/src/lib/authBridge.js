@@ -1,39 +1,35 @@
 /**
- * lib/authBridge.js
- * iFrame ↔ Kumii host auth handshake (client-side, browser only).
+ * client/src/lib/authBridge.js
+ * iFrame ↔ Kumii host auth handshake (browser-only).
  *
  * Flow:
- *  1. Try Supabase session (dev mode)
+ *  1. Try Supabase session (dev / standalone mode)
  *  2. If not found → send REQUEST_AUTH_TOKEN to parent
- *  3. Listen for KUMII_AUTH_TOKEN → store token in memory
- *  4. Resolve the promise so callers get the token
+ *  3. Listen for KUMII_AUTH_TOKEN from parent → store in memory
  *
  * SECURITY:
- *  - Token stored in module-level memory ONLY (never localStorage)
+ *  - Token stored in module-level memory only (never localStorage)
  *  - All incoming messages validated against TRUSTED_ORIGINS
- *  - postMessage target origin is KUMII_HOST_ORIGIN (never "*")
+ *  - postMessage target is KUMII_HOST_ORIGIN — never "*"
  */
-
-'use client';
 
 import { createClient } from '@supabase/supabase-js';
 
-const SUPABASE_URL      = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-const KUMII_HOST_ORIGIN = process.env.NEXT_PUBLIC_KUMII_HOST_ORIGIN || 'http://localhost:3000';
-
-const TRUSTED_ORIGINS = (process.env.NEXT_PUBLIC_KUMII_TRUSTED_ORIGINS || KUMII_HOST_ORIGIN)
+const SUPABASE_URL       = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_ANON_KEY  = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const KUMII_HOST_ORIGIN  = import.meta.env.VITE_KUMII_HOST_ORIGIN  || 'http://localhost:3000';
+const TRUSTED_ORIGINS    = (import.meta.env.VITE_KUMII_TRUSTED_ORIGINS || KUMII_HOST_ORIGIN)
   .split(',')
   .map((o) => o.trim());
 
-// ── In-memory token store (no persistence) ───────────────────────────────────
+// ── In-memory token store ─────────────────────────────────────────────────────
 let _token   = null;
 let _persona = null;
 
-export function getToken()   { return _token; }
-export function getPersona() { return _persona; }
+export const getToken   = () => _token;
+export const getPersona = () => _persona;
 
-// ── Supabase client (browser) ────────────────────────────────────────────────
+// ── Supabase client (browser) ─────────────────────────────────────────────────
 let _supabase = null;
 function getSupabase() {
   if (!_supabase && SUPABASE_URL && SUPABASE_ANON_KEY) {
@@ -62,19 +58,18 @@ export function isEmbedded() {
 export function sendToParent(message) {
   if (!isEmbedded()) return;
   window.parent.postMessage(message, KUMII_HOST_ORIGIN);
-  if (process.env.NODE_ENV !== 'production') {
+  if (import.meta.env.DEV) {
     console.debug('[authBridge] → parent', message);
   }
 }
 
 /**
  * Initialise the auth bridge.
- * Returns a promise that resolves with the JWT once obtained.
- *
+ * Returns a Promise that resolves with the JWT once obtained.
  * @returns {Promise<string>}
  */
 export async function initAuthBridge() {
-  // ── Step 1: Try Supabase session (dev / standalone mode) ─────────────────
+  // Step 1: Try Supabase dev session
   const supabase = getSupabase();
   if (supabase) {
     const { data } = await supabase.auth.getSession();
@@ -85,7 +80,7 @@ export async function initAuthBridge() {
     }
   }
 
-  // ── Step 2: Request token from Kumii host via postMessage ─────────────────
+  // Step 2: Request token from Kumii host via postMessage
   return new Promise((resolve, reject) => {
     const timeout = setTimeout(() => {
       window.removeEventListener('message', handler);
@@ -93,7 +88,6 @@ export async function initAuthBridge() {
     }, 10_000);
 
     function handler(event) {
-      // Validate origin — never trust unknown sources
       if (!TRUSTED_ORIGINS.includes(event.origin)) {
         console.warn('[authBridge] Rejected message from untrusted origin:', event.origin);
         return;
@@ -101,7 +95,7 @@ export async function initAuthBridge() {
 
       const { type, token, persona } = event.data ?? {};
 
-      if (process.env.NODE_ENV !== 'production') {
+      if (import.meta.env.DEV) {
         console.debug('[authBridge] ← parent', { type });
       }
 
@@ -121,17 +115,16 @@ export async function initAuthBridge() {
 
     window.addEventListener('message', handler);
 
-    // ── Step 3: Send REQUEST_AUTH_TOKEN to parent ─────────────────────────
+    // Step 3: Send REQUEST_AUTH_TOKEN to parent
     sendToParent({ type: 'REQUEST_AUTH_TOKEN' });
   });
 }
 
-// ── Outgoing message helpers ─────────────────────────────────────────────────
-
+// ── Outgoing message helpers ──────────────────────────────────────────────────
 export const notify = {
-  openDocument:       (documentId)   => sendToParent({ type: 'OPEN_DOCUMENT', documentId }),
-  navigateToProfile:  ()             => sendToParent({ type: 'NAVIGATE_TO_PROFILE' }),
-  navigateToCourses:  ()             => sendToParent({ type: 'NAVIGATE_TO_COURSES' }),
-  courseCompleted:    (courseId)     => sendToParent({ type: 'COURSE_COMPLETED', courseId }),
-  certificateIssued:  (certId)       => sendToParent({ type: 'CERTIFICATE_ISSUED', certId }),
+  openDocument:      (documentId) => sendToParent({ type: 'OPEN_DOCUMENT', documentId }),
+  navigateToProfile: ()           => sendToParent({ type: 'NAVIGATE_TO_PROFILE' }),
+  navigateToCourses: ()           => sendToParent({ type: 'NAVIGATE_TO_COURSES' }),
+  courseCompleted:   (courseId)   => sendToParent({ type: 'COURSE_COMPLETED', courseId }),
+  certificateIssued: (certId)     => sendToParent({ type: 'CERTIFICATE_ISSUED', certId }),
 };

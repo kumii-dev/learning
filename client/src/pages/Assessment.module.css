@@ -1,0 +1,70 @@
+.page { max-width: 760px; margin: 0 auto; padding: 2rem 1.5rem; }
+.heading { font-size: 1.6rem; color: var(--fg); margin-bottom: 0.25rem; }
+.type { font-size: 0.8rem; opacity: 0.55; margin-bottom: 1.5rem; text-transform: uppercase; letter-spacing: 0.06em; }
+
+.form { display: flex; flex-direction: column; gap: 1.5rem; }
+
+.question {
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 10px;
+  padding: 1.25rem 1.5rem;
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.questionText { font-weight: 600; font-size: 0.95rem; color: var(--fg); margin-bottom: 0.5rem; }
+
+.option {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: var(--fg);
+}
+.option input { cursor: pointer; accent-color: var(--accent); }
+
+.textarea {
+  width: 100%;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.15);
+  background: var(--bg);
+  color: var(--fg);
+  padding: 0.75rem;
+  font-size: 0.9rem;
+  resize: vertical;
+}
+
+.btn {
+  align-self: flex-start;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 0.7rem 1.75rem;
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+.btn:disabled { opacity: 0.55; cursor: not-allowed; }
+.btn:not(:disabled):hover { opacity: 0.88; }
+
+/* Result card */
+.resultCard {
+  border-radius: 14px;
+  padding: 2.5rem 2rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+.pass { background: rgba(39,174,96,0.15); border: 1px solid #27ae60; }
+.fail { background: rgba(231,76,60,0.12); border: 1px solid #e74c3c; }
+.score { font-size: 1.5rem; font-weight: 700; color: var(--fg); }
+.feedback { background: var(--surface); border-radius: 10px; padding: 1rem 1.25rem; text-align: left; max-width: 520px; }
+.feedback h3 { margin: 0 0 0.5rem; font-size: 0.9rem; opacity: 0.7; }
+
+.state { color: var(--fg); opacity: 0.6; padding: 2rem; text-align: center; }
+.error { color: #e74c3c; text-align: center; padding: 2rem; }

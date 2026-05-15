@@ -1,18 +1,18 @@
 /**
- * app/courses/page.jsx — Course catalogue
+ * client/src/pages/Courses.jsx
  */
 
-'use client';
-
 import { useEffect, useState } from 'react';
-import apiClient from '@/lib/apiClient';
-import styles from './page.module.css';
+import { Link, useNavigate } from 'react-router-dom';
+import apiClient from '../lib/apiClient';
+import styles from './Courses.module.css';
 
-export default function CoursesPage() {
+export default function Courses() {
   const [courses,         setCourses]         = useState([]);
   const [recommendations, setRecommendations] = useState([]);
   const [loading,         setLoading]         = useState(true);
   const [error,           setError]           = useState(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     Promise.all([
@@ -27,10 +27,11 @@ export default function CoursesPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  const enrol = async (courseId) => {
+  const enrol = async (e, courseId) => {
+    e.preventDefault();
     try {
       await apiClient.post('/enrolments', { courseId });
-      alert('Enrolled successfully!');
+      navigate('/my-learning');
     } catch (err) {
       alert(err.message);
     }
@@ -57,14 +58,14 @@ export default function CoursesPage() {
               <img src={course.thumbnail_url} alt={course.title} className={styles.thumb} />
             )}
             <div className={styles.body}>
-              <h3><a href={`/courses/${course.id}`}>{course.title}</a></h3>
+              <h3><Link to={`/courses/${course.id}`}>{course.title}</Link></h3>
               <p className={styles.desc}>{course.description}</p>
               {course.tags?.length > 0 && (
                 <div className={styles.tags}>
                   {course.tags.map((t) => <span key={t} className={styles.tag}>{t}</span>)}
                 </div>
               )}
-              <button className={styles.btn} onClick={() => enrol(course.id)}>
+              <button className={styles.btn} onClick={(e) => enrol(e, course.id)}>
                 Enrol
               </button>
             </div>

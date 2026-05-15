@@ -1,14 +1,13 @@
 /**
- * app/my-learning/page.jsx — My Learning dashboard
+ * client/src/pages/MyLearning.jsx
  */
 
-'use client';
-
 import { useEffect, useState } from 'react';
-import apiClient from '@/lib/apiClient';
-import styles from './page.module.css';
+import { Link } from 'react-router-dom';
+import apiClient from '../lib/apiClient';
+import styles from './MyLearning.module.css';
 
-export default function MyLearningPage() {
+export default function MyLearning() {
   const [data,    setData]    = useState(null);
   const [loading, setLoading] = useState(true);
   const [error,   setError]   = useState(null);
@@ -33,26 +32,22 @@ export default function MyLearningPage() {
         <section className={styles.card}>
           <h2>Skill Gap Analysis</h2>
           {skillGap.gaps?.length > 0 && (
-            <>
-              <p><strong>Gaps:</strong></p>
-              <ul>{skillGap.gaps.map((g, i) => <li key={i}>{g}</li>)}</ul>
-            </>
+            <><p><strong>Gaps:</strong></p><ul>{skillGap.gaps.map((g, i) => <li key={i}>{g}</li>)}</ul></>
           )}
           {skillGap.priorities?.length > 0 && (
-            <>
-              <p><strong>Priorities:</strong></p>
-              <ul>{skillGap.priorities.map((p, i) => <li key={i}>{p}</li>)}</ul>
-            </>
+            <><p><strong>Priorities:</strong></p><ul>{skillGap.priorities.map((p, i) => <li key={i}>{p}</li>)}</ul></>
           )}
         </section>
       )}
 
       <section>
         <h2 className={styles.subheading}>Enrolled Courses</h2>
-        {enrolments.length === 0 && <p className={styles.state}>No courses yet. <a href="/courses">Browse courses →</a></p>}
+        {enrolments.length === 0 && (
+          <p className={styles.state}>No courses yet. <Link to="/courses">Browse courses →</Link></p>
+        )}
         <div className={styles.grid}>
           {enrolments.map((e) => (
-            <a key={e.id} href={`/courses/${e.courses?.id}`} className={styles.courseCard}>
+            <Link key={e.id} to={`/courses/${e.courses?.id}`} className={styles.courseCard}>
               {e.courses?.thumbnail_url && (
                 <img src={e.courses.thumbnail_url} alt={e.courses.title} className={styles.thumb} />
               )}
@@ -60,7 +55,7 @@ export default function MyLearningPage() {
                 <h3>{e.courses?.title}</h3>
                 <span className={`${styles.badge} ${styles[e.status]}`}>{e.status}</span>
               </div>
-            </a>
+            </Link>
           ))}
         </div>
       </section>

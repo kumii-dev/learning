@@ -1,10 +1,7 @@
 /**
- * lib/apiClient.js
- * Axios instance that automatically injects the in-memory JWT.
- * Uses the auth bridge token — no token is ever read from localStorage.
+ * client/src/lib/apiClient.js
+ * Axios instance — auto-injects Bearer token from in-memory auth bridge.
  */
-
-'use client';
 
 import axios from 'axios';
 import { getToken } from './authBridge';
@@ -15,7 +12,7 @@ const apiClient = axios.create({
   headers: { 'Content-Type': 'application/json' },
 });
 
-// Attach Bearer token from memory on every request
+// Attach Bearer token on every request
 apiClient.interceptors.request.use((config) => {
   const token = getToken();
   if (token) {
@@ -24,7 +21,7 @@ apiClient.interceptors.request.use((config) => {
   return config;
 });
 
-// Normalise error responses
+// Normalise error shape
 apiClient.interceptors.response.use(
   (res) => res,
   (err) => {
