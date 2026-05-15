@@ -35,10 +35,39 @@ const KUMII_JWKS = createRemoteJWKSet(
  * Returns the decoded payload on success, throws on failure.
  */
 async function verifyJWT(token) {
-  const { payload } = await jwtVerify(token, KUMII_JWKS, {
-    issuer: `${KUMII_SUPABASE_URL}/auth/v1`,
+  // Log the first 40 chars of the token so we can confirm it arrives and is
+  // a JWT (starts with "eyJ") without ever logging the full secret.
+  const preview = token ? `${token.slice(0, 40)}…` : '(empty)';
+  logger.info('[HUB:AUTH] verifyJWT called', {
+    tokenPreview: preview,
+    tokenLength:  token?.length ?? 0,
+    looksLikeJWT: token?.startsWith('eyJ') ?? false,
   });
-  return payload; // { sub, email, ... }
+
+  try {
+    const { payload } = await jwtVerify(token, KUMII_JWKS, {
+      issuer: `${KUMII_SUPABASE_URL}/auth/v1`,
+    });
+    logger.info('[HUB:AUTH] JWT verified OK', {
+      sub:    payload.sub,
+      iss:    payload.iss,
+      role:   payload.role,
+      exp:    payload.exp,
+      nowUtc: Math.floor(Date.now() / 1000),
+    });
+    return payload;
+  } catch (err) {
+    // Log the full error class and message — this is the key diagnostic
+    logger.warn('[HUB:AUTH] jwtVerify FAILED', {
+      errorName:    err.name,       // JWTExpired | JWTInvalid | JWTClaimValidationFailed | …
+      errorMessage: err.message,
+      errorCode:    err.code,       // ERR_JWT_EXPIRED | ERR_JWK_… etc.
+      tokenPreview: preview,
+      expectedIssuer: `${KUMII_SUPABASE_URL}/auth/v1`,
+      jwksUrl: `${KUMII_SUPABASE_URL}/auth/v1/.well-known/jwks.json`,
+    });
+    throw err;
+  }
 }
 
 /**
@@ -65,7 +94,15 @@ async function authenticate(req, res, next) {
   try {
     const authHeader = req.headers.authorization;
 
+    logger.info('[HUB:AUTH] authenticate called', {
+      method:    req.method,
+      path:      req.path,
+      hasHeader: !!authHeader,
+      headerPrefix: authHeader ? authHeader.slice(0, 14) : '(none)',
+    });
+
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      logger.warn('[HUB:AUTH] Missing or malformed Authorization header');
       return res.status(401).json({ error: 'Missing or malformed Authorization header' });
     }
 
@@ -75,6 +112,8 @@ async function authenticate(req, res, next) {
     const userId  = payload.sub;
     const email   = payload.email ?? '';
     const isAdmin = await checkHasRole(userId, 'admin');
+
+    logger.info('[HUB:AUTH] authenticate OK', { isAdmin });
 
     // Attach a normalised user object — persona derived from DB, never from JWT claims
     req.user = {
@@ -86,8 +125,12 @@ async function authenticate(req, res, next) {
 
     next();
   } catch (err) {
-    logger.warn('Auth middleware rejected request', { message: err.message });
-    return res.status(401).json({ error: 'Unauthorised' });
+    logger.warn('[HUB:AUTH] authenticate rejected', {
+      name:    err.name,
+      message: err.message,
+      code:    err.code,
+    });
+    return res.status(401).json({ error: 'Unauthorised', detail: err.name });
   }
 }
 
@@ -109,8 +152,5 @@ function requireRole(...roles) {
     next();
   };
 }
-
-module.exports = { authenticate, requireRole };
-
 
 module.exports = { authenticate, requireRole };

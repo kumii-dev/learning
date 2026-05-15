@@ -131,16 +131,22 @@ async function syncWithHub(token, profile = null, startup = null) {
   const apiBase = import.meta.env.VITE_API_BASE_URL
     ? import.meta.env.VITE_API_BASE_URL.replace(/\/$/, '')
     : '';
-  const res = await fetch(`${apiBase}/api/auth/sync`, {
+  const url = `${apiBase}/api/auth/sync`;
+  console.log('[HUB:BRIDGE] syncWithHub →', url,
+    '| hasProfile:', !!profile, '| hasStartup:', !!startup);
+  const res = await fetch(url, {
     method:  'POST',
     headers: { 'Content-Type': 'application/json' },
     body:    JSON.stringify({ token, profile, startup }),
   });
+  console.log('[HUB:BRIDGE] syncWithHub ←', res.status);
   if (!res.ok) {
-    console.warn('[authBridge] /api/auth/sync failed', res.status);
+    const body = await res.text().catch(() => '');
+    console.warn('[HUB:BRIDGE] /api/auth/sync failed', res.status, body);
     return;
   }
   const { id, email, isAdmin } = await res.json();
+  console.log('[HUB:BRIDGE] syncWithHub resolved — isAdmin:', isAdmin);
   // Update in-memory store with server-authoritative values
   if (id)    _email   = email   ?? _email;
   if (typeof isAdmin === 'boolean') {
@@ -167,6 +173,10 @@ async function syncWithHub(token, profile = null, startup = null) {
     if (!isTrustedParent(event.origin)) return;
     const { type, profile, startup, isAdmin, persona } = event.data ?? {};
     if (type !== 'KUMII_USER_PROFILE') return;
+
+    console.log('[HUB:BRIDGE] KUMII_USER_PROFILE received',
+      '| hasProfile:', !!profile, '| hasStartup:', !!startup,
+      '| isAdmin:', isAdmin, '| persona:', persona);
 
     // Store profile data
     if (profile) _profile = profile;
@@ -211,18 +221,33 @@ function scheduleRefresh() {
 function doHandshake(reason = 'initial') {
   return new Promise((resolve, reject) => {
     let settled = false;
+    let retryCount = 0;
+
+    console.log('[HUB:BRIDGE] doHandshake start — reason:', reason, '| isEmbedded:', isEmbedded());
 
     const timeoutId = setTimeout(() => {
       if (settled) return;
       clearInterval(intervalId);
       window.removeEventListener('message', handler);
+      console.error('[HUB:BRIDGE] doHandshake TIMED OUT after', TIMEOUT_MS, 'ms —',
+        retryCount, 'retries sent');
       reject(new Error('[authBridge] Timed out waiting for KUMII_AUTH_TOKEN'));
     }, TIMEOUT_MS);
 
     function handler(event) {
-      if (!isTrustedParent(event.origin)) return;
+      if (!isTrustedParent(event.origin)) {
+        // Log untrusted origins so we can detect if the message comes from
+        // an unexpected origin (e.g. different subdomain, HTTP instead of HTTPS)
+        if (event.data?.type === 'KUMII_AUTH_TOKEN') {
+          console.warn('[HUB:BRIDGE] KUMII_AUTH_TOKEN received from UNTRUSTED origin', event.origin);
+        }
+        return;
+      }
 
       const { type, token, persona, isAdmin, email } = event.data ?? {};
+
+      console.log('[HUB:BRIDGE] message from trusted origin', event.origin, '— type:', type,
+        '| hasToken:', !!token, '| persona:', persona, '| isAdmin:', isAdmin);
 
       // Ignore empty-token replies — Kumii stays silent on null sessions;
       // keep retrying until a real token arrives.
@@ -232,6 +257,9 @@ function doHandshake(reason = 'initial') {
       clearTimeout(timeoutId);
       clearInterval(intervalId);
       window.removeEventListener('message', handler);
+
+      console.log('[HUB:BRIDGE] KUMII_AUTH_TOKEN accepted — token length:', token.length,
+        '| looksLikeJWT:', token.startsWith('eyJ'));
 
       // Capture parentOrigin from the first trusted reply
       _parentOrigin = event.origin;
@@ -251,9 +279,14 @@ function doHandshake(reason = 'initial') {
 
     // Send immediately, then retry every 500 ms
     window.parent.postMessage({ type: 'REQUEST_AUTH_TOKEN', reason }, '*');
+    console.log('[HUB:BRIDGE] REQUEST_AUTH_TOKEN sent (attempt 1)');
     const intervalId = setInterval(() => {
       if (settled) { clearInterval(intervalId); return; }
+      retryCount++;
       window.parent.postMessage({ type: 'REQUEST_AUTH_TOKEN', reason }, '*');
+      if (retryCount <= 5 || retryCount % 10 === 0) {
+        console.log('[HUB:BRIDGE] REQUEST_AUTH_TOKEN retry #' + retryCount);
+      }
     }, RETRY_MS);
   });
 }

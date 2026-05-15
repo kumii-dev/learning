@@ -46,6 +46,14 @@ const KUMII_JWKS = createRemoteJWKSet(
 router.post('/sync', async (req, res) => {
   const { token, profile, startup } = req.body ?? {};
 
+  logger.info('[HUB:SYNC] POST /api/auth/sync received', {
+    hasToken:    !!token,
+    tokenLength: token?.length ?? 0,
+    looksLikeJWT: token?.startsWith('eyJ') ?? false,
+    hasProfile:  !!profile,
+    hasStartup:  !!startup,
+  });
+
   if (!token || typeof token !== 'string') {
     return res.status(400).json({ error: 'token is required' });
   }
@@ -55,9 +63,21 @@ router.post('/sync', async (req, res) => {
     ({ payload } = await jwtVerify(token, KUMII_JWKS, {
       issuer: `${KUMII_SUPABASE_URL}/auth/v1`,
     }));
+    logger.info('[HUB:SYNC] JWT verified', {
+      iss:  payload.iss,
+      role: payload.role,
+      exp:  payload.exp,
+      nowUtc: Math.floor(Date.now() / 1000),
+    });
   } catch (err) {
-    logger.warn('auth/sync: JWT verification failed', { message: err.message });
-    return res.status(401).json({ error: 'Invalid or expired token' });
+    logger.warn('[HUB:SYNC] JWT verification failed', {
+      errorName:      err.name,
+      errorMessage:   err.message,
+      errorCode:      err.code,
+      expectedIssuer: `${KUMII_SUPABASE_URL}/auth/v1`,
+      tokenPreview:   token ? `${token.slice(0, 40)}…` : '(empty)',
+    });
+    return res.status(401).json({ error: 'Invalid or expired token', detail: err.name });
   }
 
   const kumiiUserId = payload.sub;            // Kumii's UUID for this user
