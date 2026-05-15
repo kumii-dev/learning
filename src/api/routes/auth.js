@@ -20,19 +20,23 @@
 
 'use strict';
 
-const express                           = require('express');
-const { createRemoteJWKSet, jwtVerify } = require('jose');
-const { supabaseAdmin }                 = require('../../integrations/supabase');
-const logger                            = require('../../utils/logger');
+const express          = require('express');
+const { createClient } = require('@supabase/supabase-js');
+const { supabaseAdmin } = require('../../integrations/supabase');
+const logger           = require('../../utils/logger');
 
 const router = express.Router();
 
-// Kumii's public JWKS — no credentials needed, just a URL
-const KUMII_SUPABASE_URL = process.env.KUMII_SUPABASE_URL
+// Kumii's Supabase — anon key is the PUBLIC key (no secret needed).
+// We call auth.getUser(token) to let Kumii's auth server validate the HS256 JWT.
+const KUMII_SUPABASE_URL      = process.env.KUMII_SUPABASE_URL
   || 'https://qypazgkngxhazgkuevwq.supabase.co';
+const KUMII_SUPABASE_ANON_KEY = process.env.KUMII_SUPABASE_ANON_KEY;
 
-const KUMII_JWKS = createRemoteJWKSet(
-  new URL(`${KUMII_SUPABASE_URL}/auth/v1/.well-known/jwks.json`)
+const kumiiAuthClient = createClient(
+  KUMII_SUPABASE_URL,
+  KUMII_SUPABASE_ANON_KEY || 'missing',
+  { auth: { persistSession: false, autoRefreshToken: false } }
 );
 
 /**
@@ -58,35 +62,36 @@ router.post('/sync', async (req, res) => {
     return res.status(400).json({ error: 'token is required' });
   }
 
-  let payload;
+  let kumiiUser;
   try {
-    ({ payload } = await jwtVerify(token, KUMII_JWKS, {
-      issuer: `${KUMII_SUPABASE_URL}/auth/v1`,
-    }));
-    logger.info('[HUB:SYNC] JWT verified', {
-      iss:  payload.iss,
-      role: payload.role,
-      exp:  payload.exp,
-      nowUtc: Math.floor(Date.now() / 1000),
-    });
+    const { data, error } = await kumiiAuthClient.auth.getUser(token);
+    if (error || !data?.user) {
+      logger.warn('[HUB:SYNC] getUser failed', {
+        errorMessage: error?.message,
+        errorStatus:  error?.status,
+        hasAnonKey:   !!KUMII_SUPABASE_ANON_KEY,
+        kumiiUrl:     KUMII_SUPABASE_URL,
+        tokenPreview: token ? `${token.slice(0, 40)}…` : '(empty)',
+      });
+      return res.status(401).json({
+        error:  'Invalid or expired token',
+        detail: error?.message || 'getUser returned no user',
+      });
+    }
+    kumiiUser = data.user;
+    logger.info('[HUB:SYNC] getUser OK', { id: kumiiUser.id });
   } catch (err) {
-    logger.warn('[HUB:SYNC] JWT verification failed', {
-      errorName:      err.name,
-      errorMessage:   err.message,
-      errorCode:      err.code,
-      expectedIssuer: `${KUMII_SUPABASE_URL}/auth/v1`,
-      tokenPreview:   token ? `${token.slice(0, 40)}…` : '(empty)',
-    });
-    return res.status(401).json({ error: 'Invalid or expired token', detail: err.name });
+    logger.warn('[HUB:SYNC] getUser threw', { message: err.message });
+    return res.status(401).json({ error: 'Invalid or expired token', detail: err.message });
   }
 
-  const kumiiUserId = payload.sub;            // Kumii's UUID for this user
-  const email       = profile?.email   ?? payload.email ?? '';
+  const kumiiUserId = kumiiUser.id;
+  const email       = profile?.email   ?? kumiiUser.email ?? '';
   const name        = profile?.first_name && profile?.last_name
                     ? `${profile.first_name} ${profile.last_name}`.trim()
                     : profile?.first_name
-                   || payload.user_metadata?.full_name
-                   || payload.user_metadata?.name
+                   || kumiiUser.user_metadata?.full_name
+                   || kumiiUser.user_metadata?.name
                    || email.split('@')[0];
 
   // ── Upsert into hub's profiles table ──────────────────────────────────────
