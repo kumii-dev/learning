@@ -27,13 +27,35 @@ const app  = express();
 const PORT = process.env.PORT || 3001;
 
 // ── Security middleware ──────────────────────────────────────────────────────
+const TRUSTED_FRAME_ANCESTORS = [
+  'https://kumii.africa',
+  'https://www.kumii.africa',
+  'https://*.lovable.app',
+  'https://*.lovableproject.com',
+].join(' ');
+
 app.use(
   helmet({
-    // CSP is handled by Next.js headers config for the frontend.
-    // The Express API doesn't serve HTML so we keep it minimal.
+    // CSP is handled per-response and in vercel.json for the frontend.
     contentSecurityPolicy: false,
+    // Disable helmet's X-Frame-Options: DENY — the hub is designed to run
+    // inside the Kumii iframe.  We rely on CSP frame-ancestors instead
+    // (supported by all modern browsers and more flexible).
+    frameguard: false,
   })
 );
+
+// Ensure every response explicitly allows the Kumii parent to frame the hub.
+// This covers both API responses and any server-rendered HTML (health, errors).
+app.use((_req, res, next) => {
+  res.setHeader(
+    'Content-Security-Policy',
+    `frame-ancestors ${TRUSTED_FRAME_ANCESTORS}`
+  );
+  // Remove X-Frame-Options entirely so it cannot conflict with CSP frame-ancestors.
+  res.removeHeader('X-Frame-Options');
+  next();
+});
 
 const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:3000')
   .split(',')
