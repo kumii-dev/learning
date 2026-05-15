@@ -145,3 +145,53 @@ await supabase.auth.updateUser({
 ```
 
 If unset, the hub defaults to `"learner"`.
+
+---
+
+## Additional change required in `LearningHubIframe.tsx`
+
+### Handle token refresh requests
+
+The hub sends `{ type: "REQUEST_AUTH_TOKEN", reason: "refresh" }` every ~50 minutes to refresh the JWT before it expires. Kumii must bypass the `respondedRef` dedupe when `reason === "refresh"`:
+
+```tsx
+if (event.data?.type === "REQUEST_AUTH_TOKEN") {
+  const isRefresh = event.data?.reason === "refresh";
+
+  // Skip dedupe check for refresh requests; use it only for initial requests
+  if (!isRefresh && respondedRef.current) return;
+
+  const { data } = await supabase.auth.getSession();
+  const token   = data?.session?.access_token;
+  const persona = data?.session?.user?.user_metadata?.persona ?? "learner";
+
+  if (token && iframeRef.current?.contentWindow) {
+    respondedRef.current = true; // still mark so duplicate INITIAL requests are ignored
+    iframeRef.current.contentWindow.postMessage(
+      {
+        type:    "KUMII_AUTH_TOKEN",
+        token,
+        persona,
+        isAdmin: persona === "admin",
+        email:   data.session.user.email,
+      },
+      HUB_ORIGIN
+    );
+  }
+}
+```
+
+### Reset `respondedRef` on iframe reload
+
+If the hub iframe reloads internally (e.g. SPA navigation), it will restart the handshake. Reset `respondedRef` on the iframe's `onLoad` event so it can re-authenticate:
+
+```tsx
+<iframe
+  ref={iframeRef}
+  src={HUB_ORIGIN}
+  title="Kumii Learning Hub"
+  onLoad={() => { respondedRef.current = false; }}
+  style={{ width: "100%", height: "100vh", border: "none", display: "block" }}
+  allow="clipboard-write"
+/>
+```

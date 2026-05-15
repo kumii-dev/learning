@@ -3,145 +3,204 @@
  * iFrame ↔ Kumii host auth handshake (browser-only).
  *
  * Flow:
- *  1. Try Supabase session (dev / standalone mode)
- *  2. If not found → send REQUEST_AUTH_TOKEN to parent
- *  3. Listen for KUMII_AUTH_TOKEN from parent → store in memory
+ *  1. Try own Supabase session (dev / standalone mode)
+ *  2. If not found → send REQUEST_AUTH_TOKEN to parent (retry every 500 ms)
+ *  3. Listen for KUMII_AUTH_TOKEN from a trusted parent origin → store in memory
+ *  4. Hydrate Kumii's Supabase client with the received JWT
+ *  5. Refresh the token every 50 min (re-request with reason:"refresh")
  *
  * SECURITY:
- *  - Token stored in module-level memory only (never localStorage)
- *  - All incoming messages validated against TRUSTED_ORIGINS
- *  - postMessage target is KUMII_HOST_ORIGIN — never "*"
+ *  - Token stored in module-level memory only (never localStorage / sessionStorage)
+ *  - Incoming messages validated against a strict origin allow-list
+ *  - REQUEST_AUTH_TOKEN sent with "*" (parent origin unknown from inside iframe)
+ *  - Outgoing events sent to captured parentOrigin — never "*"
+ *  - isAdmin / persona are UX hints only; server re-checks via has_role RPC
+ *  - JWT is never logged
  */
 
 import { createClient } from '@supabase/supabase-js';
 
-const SUPABASE_URL       = import.meta.env.VITE_SUPABASE_URL;
-const SUPABASE_ANON_KEY  = import.meta.env.VITE_SUPABASE_ANON_KEY;
-const KUMII_HOST_ORIGIN  = import.meta.env.VITE_KUMII_HOST_ORIGIN  || 'http://localhost:3000';
-const TRUSTED_ORIGINS    = (import.meta.env.VITE_KUMII_TRUSTED_ORIGINS || KUMII_HOST_ORIGIN)
-  .split(',')
-  .map((o) => o.trim());
+// ── Config ────────────────────────────────────────────────────────────────────
+const OWN_SUPABASE_URL      = import.meta.env.VITE_SUPABASE_URL;
+const OWN_SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-// ── In-memory token store ─────────────────────────────────────────────────────
-let _token   = null;
-let _persona = null;
-let _isAdmin = false;
-let _email   = null;
+// Kumii's Supabase project — the JWT we receive IS a session on this project
+const KUMII_SUPABASE_URL      = 'https://qypazgkngxhazgkuevwq.supabase.co';
+const KUMII_SUPABASE_ANON_KEY = import.meta.env.VITE_KUMII_SUPABASE_ANON_KEY ?? '';
 
-export const getToken   = () => _token;
-export const getPersona = () => _persona;
-export const getIsAdmin = () => _isAdmin;
-export const getEmail   = () => _email;
+const TIMEOUT_MS      = 15_000;
+const RETRY_MS        = 500;
+const REFRESH_EVERY   = 50 * 60 * 1_000; // 50 minutes
 
-// ── Supabase client (browser) ─────────────────────────────────────────────────
-let _supabase = null;
-function getSupabase() {
-  if (!_supabase && SUPABASE_URL && SUPABASE_ANON_KEY) {
-    _supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+/** Origins Kumii is allowed to send tokens from. */
+function isTrustedParent(origin) {
+  if (
+    origin === 'https://kumii.africa'     ||
+    origin === 'https://www.kumii.africa' ||
+    origin === 'http://localhost:3000'
+  ) return true;
+  // Allow any Lovable preview / published subdomain
+  if (/^https:\/\/[a-z0-9-]+\.lovable\.app$/.test(origin)) return true;
+  if (/^https:\/\/[a-z0-9-]+\.lovableproject\.com$/.test(origin)) return true;
+  return false;
+}
+
+// ── In-memory auth store ──────────────────────────────────────────────────────
+let _token        = null;
+let _persona      = 'learner';
+let _isAdmin      = false;
+let _email        = null;
+let _parentOrigin = null; // captured from first trusted KUMII_AUTH_TOKEN message
+
+export const getToken        = () => _token;
+export const getPersona      = () => _persona;
+export const getIsAdmin      = () => _isAdmin;
+export const getEmail        = () => _email;
+export const getParentOrigin = () => _parentOrigin;
+
+// ── Supabase clients ──────────────────────────────────────────────────────────
+
+/** Hub's own Supabase (dev standalone mode only) */
+let _ownSupabase = null;
+function getOwnSupabase() {
+  if (!_ownSupabase && OWN_SUPABASE_URL && OWN_SUPABASE_ANON_KEY) {
+    _ownSupabase = createClient(OWN_SUPABASE_URL, OWN_SUPABASE_ANON_KEY, {
       auth: { persistSession: false },
     });
   }
-  return _supabase;
+  return _ownSupabase;
 }
 
-/**
- * Detect whether we are running inside an iframe.
- */
-export function isEmbedded() {
-  try {
-    return window.self !== window.top;
-  } catch {
-    return true; // cross-origin parent — assume embedded
+/** Kumii's Supabase — hydrated with the JWT received from the parent */
+let _kumiiSupabase = null;
+export function getKumiiSupabase() {
+  if (!_kumiiSupabase && KUMII_SUPABASE_ANON_KEY) {
+    _kumiiSupabase = createClient(KUMII_SUPABASE_URL, KUMII_SUPABASE_ANON_KEY, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
   }
+  return _kumiiSupabase;
 }
 
+async function hydrateKumiiSession(token) {
+  const client = getKumiiSupabase();
+  if (!client) return;
+  await client.auth.setSession({ access_token: token, refresh_token: '' });
+}
+
+// ── isEmbedded ────────────────────────────────────────────────────────────────
+export function isEmbedded() {
+  try { return window.self !== window.top; } catch { return true; }
+}
+
+// ── Send to parent ────────────────────────────────────────────────────────────
 /**
- * Send a typed postMessage to the parent Kumii platform.
- * @param {{ type: string, [key: string]: unknown }} message
+ * Send a typed postMessage to the Kumii parent.
+ * Uses captured parentOrigin after handshake; falls back to "*" only for
+ * the initial REQUEST_AUTH_TOKEN (parent origin is unknown from inside iframe).
  */
 export function sendToParent(message) {
   if (!isEmbedded()) return;
-  window.parent.postMessage(message, KUMII_HOST_ORIGIN);
-  if (import.meta.env.DEV) {
-    console.debug('[authBridge] → parent', message);
-  }
+  const target = _parentOrigin ?? '*';
+  window.parent.postMessage(message, target);
+}
+
+// ── Handshake ─────────────────────────────────────────────────────────────────
+let _refreshTimer = null;
+
+function scheduleRefresh() {
+  if (_refreshTimer) clearTimeout(_refreshTimer);
+  _refreshTimer = setTimeout(() => {
+    // Re-request token with reason:"refresh" so Kumii bypasses its respondedRef dedupe
+    if (isEmbedded()) {
+      window.parent.postMessage({ type: 'REQUEST_AUTH_TOKEN', reason: 'refresh' }, '*');
+    }
+    // Re-run full handshake to update in-memory store
+    doHandshake('refresh').catch(() => {});
+  }, REFRESH_EVERY);
 }
 
 /**
- * Initialise the auth bridge.
- * Returns a Promise that resolves with the JWT once obtained.
- * @returns {Promise<string>}
+ * Run the postMessage handshake and return a Promise<string> of the JWT.
+ * @param {'initial'|'refresh'} reason
  */
-export async function initAuthBridge() {
-  // Step 1: Try Supabase dev session
-  const supabase = getSupabase();
-  if (supabase) {
-    const { data } = await supabase.auth.getSession();
-    if (data?.session?.access_token) {
-      _token = data.session.access_token;
-      console.info('[authBridge] Using Supabase dev session');
-      return _token;
-    }
-  }
-
-  // Step 2: Request token from Kumii host via postMessage
-  // Retry every 500 ms — Kumii may not have mounted its listener yet when
-  // the hub loads faster (race condition with Lovable's React hydration).
+function doHandshake(reason = 'initial') {
   return new Promise((resolve, reject) => {
-    const TIMEOUT_MS = 15_000;
-    const RETRY_MS   = 500;
+    let settled = false;
 
-    const timeout = setTimeout(() => {
-      clearInterval(retryInterval);
+    const timeoutId = setTimeout(() => {
+      if (settled) return;
+      clearInterval(intervalId);
       window.removeEventListener('message', handler);
       reject(new Error('[authBridge] Timed out waiting for KUMII_AUTH_TOKEN'));
     }, TIMEOUT_MS);
 
     function handler(event) {
-      if (!TRUSTED_ORIGINS.includes(event.origin)) {
-        console.warn('[authBridge] Rejected message from untrusted origin:', event.origin);
-        return;
-      }
+      if (!isTrustedParent(event.origin)) return;
 
       const { type, token, persona, isAdmin, email } = event.data ?? {};
 
-      if (import.meta.env.DEV) {
-        console.debug('[authBridge] ← parent', { type });
-      }
+      // Ignore empty-token replies — Kumii stays silent on null sessions;
+      // keep retrying until a real token arrives.
+      if (type !== 'KUMII_AUTH_TOKEN' || !token) return;
 
-      if (type === 'KUMII_AUTH_TOKEN' && token) {
-        clearTimeout(timeout);
-        clearInterval(retryInterval);
-        window.removeEventListener('message', handler);
-        _token   = token;
-        _persona = persona ?? 'learner';
-        // isAdmin is a UX hint only — server enforces via JWT + has_role RPC
-        _isAdmin = isAdmin === true;
-        _email   = email ?? null;
-        resolve(_token);
-        return;
-      }
+      settled = true;
+      clearTimeout(timeoutId);
+      clearInterval(intervalId);
+      window.removeEventListener('message', handler);
 
-      if (type === 'SET_PERSONA' && persona) {
-        _persona = persona;
-      }
+      // Capture parentOrigin from the first trusted reply
+      _parentOrigin = event.origin;
+      _token        = token;
+      _persona      = persona ?? 'learner';
+      _isAdmin      = isAdmin === true; // UX hint only
+      _email        = email ?? null;
+
+      hydrateKumiiSession(token).catch(() => {});
+      scheduleRefresh();
+      resolve(token);
     }
 
     window.addEventListener('message', handler);
 
-    // Fire immediately, then keep retrying until Kumii responds
-    sendToParent({ type: 'REQUEST_AUTH_TOKEN' });
-    const retryInterval = setInterval(() => {
-      sendToParent({ type: 'REQUEST_AUTH_TOKEN' });
+    // Send immediately, then retry every 500 ms
+    window.parent.postMessage({ type: 'REQUEST_AUTH_TOKEN', reason }, '*');
+    const intervalId = setInterval(() => {
+      if (settled) { clearInterval(intervalId); return; }
+      window.parent.postMessage({ type: 'REQUEST_AUTH_TOKEN', reason }, '*');
     }, RETRY_MS);
   });
 }
 
-// ── Outgoing message helpers ──────────────────────────────────────────────────
+// ── initAuthBridge ────────────────────────────────────────────────────────────
+/**
+ * Initialise the auth bridge. Resolves with the JWT.
+ * Safe to call multiple times — returns cached token if already obtained.
+ * @returns {Promise<string>}
+ */
+export async function initAuthBridge() {
+  // Return cached token
+  if (_token) return _token;
+
+  // Dev / standalone: try own Supabase session first
+  const ownClient = getOwnSupabase();
+  if (ownClient) {
+    const { data } = await ownClient.auth.getSession();
+    if (data?.session?.access_token) {
+      _token = data.session.access_token;
+      _email = data.session.user?.email ?? null;
+      return _token;
+    }
+  }
+
+  return doHandshake('initial');
+}
+
+// ── Outgoing event helpers ────────────────────────────────────────────────────
 export const notify = {
-  openDocument:      (documentId) => sendToParent({ type: 'OPEN_DOCUMENT', documentId }),
-  navigateToProfile: ()           => sendToParent({ type: 'NAVIGATE_TO_PROFILE' }),
-  navigateToCourses: ()           => sendToParent({ type: 'NAVIGATE_TO_COURSES' }),
-  courseCompleted:   (courseId)   => sendToParent({ type: 'COURSE_COMPLETED', courseId }),
-  certificateIssued: (certId)     => sendToParent({ type: 'CERTIFICATE_ISSUED', certId }),
+  courseCompleted:   (courseId) => sendToParent({ type: 'COURSE_COMPLETED',   courseId }),
+  certificateIssued: (certId)   => sendToParent({ type: 'CERTIFICATE_ISSUED', certId }),
+  navigateToProfile: ()         => sendToParent({ type: 'NAVIGATE_TO_PROFILE' }),
+  navigateToCourses: ()         => sendToParent({ type: 'NAVIGATE_TO_COURSES' }),
+  openDocument:      (docId)    => sendToParent({ type: 'OPEN_DOCUMENT',      documentId: docId }),
 };
