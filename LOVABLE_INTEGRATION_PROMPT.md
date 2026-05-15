@@ -105,7 +105,12 @@ export default function LearningHubIframe() {
 
 #### 2. Add a protected route + nav link
 
-Add a route (e.g. `/learning`) that renders `<LearningHubIframe />` behind your existing auth guard so only logged-in users can reach it. Add a nav link in the sidebar.
+The iframe is already live at **`https://kumii.africa/learninghub`** — that exact path must be the route. Ensure it exists and renders `<LearningHubIframe />` behind your existing auth guard.
+
+- Route path: **`/learninghub`** (not `/learning`)
+- The component file: `src/pages/LearningHubIframe.tsx`
+- Wrap with your auth guard so only logged-in users can reach it
+- The nav link should point to `/learninghub`
 
 ---
 
