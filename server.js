@@ -109,17 +109,8 @@ app.use('/api/grading',      gradingRouter);
 app.use('/api/certificates', certificatesRouter);
 app.use('/api/cms',          cmsRouter);
 
-// ── Serve Vite frontend build ─────────────────────────────────────────────────
-// All non-API requests are served from dist/. This ensures every response
-// goes through Express so our header middleware (CSP frame-ancestors +
-// X-Frame-Options removal) applies to the HTML page load.
-const path = require('path');
-const distDir = path.join(__dirname, 'dist');
-app.use(express.static(distDir));
-// SPA fallback — React Router handles client-side navigation
-app.get('*', (_req, res) => {
-  res.sendFile(path.join(distDir, 'index.html'));
-});
+// ── 404 handler ──────────────────────────────────────────────────────────────
+app.use((_req, res) => res.status(404).json({ error: 'Route not found' }));
 
 // ── Global error handler ─────────────────────────────────────────────────────
 // eslint-disable-next-line no-unused-vars
