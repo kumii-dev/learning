@@ -25,9 +25,13 @@ const TRUSTED_ORIGINS    = (import.meta.env.VITE_KUMII_TRUSTED_ORIGINS || KUMII_
 // ── In-memory token store ─────────────────────────────────────────────────────
 let _token   = null;
 let _persona = null;
+let _isAdmin = false;
+let _email   = null;
 
 export const getToken   = () => _token;
 export const getPersona = () => _persona;
+export const getIsAdmin = () => _isAdmin;
+export const getEmail   = () => _email;
 
 // ── Supabase client (browser) ─────────────────────────────────────────────────
 let _supabase = null;
@@ -93,7 +97,7 @@ export async function initAuthBridge() {
         return;
       }
 
-      const { type, token, persona } = event.data ?? {};
+      const { type, token, persona, isAdmin, email } = event.data ?? {};
 
       if (import.meta.env.DEV) {
         console.debug('[authBridge] ← parent', { type });
@@ -103,7 +107,10 @@ export async function initAuthBridge() {
         clearTimeout(timeout);
         window.removeEventListener('message', handler);
         _token   = token;
-        _persona = persona ?? null;
+        _persona = persona ?? 'learner';
+        // isAdmin is a UX hint only — server enforces via JWT + has_role RPC
+        _isAdmin = isAdmin === true;
+        _email   = email ?? null;
         resolve(_token);
         return;
       }
