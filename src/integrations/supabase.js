@@ -1,7 +1,13 @@
 /**
  * src/integrations/supabase.js
- * Supabase client singletons — one for public (anon) operations,
- * one for privileged server-side operations (service role).
+ * Supabase client singleton for the hub's own project (njcancswtqnxihxavshl).
+ *
+ * Auth architecture note:
+ *   Kumii/Lovable is the identity provider — it authenticates users and sends
+ *   them to the hub via iFrame postMessage. The hub accepts those users and
+ *   upserts them into its OWN Supabase project (see POST /api/auth/sync).
+ *   JWT verification uses Kumii's PUBLIC JWKS URL — no Kumii credentials needed.
+ *   All role checks (admin / learner) run against the hub's own user_roles table.
  */
 
 'use strict';
@@ -16,28 +22,11 @@ if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
 }
 
 /**
- * Server-side admin client — bypasses RLS.
- * Use ONLY inside services, never exposed to the client.
+ * Hub's server-side admin client — bypasses RLS on the hub's own DB.
+ * Use ONLY inside services/routes, never expose to the client.
  */
 const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
   auth: { persistSession: false },
 });
 
-/**
- * Validate a JWT issued by Supabase and return the decoded user.
- * Used by the auth middleware.
- *
- * @param {string} token
- * @returns {Promise<{ id: string, email: string, [key: string]: unknown }>}
- */
-async function verifyToken(token) {
-  const { data, error } = await supabaseAdmin.auth.getUser(token);
-  if (error || !data?.user) {
-    const err = new Error('Invalid or expired token');
-    err.status = 401;
-    throw err;
-  }
-  return data.user;
-}
-
-module.exports = { supabaseAdmin, verifyToken };
+module.exports = { supabaseAdmin };

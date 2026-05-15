@@ -14,6 +14,7 @@ const rateLimit = require('express-rate-limit');
 const logger = require('./src/utils/logger');
 
 // ── Route imports ────────────────────────────────────────────────────────────
+const authRouter          = require('./src/api/routes/auth');
 const coursesRouter       = require('./src/api/routes/courses');
 const enrolmentsRouter    = require('./src/api/routes/enrolments');
 const myLearningRouter    = require('./src/api/routes/myLearning');
@@ -77,6 +78,7 @@ app.use((req, _res, next) => {
 app.get('/health', (_req, res) => res.json({ status: 'ok', ts: new Date().toISOString() }));
 
 // ── API routes ───────────────────────────────────────────────────────────────
+app.use('/api/auth',         authRouter);       // sync Kumii user → hub DB
 app.use('/api/courses',      coursesRouter);
 app.use('/api/enrolments',   enrolmentsRouter);
 app.use('/api/my-learning',  myLearningRouter);

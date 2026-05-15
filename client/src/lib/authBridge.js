@@ -6,15 +6,16 @@
  *  1. Try own Supabase session (dev / standalone mode)
  *  2. If not found → send REQUEST_AUTH_TOKEN to parent (retry every 500 ms)
  *  3. Listen for KUMII_AUTH_TOKEN from a trusted parent origin → store in memory
- *  4. Hydrate Kumii's Supabase client with the received JWT
- *  5. Refresh the token every 50 min (re-request with reason:"refresh")
+ *  4. Call POST /api/auth/sync with the JWT → hub upserts user into its own DB
+ *  5. Server returns { id, email, isAdmin } from hub's user_roles table
+ *  6. Refresh the token every 50 min (re-request with reason:"refresh")
  *
  * SECURITY:
  *  - Token stored in module-level memory only (never localStorage / sessionStorage)
  *  - Incoming messages validated against a strict origin allow-list
  *  - REQUEST_AUTH_TOKEN sent with "*" (parent origin unknown from inside iframe)
  *  - Outgoing events sent to captured parentOrigin — never "*"
- *  - isAdmin / persona are UX hints only; server re-checks via has_role RPC
+ *  - isAdmin is authoritative from the SERVER (hub's own user_roles), not from Kumii
  *  - JWT is never logged
  */
 
@@ -105,6 +106,36 @@ export function sendToParent(message) {
   window.parent.postMessage(message, target);
 }
 
+// ── Hub sync ──────────────────────────────────────────────────────────────────
+/**
+ * Send the Kumii JWT to the hub's own backend.
+ * The server verifies it, upserts the user into hub's Supabase, and returns
+ * { id, email, isAdmin } sourced from the hub's own user_roles table.
+ * This makes the hub fully self-contained — Kumii's Supabase is never touched
+ * server-side after this point.
+ */
+async function syncWithHub(token) {
+  const apiBase = import.meta.env.VITE_API_BASE_URL
+    ? import.meta.env.VITE_API_BASE_URL.replace(/\/$/, '')
+    : '';
+  const res = await fetch(`${apiBase}/api/auth/sync`, {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body:    JSON.stringify({ token }),
+  });
+  if (!res.ok) {
+    console.warn('[authBridge] /api/auth/sync failed', res.status);
+    return;
+  }
+  const { id, email, isAdmin } = await res.json();
+  // Update in-memory store with server-authoritative values
+  if (id)    _email   = email   ?? _email;
+  if (typeof isAdmin === 'boolean') {
+    _isAdmin = isAdmin;
+    _persona = isAdmin ? 'admin' : 'learner';
+  }
+}
+
 // ── Handshake ─────────────────────────────────────────────────────────────────
 let _refreshTimer = null;
 
@@ -153,9 +184,11 @@ function doHandshake(reason = 'initial') {
       _parentOrigin = event.origin;
       _token        = token;
       _persona      = persona ?? 'learner';
-      _isAdmin      = isAdmin === true; // UX hint only
+      _isAdmin      = isAdmin === true; // provisional — server will confirm
       _email        = email ?? null;
 
+      // Sync user into hub's Supabase DB; let server confirm real admin status
+      syncWithHub(token).catch(() => {});
       hydrateKumiiSession(token).catch(() => {});
       scheduleRefresh();
       resolve(token);

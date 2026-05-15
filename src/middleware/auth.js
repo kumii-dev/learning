@@ -2,10 +2,16 @@
  * src/middleware/auth.js
  * JWT authentication middleware for every protected Express route.
  *
- * Extracts:   Authorization: Bearer <token>
- * Validates:  JWT signature against Supabase JWKS (never trusts client claims)
- * Admin role: verified via has_role(_user_id, _role) RPC — matches public.user_roles
- * Attaches:   req.user = { id, email, persona, isAdmin }
+ * Auth flow:
+ *  1.  Kumii/Lovable sends the logged-in user via postMessage.
+ *  2.  The hub frontend calls POST /api/auth/sync which upserts the user
+ *      into the hub's own Supabase (njcancswtqnxihxavshl).
+ *  3.  Every subsequent API request carries the Kumii JWT as Bearer token.
+ *  4.  This middleware verifies the JWT signature against Kumii's PUBLIC
+ *      JWKS endpoint (read-only URL — no Kumii credentials required), then
+ *      checks the hub's OWN user_roles table for admin status.
+ *
+ * Attaches:  req.user = { id, email, persona, isAdmin }
  */
 
 'use strict';
@@ -14,27 +20,30 @@ const { createRemoteJWKSet, jwtVerify } = require('jose');
 const { supabaseAdmin }                 = require('../integrations/supabase');
 const logger                            = require('../utils/logger');
 
-const SUPABASE_URL = process.env.SUPABASE_URL;
+// Kumii's Supabase project ref — used ONLY to hit the public JWKS URL.
+// No secret key is read from or written to Kumii's project.
+const KUMII_SUPABASE_URL = process.env.KUMII_SUPABASE_URL
+  || 'https://qypazgkngxhazgkuevwq.supabase.co';
 
-// JWKS endpoint is stable for the lifetime of the Supabase project
-const JWKS = createRemoteJWKSet(
-  new URL(`${SUPABASE_URL}/auth/v1/.well-known/jwks.json`)
+// JWKS is a public, unauthenticated endpoint — safe to call with no credentials
+const KUMII_JWKS = createRemoteJWKSet(
+  new URL(`${KUMII_SUPABASE_URL}/auth/v1/.well-known/jwks.json`)
 );
 
 /**
- * Verify the bearer JWT cryptographically via JWKS.
+ * Verify the bearer JWT against Kumii's public JWKS.
  * Returns the decoded payload on success, throws on failure.
  */
 async function verifyJWT(token) {
-  const { payload } = await jwtVerify(token, JWKS, {
-    issuer: `${SUPABASE_URL}/auth/v1`,
+  const { payload } = await jwtVerify(token, KUMII_JWKS, {
+    issuer: `${KUMII_SUPABASE_URL}/auth/v1`,
   });
   return payload; // { sub, email, ... }
 }
 
 /**
- * Call the has_role(_user_id, _role) Postgres RPC.
- * Uses supabaseAdmin (service role) so RLS on user_roles does not block it.
+ * Check the hub's OWN user_roles table for admin status.
+ * The user must have been synced via POST /api/auth/sync first.
  * Returns true | false.
  */
 async function checkHasRole(userId, role) {
