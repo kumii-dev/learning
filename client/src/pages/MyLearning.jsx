@@ -48,12 +48,13 @@ export default function MyLearning() {
         <div className={styles.grid}>
           {enrolments.map((e) => (
             <Link key={e.id} to={`/courses/${e.courses?.id}`} className={styles.courseCard}>
-              {e.courses?.thumbnail_url && (
-                <img src={e.courses.thumbnail_url} alt={e.courses.title} className={styles.thumb} />
-              )}
+              {e.courses?.thumbnail_url
+                ? <img src={e.courses.thumbnail_url} alt={e.courses.title} className={styles.thumb} />
+                : <div className={styles.thumbPlaceholder}>📖</div>
+              }
               <div className={styles.cardBody}>
                 <h3>{e.courses?.title}</h3>
-                <span className={`${styles.badge} ${styles[e.status]}`}>{e.status}</span>
+                <span className={`${styles.badge} ${styles[e.status]}`}>{e.status?.replace('_', ' ')}</span>
               </div>
             </Link>
           ))}

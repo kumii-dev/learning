@@ -54,9 +54,10 @@ export default function Courses() {
       <div className={styles.grid}>
         {courses.map((course) => (
           <div key={course.id} className={styles.card}>
-            {course.thumbnail_url && (
-              <img src={course.thumbnail_url} alt={course.title} className={styles.thumb} />
-            )}
+            {course.thumbnail_url
+              ? <img src={course.thumbnail_url} alt={course.title} className={styles.thumb} />
+              : <div className={styles.thumbPlaceholder}>📖</div>
+            }
             <div className={styles.body}>
               <h3><Link to={`/courses/${course.id}`}>{course.title}</Link></h3>
               <p className={styles.desc}>{course.description}</p>
