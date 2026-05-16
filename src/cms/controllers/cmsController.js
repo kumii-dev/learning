@@ -139,3 +139,4 @@ module.exports = {
   publish,
   analyticsOverview, analyticsCourse,
   listLearners,
+};
