@@ -7,7 +7,7 @@
 ## Task: Integrate the Kumii Learning Hub iFrame into Kumii
 
 The Kumii Learning Hub is a separate React app hosted at:
-**`https://learninghub-koulzs-projects.vercel.app`**
+**`https://learninghub-pi.vercel.app`**
 
 It runs **inside an `<iframe>` embedded in Kumii**. On load it sends a `postMessage` to the Kumii parent requesting the logged-in user's JWT, and **retries every 500 ms** until it gets a reply. If no reply arrives within 15 seconds it shows:
 
@@ -25,7 +25,7 @@ The most common cause is that Kumii's listener mounts **after** the hub's first 
 import { useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client"; // adjust import path if needed
 
-const HUB_ORIGIN = "https://learninghub-koulzs-projects.vercel.app";
+const HUB_ORIGIN = "https://learninghub-pi.vercel.app";
 
 export default function LearningHubIframe() {
   const iframeRef = useRef<HTMLIFrameElement>(null);
