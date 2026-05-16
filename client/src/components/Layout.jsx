@@ -30,12 +30,15 @@ const NAV = [
     ),
   },
   {
-    to: '/learning-paths',
-    label: 'Learning Paths',
+    to: '/careers',
+    label: 'Careers',
     icon: (
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
         stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+        <rect x="2" y="7" width="20" height="14" rx="2"/>
+        <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
+        <line x1="12" y1="12" x2="12" y2="12.01"/>
+        <path d="M2 12.5A20 20 0 0 0 12 15a20 20 0 0 0 10-2.5"/>
       </svg>
     ),
   },

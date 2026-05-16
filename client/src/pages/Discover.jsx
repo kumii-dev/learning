@@ -189,7 +189,11 @@ export default function Discover({ search }) {
         <div className={styles.rolesCols}>
           {ROLE_COLS.map((col) => (
             <div key={col.label} className={styles.roleCol}>
-              <div className={styles.roleColHeader}>{col.label}</div>
+              <div className={styles.roleColHeader}>
+                <Link to="/careers" style={{ color: 'var(--color-accent)', textDecoration: 'none' }}>
+                  {col.label}
+                </Link>
+              </div>
               {col.courses.map((course) => (
                 <Link
                   key={course.name}
