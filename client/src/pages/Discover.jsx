@@ -12,6 +12,7 @@ import styles from './Discover.module.css';
 const CAREER_PATHS = [
   {
     title: 'Cloud Engineer',
+    slug: 'cloud-engineer',
     rating: '4.7',
     reviews: '327K',
     hours: '29.1',
@@ -20,6 +21,7 @@ const CAREER_PATHS = [
   },
   {
     title: 'Data Scientist',
+    slug: 'data-scientist',
     rating: '4.6',
     reviews: '227K',
     hours: '47.1',
@@ -28,6 +30,7 @@ const CAREER_PATHS = [
   },
   {
     title: 'Digital Marketer',
+    slug: 'digital-marketer',
     rating: '4.6',
     reviews: '3.9K',
     hours: '20.4',
@@ -40,6 +43,7 @@ const CAREER_PATHS = [
 const ROLE_COLS = [
   {
     label: 'Business Roles',
+    slug: 'digital-marketer',
     courses: [
       { name: 'Intuit Academy Bookkeeping', provider: 'Intuit', rating: '4.6', emoji: '📘' },
       { name: 'Google Project Management', provider: 'Google', rating: '4.8', emoji: '📗' },
@@ -48,6 +52,7 @@ const ROLE_COLS = [
   },
   {
     label: 'Data Roles',
+    slug: 'data-scientist',
     courses: [
       { name: 'Microsoft Power BI Data Analyst', provider: 'Microsoft', rating: '4.6', emoji: '📊' },
       { name: 'IBM Data Analyst', provider: 'IBM', rating: '4.6', emoji: '🔵' },
@@ -56,6 +61,7 @@ const ROLE_COLS = [
   },
   {
     label: 'Tech Roles',
+    slug: 'cloud-engineer',
     courses: [
       { name: 'Microsoft Back-End Developer', provider: 'Microsoft', rating: '4.6', emoji: '💻' },
       { name: 'Meta Front-End Developer', provider: 'Meta', rating: '4.7', emoji: '⚛️' },
@@ -148,10 +154,10 @@ export default function Discover({ search }) {
                 styles[path.grad],
                 selected === i ? styles.heroCardSelected : '',
               ].join(' ')}
-              onClick={() => { setSelected(i); navigate('/courses'); }}
+              onClick={() => { setSelected(i); navigate(`/careers/${path.slug}`); }}
               role="button"
               tabIndex={0}
-              onKeyDown={(e) => e.key === 'Enter' && navigate('/courses')}
+              onKeyDown={(e) => e.key === 'Enter' && navigate(`/careers/${path.slug}`)}
             >
               {/* Emoji/icon centred in the card body area */}
               <div style={{
@@ -187,7 +193,7 @@ export default function Discover({ search }) {
               {col.courses.map((course) => (
                 <Link
                   key={course.name}
-                  to="/courses"
+                  to={`/careers/${col.slug}`}
                   className={styles.roleCourseCard}
                 >
                   <div className={styles.roleThumbPlaceholder}>{course.emoji}</div>

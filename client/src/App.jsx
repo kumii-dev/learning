@@ -7,6 +7,7 @@ import { useState } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import Layout        from './components/Layout';
 import Discover      from './pages/Discover';
+import CareerDetail  from './pages/CareerDetail';
 import MyLearning    from './pages/MyLearning';
 import LearningPaths from './pages/LearningPaths';
 import LiveSessions  from './pages/LiveSessions';
@@ -22,6 +23,7 @@ export default function App() {
     <Layout searchValue={search} onSearchChange={setSearch}>
       <Routes>
         <Route path="/"                element={<Discover search={search} />} />
+        <Route path="/careers/:slug"   element={<CareerDetail />} />
         <Route path="/my-learning"     element={<MyLearning />} />
         <Route path="/learning-paths"  element={<LearningPaths />} />
         <Route path="/live-sessions"   element={<LiveSessions />} />

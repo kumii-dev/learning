@@ -33,43 +33,73 @@ export default function CourseDetail() {
   if (loading) return <p className={styles.state}>Loading course…</p>;
   if (error)   return <p className={styles.error}>{error}</p>;
 
+  const modules = (course.modules ?? []).slice().sort((a, b) => a.order - b.order);
+
   return (
-    <main className={styles.page}>
-      <Link to="/courses" className={styles.back}>← Back to courses</Link>
-      <h1 className={styles.heading}>{course.title}</h1>
-      <p className={styles.desc}>{course.description}</p>
+    <div className={styles.page}>
 
-      <button className={styles.btn} onClick={enrol}>Enrol in this course</button>
+      {/* Breadcrumb */}
+      <div className={styles.breadcrumb}>
+        <Link to="/">🏠</Link>
+        <span>›</span>
+        <Link to="/courses">Courses</Link>
+        <span>›</span>
+        <span>{course.title}</span>
+      </div>
 
-      <section className={styles.modules}>
-        <h2>Modules</h2>
-        {(course.modules ?? []).length === 0 && <p className={styles.state}>No modules yet.</p>}
-        <ol className={styles.moduleList}>
-          {(course.modules ?? [])
-            .sort((a, b) => a.order - b.order)
-            .map((m) => (
+      {/* Hero card */}
+      <div className={styles.heroCard}>
+        {course.thumbnail_url
+          ? <img src={course.thumbnail_url} alt={course.title} className={styles.heroThumb} />
+          : <div className={styles.heroThumbPlaceholder}>📖</div>
+        }
+        <div className={styles.heroBody}>
+          <h1 className={styles.heading}>{course.title}</h1>
+          <p className={styles.desc}>{course.description}</p>
+          {course.tags?.length > 0 && (
+            <div className={styles.tags}>
+              {course.tags.map((t) => <span key={t} className={styles.tag}>{t}</span>)}
+            </div>
+          )}
+          <div className={styles.actions}>
+            <button className={styles.btn} onClick={enrol}>Enrol for free</button>
+          </div>
+        </div>
+      </div>
+
+      {/* Modules */}
+      {modules.length > 0 && (
+        <section>
+          <h2 className={styles.sectionTitle}>Course modules</h2>
+          <ol className={styles.moduleList}>
+            {modules.map((m, i) => (
               <li key={m.id} className={styles.moduleItem}>
-                <h3>{m.title}</h3>
-                {/* content is CMS HTML — rendered safely as text here */}
-                <p className={styles.content}>{m.content}</p>
+                <div className={styles.moduleNum}>{i + 1}</div>
+                <div>
+                  <h3>{m.title}</h3>
+                  {m.content && <p className={styles.content}>{m.content}</p>}
+                </div>
               </li>
             ))}
-        </ol>
-      </section>
+          </ol>
+        </section>
+      )}
 
+      {/* Assessments */}
       {course.assessments?.length > 0 && (
         <section className={styles.assessments}>
-          <h2>Assessments</h2>
+          <h2 className={styles.sectionTitle}>Assessments</h2>
           <ul>
             {course.assessments.map((a) => (
               <li key={a.id}>
                 <Link to={`/assessments/${a.id}`}>{a.title}</Link>
-                <span className={styles.type}> ({a.type})</span>
+                <span className={styles.type}>{a.type}</span>
               </li>
             ))}
           </ul>
         </section>
       )}
-    </main>
+
+    </div>
   );
 }
