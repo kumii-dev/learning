@@ -295,16 +295,22 @@ function doHandshake(reason = 'initial') {
 
       // Capture parentOrigin from the first trusted reply
       _parentOrigin = event.origin;
-      _token        = token;
+      _token        = token;   // temporary — Kumii JWT (overwritten by syncWithHub below)
       _persona      = persona ?? 'learner';
       _isAdmin      = isAdmin === true; // provisional — server will confirm
       _email        = email ?? null;
 
-      // Sync user into hub's Supabase DB; server confirms real admin status
-      // and returns a hub-issued JWT stored as _token by syncWithHub
-      syncWithHub(token).catch(() => {});
+      // AWAIT sync so _token becomes the hub JWT before initAuthBridge() resolves.
+      // Without this await, components fire API calls with the Kumii JWT → 401.
+      try {
+        await syncWithHub(token);
+      } catch (syncErr) {
+        console.warn('[HUB:BRIDGE] syncWithHub failed during handshake:', syncErr?.message);
+        // Fall back: leave _token as the Kumii JWT rather than crashing
+      }
+
       scheduleRefresh();
-      resolve(token);
+      resolve(_token); // hub JWT if sync succeeded; Kumii JWT as fallback
     }
 
     window.addEventListener('message', handler);
