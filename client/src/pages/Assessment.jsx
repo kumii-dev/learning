@@ -1,22 +1,45 @@
 /**
  * client/src/pages/Assessment.jsx
+ * Quiz / practice-assignment page — matches Coursera-style screenshots.
+ *
+ * States:
+ *  1. "start"   – assignment details + coach panel
+ *  2. "taking"  – full-page numbered questions
+ *  3. "results" – green grade banner + reviewed questions
  */
 
 import { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import apiClient from '../lib/apiClient';
-import { notify } from '../lib/authBridge';
+import { notify, getProfile } from '../lib/authBridge';
 import styles from './Assessment.module.css';
 
+/* Format due date: e.g. "May 18, 11:59 PM SAST" */
+function fmtDue(iso) {
+  if (!iso) return null;
+  try {
+    return new Date(iso).toLocaleString('en-ZA', {
+      month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
+    }) + ' SAST';
+  } catch { return iso; }
+}
+
 export default function Assessment() {
-  const { id } = useParams();
-  const navigate = useNavigate();
-  const [assessment, setAssessment] = useState(null);
-  const [answers,    setAnswers]    = useState({});
-  const [result,     setResult]     = useState(null);
-  const [loading,    setLoading]    = useState(true);
-  const [submitting, setSubmitting] = useState(false);
-  const [error,      setError]      = useState(null);
+  const { id }    = useParams();
+  const navigate  = useNavigate();
+  const profile   = getProfile();
+  const fullName  = profile?.full_name
+    ?? (`${profile?.first_name ?? ''} ${profile?.last_name ?? ''}`.trim()
+    || 'Learner');
+
+  const [assessment,  setAssessment]  = useState(null);
+  const [answers,     setAnswers]     = useState({});
+  const [result,      setResult]      = useState(null);
+  const [honor,       setHonor]       = useState(false);
+  const [screen,      setScreen]      = useState('start'); // 'start' | 'taking' | 'results'
+  const [loading,     setLoading]     = useState(true);
+  const [submitting,  setSubmitting]  = useState(false);
+  const [error,       setError]       = useState(null);
 
   useEffect(() => {
     apiClient.get(`/assessments/${id}`)
@@ -30,14 +53,14 @@ export default function Assessment() {
 
   const submit = async (e) => {
     e.preventDefault();
+    if (!honor) return;
     setSubmitting(true);
     try {
-      const res = await apiClient.post(`/assessments/${id}/submit`, { answers });
+      const res  = await apiClient.post(`/assessments/${id}/submit`, { answers });
       const data = res.data.data;
       setResult(data);
-      if (data.passed) {
-        notify.courseCompleted(data.courseId ?? '');
-      }
+      setScreen('results');
+      if (data.passed) notify.courseCompleted(data.courseId ?? '');
     } catch (err) {
       setError(err.message);
     } finally {
@@ -48,87 +71,235 @@ export default function Assessment() {
   if (loading) return <p className={styles.state}>Loading assessment…</p>;
   if (error)   return <p className={styles.error}>{error}</p>;
 
-  /* ---------- Result screen ---------- */
-  if (result) return (
-    <main className={styles.page}>
-      <div className={`${styles.resultCard} ${result.passed ? styles.pass : styles.fail}`}>
-        <h1>{result.passed ? '🎉 Passed!' : '❌ Not passed'}</h1>
-        <p className={styles.score}>Score: {result.score}%</p>
-        {result.ai_feedback && (
-          <div className={styles.feedback}>
-            <h3>AI Feedback</h3>
-            <p>{result.ai_feedback}</p>
+  const questions = assessment?.questions ?? [];
+  const due       = fmtDue(assessment?.due_at);
+  const courseId  = assessment?.course_id ?? '';
+
+  /* ════════════════════ RESULTS SCREEN ════════════════════════════════════ */
+  if (screen === 'results') {
+    const pct  = result?.score ?? 0;
+    const pass = result?.passed ?? false;
+    return (
+      <div className={styles.resultsPage}>
+        {/* Sub-header */}
+        <div className={styles.subHeader}>
+          <button className={styles.backBtn} onClick={() => navigate(-1)}>← Back</button>
+          <div className={styles.subHeaderMid}>
+            <span className={styles.subTitle}>{assessment.title}</span>
+            <span className={styles.subMeta}>Practice Assignment · {assessment.duration_min ?? 10} min</span>
           </div>
-        )}
-        {result.passed
-          ? <button className={styles.btn} onClick={() => navigate('/certificates')}>View Certificates</button>
-          : <button className={styles.btn} onClick={() => window.location.reload()}>Try Again</button>
-        }
+          {due && <span className={styles.dueLabel}>🌐 Due {due}</span>}
+        </div>
+
+        {/* Grade banner */}
+        <div className={`${styles.gradeBanner} ${pass ? styles.gradeBannerPass : styles.gradeBannerFail}`}>
+          <div className={styles.gradeLeft}>
+            <span className={styles.gradeTitle}>Your grade: <strong>{pct}%</strong></span>
+            <span className={styles.gradeSub}>
+              Your latest: {pct}% · Your highest: {pct}% · To pass you need at least 75%. We keep your highest score.
+            </span>
+          </div>
+          <button className={styles.nextItemBtn} onClick={() => navigate(-1)}>
+            Next Item →
+          </button>
+        </div>
+
+        {/* Reviewed questions */}
+        <div className={styles.reviewPage}>
+          {questions.map((q, idx) => {
+            const userAns    = answers[idx];
+            const correct    = q.correct_answer;
+            const isCorrect  = Array.isArray(correct)
+              ? JSON.stringify([...userAns].sort()) === JSON.stringify([...correct].sort())
+              : userAns === correct;
+            return (
+              <div key={idx} className={styles.reviewQuestion}>
+                <div className={styles.questionRow}>
+                  <span className={styles.qNum}>{idx + 1}.</span>
+                  <div className={styles.qBody}>
+                    <p className={styles.qText}>{q.question}</p>
+                    <div className={styles.qPoints}>{q.points ?? 1} / {q.points ?? 1} point</div>
+                  </div>
+                </div>
+                {q.options?.map((opt, oi) => {
+                  const sel = Array.isArray(userAns) ? userAns.includes(opt) : userAns === opt;
+                  return (
+                    <label key={oi} className={`${styles.reviewOption} ${sel ? styles.reviewSelected : ''}`}>
+                      <input type={q.type === 'multi_select' ? 'checkbox' : 'radio'} readOnly checked={sel} />
+                      {opt}
+                    </label>
+                  );
+                })}
+                {isCorrect && (
+                  <div className={styles.niceWork}>
+                    <span className={styles.niceIcon}>✅ Nice work</span>
+                    <p>{result?.question_feedback?.[idx] ?? q.explanation ?? 'Correct!'}</p>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
       </div>
-    </main>
-  );
+    );
+  }
 
-  /* ---------- Question form ---------- */
-  const questions = assessment.questions ?? [];
+  /* ════════════════════ TAKING SCREEN ══════════════════════════════════════ */
+  if (screen === 'taking') {
+    return (
+      <form className={styles.takingPage} onSubmit={submit}>
+        {/* Sub-header */}
+        <div className={styles.subHeader}>
+          <button type="button" className={styles.backBtn} onClick={() => setScreen('start')}>← Back</button>
+          <div className={styles.subHeaderMid}>
+            <span className={styles.subTitle}>{assessment.title}</span>
+            <span className={styles.subMeta}>Practice Assignment · {assessment.duration_min ?? 10} min</span>
+          </div>
+          {due && <span className={styles.dueLabel}>🌐 Due {due}</span>}
+        </div>
 
-  return (
-    <main className={styles.page}>
-      <h1 className={styles.heading}>{assessment.title}</h1>
-      <p className={styles.type}>Type: {assessment.type}</p>
-      <form className={styles.form} onSubmit={submit}>
-        {questions.map((q, idx) => (
-          <fieldset key={idx} className={styles.question}>
-            <legend className={styles.questionText}>{idx + 1}. {q.question}</legend>
+        <div className={styles.takingBody}>
+          {questions.map((q, idx) => (
+            <div key={idx} className={styles.question}>
+              <div className={styles.questionRow}>
+                <span className={styles.qNum}>{idx + 1}.</span>
+                <div className={styles.qBody}>
+                  <p className={styles.qText}>{q.question}</p>
+                  <span className={styles.qPoints}>{q.points ?? 1} point</span>
+                </div>
+              </div>
 
-            {/* MCQ — single select */}
-            {q.type === 'mcq' && q.options?.map((opt, oi) => (
-              <label key={oi} className={styles.option}>
-                <input
-                  type="radio"
-                  name={`q${idx}`}
-                  value={opt}
-                  checked={answers[idx] === opt}
-                  onChange={() => setAnswer(idx, opt)}
+              {/* MCQ */}
+              {(q.type === 'mcq' || !q.type) && q.options?.map((opt, oi) => (
+                <label key={oi} className={styles.option}>
+                  <input
+                    type="radio"
+                    name={`q${idx}`}
+                    value={opt}
+                    checked={answers[idx] === opt}
+                    onChange={() => setAnswer(idx, opt)}
+                  />
+                  {opt}
+                </label>
+              ))}
+
+              {/* Multi-select */}
+              {q.type === 'multi_select' && q.options?.map((opt, oi) => (
+                <label key={oi} className={styles.option}>
+                  <input
+                    type="checkbox"
+                    checked={(answers[idx] ?? []).includes(opt)}
+                    onChange={(e) => {
+                      const prev = answers[idx] ?? [];
+                      setAnswer(idx, e.target.checked
+                        ? [...prev, opt]
+                        : prev.filter((v) => v !== opt));
+                    }}
+                  />
+                  {opt}
+                </label>
+              ))}
+
+              {/* Short answer */}
+              {q.type === 'short_answer' && (
+                <textarea
+                  className={styles.textarea}
+                  rows={4}
+                  value={answers[idx] ?? ''}
+                  onChange={(e) => setAnswer(idx, e.target.value)}
+                  placeholder="Your answer…"
                 />
-                {opt}
-              </label>
-            ))}
+              )}
+            </div>
+          ))}
 
-            {/* Multi-select */}
-            {q.type === 'multi_select' && q.options?.map((opt, oi) => (
-              <label key={oi} className={styles.option}>
-                <input
-                  type="checkbox"
-                  value={opt}
-                  checked={(answers[idx] ?? []).includes(opt)}
-                  onChange={(e) => {
-                    const prev = answers[idx] ?? [];
-                    setAnswer(idx, e.target.checked
-                      ? [...prev, opt]
-                      : prev.filter((v) => v !== opt));
-                  }}
-                />
-                {opt}
-              </label>
-            ))}
-
-            {/* Short answer */}
-            {q.type === 'short_answer' && (
-              <textarea
-                className={styles.textarea}
-                rows={4}
-                value={answers[idx] ?? ''}
-                onChange={(e) => setAnswer(idx, e.target.value)}
-                placeholder="Your answer…"
+          {/* Honor code */}
+          <div className={`${styles.honorBox} ${honor ? styles.honorChecked : ''}`}>
+            <p className={styles.honorTitle}>Coursera Honor Code</p>
+            <p className={styles.honorText}>
+              By clicking Submit, you confirm this work is your own. Submitting work created with AI tools
+              may result in course failure or account deactivation according to the{' '}
+              <a href="#" className={styles.honorLink}>Coursera Honor Code policy.</a>
+            </p>
+            <label className={styles.honorLabel}>
+              <input
+                type="checkbox"
+                checked={honor}
+                onChange={(e) => setHonor(e.target.checked)}
               />
+              <span>I, <strong>{fullName}</strong>, understand and agree.</span>
+            </label>
+            {!honor && (
+              <p className={styles.honorWarn}>You must select the checkbox in order to submit the assignment</p>
             )}
-          </fieldset>
-        ))}
+          </div>
 
-        <button type="submit" className={styles.btn} disabled={submitting}>
-          {submitting ? 'Submitting…' : 'Submit Assessment'}
-        </button>
+          <div className={styles.takingActions}>
+            <button type="submit" className={styles.submitBtn} disabled={submitting || !honor}>
+              {submitting ? 'Submitting…' : 'Submit'}
+            </button>
+            <button type="button" className={styles.draftBtn} onClick={() => setScreen('start')}>
+              Save draft
+            </button>
+          </div>
+        </div>
       </form>
-    </main>
+    );
+  }
+
+  /* ════════════════════ START SCREEN ═════════════════════════════════════ */
+  return (
+    <div className={styles.startPage}>
+      <h1 className={styles.assignTitle}>{assessment.title}</h1>
+      <Link to="#" className={styles.objLink}>Review Learning Objectives</Link>
+
+      {/* Coach panel */}
+      <div className={styles.coachBox}>
+        <div className={styles.coachHeader}>
+          <span className={styles.coachLabel}>coach</span>
+          <button className={styles.coachChevron}>∧</button>
+        </div>
+        <p className={styles.coachText}>
+          Ready to review what you've learned before starting the assignment? I'm here to help.
+        </p>
+        <div className={styles.coachActions}>
+          <button className={styles.coachBtn}>+ Help me practice</button>
+          <button className={styles.coachBtn}>+ Let's chat</button>
+        </div>
+      </div>
+
+      {/* Assignment details */}
+      <div className={styles.detailsBox}>
+        <p className={styles.detailsTitle}>Assignment details</p>
+        <div className={styles.detailsRow}>
+          <div>
+            <p className={styles.detailLabel}>Due</p>
+            <p className={styles.detailValue}>{due ?? 'No due date'}</p>
+          </div>
+          <div>
+            <p className={styles.detailLabel}>Attempts</p>
+            <p className={styles.detailValue}>{assessment.max_attempts ?? 'Unlimited'}</p>
+          </div>
+          <button className={styles.startBtn} onClick={() => setScreen('taking')}>Start</button>
+        </div>
+      </div>
+
+      {/* Grade */}
+      <div className={styles.gradeSection}>
+        <p className={styles.gradeLabel}>Your grade</p>
+        <p className={styles.gradeNote}>You haven't submitted this yet. We keep your highest score.</p>
+        <p className={styles.gradeDash}>--</p>
+      </div>
+
+      {/* Footer */}
+      <div className={styles.startFooter}>
+        <div className={styles.footerLeft}>
+          <button className={styles.reactBtn}>👍 Like</button>
+          <button className={styles.reactBtn}>👎 Dislike</button>
+          <button className={styles.reactBtn}>🚩 Report an issue</button>
+        </div>
+        <button className={styles.nextItemBtn} onClick={() => navigate(-1)}>Go to next item →</button>
+      </div>
+    </div>
   );
 }

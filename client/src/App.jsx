@@ -16,6 +16,7 @@ import Courses       from './pages/Courses';
 import CourseDetail  from './pages/CourseDetail';
 import Assessment    from './pages/Assessment';
 import Certificates  from './pages/Certificates';
+import CoursePlayer  from './pages/CoursePlayer';
 
 export default function App() {
   const [search, setSearch] = useState('');
@@ -33,6 +34,7 @@ export default function App() {
         <Route path="/courses/:id"     element={<CourseDetail />} />
         <Route path="/assessments/:id" element={<Assessment />} />
         <Route path="/certificates"    element={<Certificates />} />
+        <Route path="/courses/:id/player" element={<CoursePlayer />} />
         <Route path="*"                element={<Navigate to="/" replace />} />
       </Routes>
     </Layout>

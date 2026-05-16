@@ -1,6 +1,158 @@
-.page { max-width: 720px; margin: 0 auto; padding: 2rem 1.5rem; }
-.heading { font-size: 1.75rem; color: var(--fg); margin-bottom: 1.5rem; }
-.empty { color: var(--fg); opacity: 0.6; font-size: 1rem; }
+/* client/src/pages/Certificates.module.css */
+
+.state { color: var(--color-muted); padding: 2rem; }
+.error { color: #b91c1c; padding: 2rem; }
+
+.empty {
+  display: flex; flex-direction: column; align-items: center;
+  padding: 4rem 2rem; text-align: center; gap: .5rem; color: var(--color-muted);
+}
+.emptyIcon { font-size: 3rem; margin-bottom: .5rem; }
+
+/* Tabs (multiple certs) */
+.tabs {
+  display: flex; gap: .5rem; flex-wrap: wrap;
+  padding: 1rem 1.5rem; border-bottom: 1px solid var(--color-border);
+  background: #fff;
+}
+.tab {
+  background: none; border: 1px solid var(--color-border);
+  border-radius: 999px; padding: .3rem .85rem;
+  font-size: .8rem; cursor: pointer; color: var(--color-muted);
+  transition: background .12s, color .12s;
+}
+.tab:hover    { background: #f1f5f9; color: var(--color-text); }
+.tabActive    { background: var(--color-primary); color: #fff; border-color: var(--color-primary); font-weight: 700; }
+
+/* Two-column layout */
+.page   { min-height: 100%; background: #f8fafc; }
+.layout {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 2rem;
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem;
+}
+@media (max-width: 700px) {
+  .layout { grid-template-columns: 1fr; }
+}
+
+/* ── Left panel ────────────────────────────────────────────── */
+.leftPanel {
+  background: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 1.75rem 1.5rem;
+  display: flex; flex-direction: column; gap: .85rem;
+}
+
+/* Avatar */
+.avatarWrap { position: relative; width: 72px; margin: 0 auto .25rem; }
+.avatar {
+  width: 72px; height: 72px; border-radius: 50%;
+  background: var(--color-primary); color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.5rem; font-weight: 800;
+}
+.checkRing {
+  position: absolute; bottom: -4px; right: -4px;
+  width: 22px; height: 22px; border-radius: 50%;
+  background: #1a56db; color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-size: .75rem; font-weight: 800; border: 2px solid #fff;
+}
+
+.completedBy   { font-size: .875rem; text-align: center; margin: 0; }
+.completedDate { font-size: .78rem; color: var(--color-muted); text-align: center; margin: 0; }
+
+.metaRow  { display: flex; justify-content: center; gap: 2rem; }
+.metaItem { display: flex; flex-direction: column; align-items: center; gap: .1rem; }
+.metaVal  { font-size: 1.1rem; font-weight: 800; }
+.metaLbl  { font-size: .72rem; color: var(--color-muted); font-weight: 600; }
+
+.divider { border: none; border-top: 1px solid var(--color-border); margin: .25rem 0; }
+
+/* Course info */
+.courseInfo  { display: flex; gap: .75rem; align-items: flex-start; }
+.providerLogo {
+  width: 36px; height: 36px; border-radius: 8px; flex-shrink: 0;
+  background: var(--color-primary); color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-size: .9rem; font-weight: 800;
+}
+.courseTitle { font-size: .875rem; font-weight: 700; margin: 0 0 .2rem; line-height: 1.3; }
+.provider    { font-size: .75rem; color: var(--color-muted); margin: 0; }
+
+/* Rating */
+.rating    { display: flex; align-items: center; gap: .15rem; }
+.star      { color: #f59e0b; font-size: .95rem; }
+.ratingCount { font-size: .75rem; color: var(--color-muted); margin-left: .25rem; }
+
+.sectionLabel { font-size: .78rem; font-weight: 700; color: var(--color-muted); text-transform: uppercase; letter-spacing: .05em; margin: 0; }
+
+/* Outcomes */
+.outcomeList { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: .4rem; }
+.outcomeItem { display: flex; gap: .5rem; font-size: .82rem; line-height: 1.45; }
+.checkIcon   { color: var(--color-primary); font-weight: 700; flex-shrink: 0; margin-top: .05rem; }
+
+/* Skill tags */
+.skillTags { display: flex; flex-wrap: wrap; gap: .4rem; }
+.tag {
+  font-size: .74rem; font-weight: 600; padding: .2rem .55rem;
+  border: 1px solid var(--color-border); border-radius: 999px;
+  color: var(--color-muted); background: #f8fafc;
+}
+
+/* ── Right panel ────────────────────────────────────────────── */
+.rightPanel { display: flex; flex-direction: column; gap: 1.25rem; }
+
+.certPreview {
+  background: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 2.5rem 2rem;
+  flex: 1; min-height: 320px;
+  display: flex; align-items: center; justify-content: center;
+}
+.certInner {
+  text-align: center; display: flex; flex-direction: column;
+  align-items: center; gap: .65rem;
+  border: 2px solid var(--color-primary); border-radius: 16px;
+  padding: 2.5rem 3rem; width: 100%; max-width: 440px;
+}
+.certLogo {
+  width: 52px; height: 52px; border-radius: 50%;
+  background: var(--color-primary); color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.3rem; font-weight: 800;
+}
+.certSubtitle { font-size: .78rem; color: var(--color-muted); font-weight: 600; text-transform: uppercase; letter-spacing: .08em; margin: 0; }
+.certName     { font-size: 1.5rem; font-weight: 800; margin: 0; }
+.certCourse   { font-size: .9rem; color: var(--color-muted); margin: 0; }
+.certDate     { font-size: .78rem; color: var(--color-muted); margin: 0; }
+.certSeal     { font-size: 1.25rem; color: var(--color-primary); margin-top: .25rem; }
+
+.certActions { display: flex; gap: .75rem; flex-wrap: wrap; }
+
+.btnShare {
+  flex: 1; min-width: 160px;
+  background: none; border: 2px solid #1a56db; color: #1a56db;
+  border-radius: 8px; padding: .6rem 1rem;
+  font-size: .9rem; font-weight: 700; cursor: pointer;
+  transition: background .15s;
+}
+.btnShare:hover { background: #eff6ff; }
+
+.btnDownload {
+  flex: 1; min-width: 160px;
+  background: none; border: 2px solid var(--color-primary); color: var(--color-primary);
+  border-radius: 8px; padding: .6rem 1rem;
+  font-size: .9rem; font-weight: 700; cursor: pointer;
+  transition: background .15s;
+}
+.btnDownload:hover { background: #f0fdf4; }
+
 
 .list { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 1rem; }
 

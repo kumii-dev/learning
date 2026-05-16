@@ -1,0 +1,229 @@
+/* client/src/pages/CoursePlayer.module.css */
+
+/* ── Shell: full remaining viewport height, no scroll on outer shell ─────── */
+.playerShell {
+  display: flex;
+  height: calc(100vh - var(--header-h, 64px) - var(--nav-h, 60px));
+  overflow: hidden;
+  background: #fff;
+}
+
+/* ── Loading / error ─────────────────────────────────────────────────────── */
+.state { color: var(--color-muted); padding: 2rem; }
+.error { color: #b91c1c; padding: 2rem; }
+
+/* ── No course ───────────────────────────────────────────────────────────── */
+.noCourse {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  width: 100%; gap: 1rem; padding: 3rem 1rem; text-align: center;
+}
+.noCourseIcon { font-size: 3.5rem; }
+.noCourse h2  { font-size: 1.3rem; font-weight: 700; }
+.noCourse p   { color: var(--color-muted); font-size: .9rem; }
+.browseBtn {
+  background: var(--color-accent); color: #fff;
+  border-radius: 8px; padding: .55rem 1.25rem;
+  font-size: .875rem; font-weight: 700; text-decoration: none;
+}
+
+/* ════ SIDEBAR ═══════════════════════════════════════════════════════════════ */
+.sidebar {
+  width: 200px;
+  flex-shrink: 0;
+  border-right: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #fff;
+  transition: width .2s;
+}
+.sidebarClosed { width: 0; border-right: none; }
+
+.sideHeader {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: .5rem;
+  padding: .85rem .85rem .6rem;
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+.courseTitle {
+  font-size: .78rem; font-weight: 700; line-height: 1.4;
+  margin: 0; color: var(--color-text);
+  display: -webkit-box; -webkit-line-clamp: 3; line-clamp: 3;
+  -webkit-box-orient: vertical; overflow: hidden;
+}
+.closeSide {
+  background: none; border: none; cursor: pointer;
+  font-size: .8rem; color: var(--color-muted); padding: 0; flex-shrink: 0;
+}
+.closeSide:hover { color: var(--color-text); }
+
+.openSide {
+  position: absolute; left: 0; top: calc(var(--header-h, 64px) + 8px);
+  background: #fff; border: 1px solid var(--color-border);
+  border-left: none; border-radius: 0 6px 6px 0;
+  padding: .45rem .55rem; cursor: pointer; font-size: 1rem;
+  z-index: 10; color: var(--color-text);
+}
+
+.moduleList { overflow-y: auto; flex: 1; }
+
+/* Module sections */
+.modSection { border-bottom: 1px solid var(--color-border); }
+.modHeader {
+  width: 100%; background: none; border: none; cursor: pointer;
+  display: flex; align-items: flex-start; justify-content: space-between;
+  padding: .7rem .85rem; gap: .4rem; text-align: left;
+  transition: background .12s;
+}
+.modHeader:hover { background: #f8fafc; }
+.modHeaderOpen   { background: #f1f5f9; }
+
+.modHeaderLeft  { display: flex; flex-direction: column; gap: .15rem; flex: 1; }
+.modLabel       { font-size: .65rem; font-weight: 600; color: var(--color-muted); text-transform: uppercase; letter-spacing: .05em; }
+.modTitle       { font-size: .78rem; font-weight: 700; color: var(--color-text); line-height: 1.35; }
+.modChevron     { font-size: .7rem; color: var(--color-muted); flex-shrink: 0; margin-top: .1rem; }
+
+/* Lesson items */
+.itemList { display: flex; flex-direction: column; }
+.noItems  { font-size: .75rem; color: var(--color-muted); padding: .5rem .85rem; margin: 0; }
+
+.lessonItem {
+  width: 100%; background: none; border: none; cursor: pointer;
+  display: flex; align-items: flex-start; gap: .55rem;
+  padding: .55rem .85rem;
+  text-align: left; transition: background .12s;
+}
+.lessonItem:hover  { background: #f8fafc; }
+.lessonActive      { background: #e8f5e9 !important; border-left: 3px solid var(--color-primary); }
+.lessonIcon        { font-size: .8rem; margin-top: .1rem; flex-shrink: 0; color: var(--color-muted); }
+.lessonMeta        { display: flex; flex-direction: column; gap: .1rem; }
+.lessonTitle       { font-size: .775rem; font-weight: 600; line-height: 1.35; color: var(--color-text); }
+.lessonType        { font-size: .68rem; color: var(--color-muted); }
+
+/* ════ MAIN ══════════════════════════════════════════════════════════════════ */
+.main {
+  flex: 1;
+  display: flex; flex-direction: column;
+  overflow-y: auto;
+  min-width: 0;
+}
+
+/* ── Video area ──────────────────────────────────────────────────────────── */
+.videoWrap {
+  position: relative;
+  background: #1a1a2e;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+.video { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+/* Placeholder */
+.videoPlaceholder {
+  width: 100%; height: 100%;
+  display: flex; flex-direction: column;
+  position: relative;
+}
+.videoPlaceholderInner {
+  flex: 1;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 1rem;
+  background: linear-gradient(160deg, #1e3a5f 0%, #2d6a4f 100%);
+}
+.instructorAvatar {
+  width: 80px; height: 80px; border-radius: 50%;
+  background: #7c3aed; color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 2.2rem; font-weight: 800;
+  border: 4px solid rgba(255,255,255,.25);
+}
+.instructorTitle {
+  color: #fff; font-size: .9rem; font-weight: 600;
+  text-align: center; max-width: 400px; padding: 0 1rem; margin: 0;
+}
+
+/* Fake video controls */
+.videoControls {
+  display: flex; align-items: center; gap: .5rem;
+  background: rgba(0,0,0,.7); padding: .5rem .75rem;
+  flex-shrink: 0;
+}
+.vcBtn  { background: none; border: none; color: #fff; font-size: 1rem; cursor: pointer; padding: 0 .15rem; }
+.vcTime { color: #fff; font-size: .75rem; white-space: nowrap; }
+.vcProgress {
+  flex: 1; height: 4px; background: rgba(255,255,255,.3); border-radius: 2px; overflow: hidden;
+}
+.vcProgressFill { height: 100%; background: #fff; }
+.vcSpeed { color: #fff; font-size: .75rem; margin-left: .25rem; }
+
+/* Theater mode toast */
+.theaterToast {
+  position: absolute; top: .75rem; right: .75rem;
+  background: #1e293b; color: #fff;
+  border-radius: 10px; padding: .75rem 1rem;
+  max-width: 190px; font-size: .75rem;
+  box-shadow: 0 4px 16px rgba(0,0,0,.4);
+}
+.theaterClose {
+  position: absolute; top: .4rem; right: .5rem;
+  background: none; border: none; color: rgba(255,255,255,.6); cursor: pointer; font-size: .8rem;
+}
+.theaterTitle { font-weight: 700; margin: 0 0 .3rem; }
+.theaterSub   { color: rgba(255,255,255,.75); margin: 0; line-height: 1.45; }
+
+/* ── Tabs ──────────────────────────────────────────────────────────────────── */
+.tabBar {
+  display: flex; gap: 0;
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+.tabBtn {
+  background: none; border: none; border-bottom: 2px solid transparent;
+  padding: .65rem 1.1rem; font-size: .875rem; font-weight: 600;
+  cursor: pointer; color: var(--color-muted);
+  transition: color .15s, border-color .15s;
+}
+.tabBtn:hover  { color: var(--color-text); }
+.tabActive     { color: var(--color-text); border-bottom-color: var(--color-text); }
+
+/* ── Tab content ──────────────────────────────────────────────────────────── */
+.tabContent { padding: 1rem 1.25rem; flex: 1; }
+
+.transcript { display: flex; flex-direction: column; gap: .65rem; }
+.transcriptLine { display: flex; gap: .85rem; font-size: .85rem; line-height: 1.55; }
+.timestamp { color: #1a56db; font-size: .78rem; font-weight: 600; min-width: 2.5rem; flex-shrink: 0; }
+
+.notes {
+  width: 100%; border: 1px solid var(--color-border); border-radius: 8px;
+  padding: .75rem; font-size: .875rem; font-family: inherit;
+  resize: vertical; outline: none;
+}
+.notes:focus { border-color: var(--color-accent); }
+
+.noDownloads { font-size: .85rem; color: var(--color-muted); }
+
+/* ── Footer ───────────────────────────────────────────────────────────────── */
+.footer {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: .75rem 1.25rem;
+  border-top: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+.footerLeft { display: flex; gap: .5rem; }
+.reactBtn {
+  background: none; border: 1px solid var(--color-border);
+  border-radius: 999px; padding: .3rem .75rem;
+  font-size: .78rem; cursor: pointer; color: var(--color-muted);
+  transition: background .12s, color .12s;
+}
+.reactBtn:hover { background: #f1f5f9; color: var(--color-text); }
+
+.nextBtn {
+  background: #fff; border: 1px solid var(--color-border);
+  border-radius: 8px; padding: .4rem 1rem;
+  font-size: .82rem; font-weight: 600; cursor: pointer;
+  color: var(--color-text); transition: background .12s;
+}
+.nextBtn:hover:not(:disabled) { background: #f1f5f9; }
+.nextBtn:disabled { opacity: .4; cursor: default; }

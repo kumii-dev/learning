@@ -1,6 +1,180 @@
-.page { max-width: 760px; margin: 0 auto; padding: 2rem 1.5rem; }
-.heading { font-size: 1.6rem; color: var(--fg); margin-bottom: 0.25rem; }
-.type { font-size: 0.8rem; opacity: 0.55; margin-bottom: 1.5rem; text-transform: uppercase; letter-spacing: 0.06em; }
+/* client/src/pages/Assessment.module.css */
+
+.state { color: var(--color-muted); padding: 2rem; }
+.error { color: #b91c1c; padding: 2rem; }
+
+/* ── Sub-header (shared across all screens) ──────────────────────────────── */
+.subHeader {
+  display: flex; align-items: center; gap: 1rem;
+  padding: .6rem 1.5rem;
+  border-bottom: 1px solid var(--color-border);
+  background: #fff; flex-shrink: 0;
+}
+.backBtn {
+  background: none; border: none; cursor: pointer;
+  color: var(--color-accent); font-size: .85rem; font-weight: 600; padding: 0;
+}
+.backBtn:hover { text-decoration: underline; }
+.subHeaderMid  { display: flex; flex-direction: column; flex: 1; gap: .1rem; }
+.subTitle      { font-size: .875rem; font-weight: 700; }
+.subMeta       { font-size: .75rem; color: var(--color-muted); }
+.dueLabel      { font-size: .8rem; color: var(--color-muted); white-space: nowrap; margin-left: auto; }
+
+/* ════ START SCREEN ════════════════════════════════════════════════════════ */
+.startPage { max-width: 680px; margin: 0 auto; padding: 2rem 1.5rem; display: flex; flex-direction: column; gap: 1.25rem; }
+.assignTitle { font-size: 1.6rem; font-weight: 800; letter-spacing: -.02em; line-height: 1.25; }
+.objLink { font-size: .875rem; color: var(--color-accent); text-decoration: none; }
+.objLink:hover { text-decoration: underline; }
+
+/* Coach */
+.coachBox {
+  border: 1px solid var(--color-border); border-radius: var(--radius-lg);
+  padding: 1rem 1.25rem;
+}
+.coachHeader { display: flex; justify-content: space-between; align-items: center; margin-bottom: .5rem; }
+.coachLabel  { font-size: .8rem; font-weight: 700; color: var(--color-muted); font-style: italic; }
+.coachChevron { background: none; border: none; cursor: pointer; font-size: .8rem; color: var(--color-muted); }
+.coachText   { font-size: .85rem; color: var(--color-muted); margin: 0 0 .75rem; }
+.coachActions { display: flex; gap: .5rem; }
+.coachBtn {
+  background: none; border: 1px solid var(--color-border); border-radius: 999px;
+  padding: .35rem .85rem; font-size: .8rem; cursor: pointer; font-weight: 600;
+  color: var(--color-text); transition: background .12s;
+}
+.coachBtn:hover { background: #f1f5f9; }
+
+/* Details box */
+.detailsBox {
+  border: 2px solid var(--color-primary); border-radius: var(--radius-lg);
+  padding: 1rem 1.25rem; background: #f0fdf4;
+}
+.detailsTitle { font-size: .9rem; font-weight: 700; margin: 0 0 .75rem; }
+.detailsRow   { display: flex; align-items: center; gap: 2rem; }
+.detailLabel  { font-size: .75rem; color: var(--color-muted); margin: 0 0 .15rem; font-weight: 600; }
+.detailValue  { font-size: .875rem; font-weight: 700; margin: 0; }
+.startBtn {
+  background: #1a56db; color: #fff; border: none;
+  border-radius: 8px; padding: .55rem 1.5rem;
+  font-size: .875rem; font-weight: 700; cursor: pointer;
+  margin-left: auto; transition: background .15s;
+}
+.startBtn:hover { background: #1346b8; }
+
+/* Grade */
+.gradeSection { display: flex; flex-direction: column; gap: .35rem; }
+.gradeLabel   { font-size: .9rem; font-weight: 700; margin: 0; }
+.gradeNote    { font-size: .82rem; color: var(--color-muted); margin: 0; }
+.gradeDash    { font-size: 1.1rem; color: var(--color-muted); margin: 0; }
+
+/* Start footer */
+.startFooter { display: flex; align-items: center; justify-content: space-between; padding-top: .5rem; }
+.footerLeft  { display: flex; gap: .5rem; }
+.reactBtn {
+  background: none; border: 1px solid var(--color-border);
+  border-radius: 999px; padding: .3rem .75rem;
+  font-size: .78rem; cursor: pointer; color: var(--color-muted);
+  transition: background .12s;
+}
+.reactBtn:hover { background: #f1f5f9; color: var(--color-text); }
+.nextItemBtn {
+  background: #fff; border: 1px solid var(--color-border);
+  border-radius: 8px; padding: .4rem 1rem;
+  font-size: .82rem; font-weight: 600; cursor: pointer; color: var(--color-text);
+  transition: background .12s;
+}
+.nextItemBtn:hover { background: #f1f5f9; }
+
+/* ════ TAKING SCREEN ════════════════════════════════════════════════════════ */
+.takingPage   { display: flex; flex-direction: column; min-height: 100%; }
+.takingBody   { max-width: 720px; margin: 0 auto; padding: 2rem 1.5rem; display: flex; flex-direction: column; gap: 2rem; width: 100%; }
+
+.question { display: flex; flex-direction: column; gap: .6rem; }
+.questionRow { display: flex; gap: .5rem; align-items: flex-start; }
+.qNum  { font-size: .9rem; font-weight: 700; min-width: 1.4rem; flex-shrink: 0; padding-top: .05rem; }
+.qBody { flex: 1; display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; }
+.qText { font-size: .9rem; line-height: 1.55; margin: 0; flex: 1; }
+.qPoints { font-size: .78rem; color: var(--color-muted); white-space: nowrap; flex-shrink: 0; }
+
+.option {
+  display: flex; align-items: center; gap: .6rem;
+  font-size: .875rem; cursor: pointer; padding: .2rem 0;
+  margin-left: 1.4rem;
+}
+.option input { accent-color: #1a56db; }
+
+.textarea {
+  width: 100%; margin-left: 1.4rem;
+  border: 1px solid var(--color-border); border-radius: 8px;
+  padding: .65rem; font-size: .875rem; font-family: inherit;
+  resize: vertical; outline: none;
+}
+.textarea:focus { border-color: var(--color-accent); }
+
+/* Honor code */
+.honorBox {
+  border: 2px solid var(--color-border); border-radius: var(--radius-lg);
+  padding: 1rem 1.25rem;
+  transition: border-color .15s;
+}
+.honorChecked   { border-color: var(--color-primary); background: #f0fdf4; }
+.honorTitle     { font-size: .9rem; font-weight: 700; margin: 0 0 .5rem; }
+.honorText      { font-size: .83rem; color: var(--color-muted); margin: 0 0 .75rem; line-height: 1.55; }
+.honorLink      { color: var(--color-accent); }
+.honorLabel     { display: flex; align-items: center; gap: .6rem; font-size: .85rem; cursor: pointer; }
+.honorLabel input { accent-color: var(--color-primary); width: 16px; height: 16px; }
+.honorWarn      { font-size: .75rem; color: #b91c1c; margin: .4rem 0 0; }
+
+.takingActions  { display: flex; gap: .75rem; }
+.submitBtn {
+  background: #1a56db; color: #fff; border: none;
+  border-radius: 8px; padding: .55rem 1.75rem;
+  font-size: .9rem; font-weight: 700; cursor: pointer;
+  transition: background .15s, opacity .15s;
+}
+.submitBtn:hover:not(:disabled) { background: #1346b8; }
+.submitBtn:disabled { opacity: .45; cursor: default; }
+
+.draftBtn {
+  background: none; border: 1px solid var(--color-border);
+  border-radius: 8px; padding: .55rem 1.25rem;
+  font-size: .9rem; font-weight: 600; cursor: pointer; color: var(--color-text);
+  transition: background .12s;
+}
+.draftBtn:hover { background: #f1f5f9; }
+
+/* ════ RESULTS SCREEN ═══════════════════════════════════════════════════════ */
+.resultsPage { display: flex; flex-direction: column; min-height: 100%; }
+
+.gradeBanner {
+  display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+  padding: 1rem 1.5rem; flex-shrink: 0;
+}
+.gradeBannerPass { background: #dcfce7; border-bottom: 1px solid #86efac; }
+.gradeBannerFail { background: #fee2e2; border-bottom: 1px solid #fca5a5; }
+.gradeLeft { display: flex; flex-direction: column; gap: .2rem; }
+.gradeTitle { font-size: 1.1rem; font-weight: 700; }
+.gradeTitle strong { color: var(--color-primary); }
+.gradeSub   { font-size: .78rem; color: #374151; }
+
+.reviewPage { max-width: 720px; margin: 0 auto; padding: 2rem 1.5rem; display: flex; flex-direction: column; gap: 2.5rem; width: 100%; }
+
+.reviewQuestion { display: flex; flex-direction: column; gap: .55rem; }
+.reviewOption {
+  display: flex; align-items: center; gap: .6rem;
+  font-size: .875rem; cursor: default; padding: .2rem 0;
+  margin-left: 1.4rem; color: #374151;
+}
+.reviewOption input { accent-color: #1a56db; }
+.reviewSelected { color: var(--color-text); font-weight: 600; }
+
+.niceWork {
+  background: #f0fdf4; border: 1px solid #86efac;
+  border-radius: 8px; padding: .75rem 1rem;
+  margin-left: 1.4rem;
+}
+.niceIcon { font-size: .85rem; font-weight: 700; color: #15803d; display: block; margin-bottom: .35rem; }
+.niceWork p { font-size: .85rem; color: #1a2e1a; margin: 0; line-height: 1.55; }
+
 
 .form { display: flex; flex-direction: column; gap: 1.5rem; }
 
