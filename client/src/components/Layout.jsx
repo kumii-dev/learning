@@ -4,6 +4,7 @@
  */
 
 import { NavLink } from 'react-router-dom';
+import { getIsAdmin } from '../lib/authBridge';
 import styles from './Layout.module.css';
 
 const NAV = [
@@ -67,6 +68,7 @@ const NAV = [
 ];
 
 export default function Layout({ children, searchValue, onSearchChange }) {
+  const isAdmin = getIsAdmin();
   return (
     <>
       <header className={styles.header}>
@@ -100,6 +102,20 @@ export default function Layout({ children, searchValue, onSearchChange }) {
             {label}
           </NavLink>
         ))}
+        {isAdmin && (
+          <NavLink
+            to="/admin"
+            className={({ isActive }) =>
+              [styles.navItem, styles.adminItem, isActive ? styles.active : ''].join(' ')
+            }
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+            </svg>
+            Admin
+          </NavLink>
+        )}
       </nav>
     </>
   );

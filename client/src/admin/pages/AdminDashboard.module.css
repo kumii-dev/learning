@@ -1,0 +1,93 @@
+/* client/src/admin/pages/AdminDashboard.module.css */
+
+.page       { padding: 2rem; max-width: 1200px; }
+.state      { padding: 2rem; color: #64748b; }
+.error      { padding: 2rem; color: #b91c1c; }
+
+.pageHeader {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  margin-bottom: 1.75rem; gap: 1rem; flex-wrap: wrap;
+}
+.pageTitle  { font-size: 1.6rem; font-weight: 800; letter-spacing: -.02em; }
+.pageSub    { font-size: .85rem; color: #64748b; margin-top: .25rem; }
+.newBtn {
+  background: #16a34a; color: #fff; border: none;
+  border-radius: 8px; padding: .55rem 1.25rem;
+  font-size: .875rem; font-weight: 700; cursor: pointer;
+  text-decoration: none; white-space: nowrap;
+  transition: background .15s;
+}
+.newBtn:hover { background: #15803d; text-decoration: none; }
+
+/* Stat cards */
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+@media (max-width: 900px) { .statsGrid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 500px) { .statsGrid { grid-template-columns: 1fr; } }
+
+.statCard {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 1.25rem 1.25rem 1rem;
+  position: relative;
+  overflow: hidden;
+}
+.statDot {
+  position: absolute; top: 0; left: 0; right: 0; height: 4px;
+  background: var(--accent);
+  border-radius: 14px 14px 0 0;
+}
+.statValue { font-size: 2rem; font-weight: 800; color: var(--accent); line-height: 1.2; margin-top: .25rem; }
+.statLabel { font-size: .8rem; font-weight: 700; color: #0f172a; margin-top: .2rem; }
+.statSub   { font-size: .72rem; color: #64748b; margin-top: .15rem; }
+
+/* Two-column layout */
+.twoCol {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+}
+@media (max-width: 800px) { .twoCol { grid-template-columns: 1fr; } }
+
+.card {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 1.25rem;
+}
+.cardHeader {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 1rem;
+}
+.cardTitle  { font-size: .95rem; font-weight: 700; }
+.viewAll    { font-size: .8rem; color: #1a56db; text-decoration: none; }
+.viewAll:hover { text-decoration: underline; }
+.empty      { font-size: .85rem; color: #64748b; }
+
+/* Chart */
+.chartWrap { padding: .5rem 0; overflow-x: auto; }
+.chart      { display: block; min-width: 260px; }
+
+/* Table */
+.table { width: 100%; border-collapse: collapse; font-size: .83rem; }
+.table th {
+  text-align: left; padding: .4rem .5rem;
+  font-size: .72rem; font-weight: 700; color: #64748b;
+  text-transform: uppercase; letter-spacing: .05em;
+  border-bottom: 1px solid #e2e8f0;
+}
+.table td { padding: .55rem .5rem; border-bottom: 1px solid #f1f5f9; color: #0f172a; }
+.table tr:last-child td { border-bottom: none; }
+.num        { text-align: right !important; }
+.courseLink { color: #0f172a; font-weight: 600; text-decoration: none; }
+.courseLink:hover { color: #1a56db; text-decoration: underline; }
+.draftBadge {
+  margin-left: .4rem; font-size: .65rem; font-weight: 700;
+  padding: .1rem .35rem; border-radius: 4px;
+  background: #fef3c7; color: #92400e;
+}

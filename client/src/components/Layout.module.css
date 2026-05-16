@@ -90,3 +90,9 @@
 .navItem:hover { color: var(--color-primary); text-decoration: none; }
 .navItem.active { color: var(--color-primary); }
 .navItem.active svg { stroke: var(--color-primary); }
+
+/* Admin nav item — subtle accent */
+.adminItem { opacity: 0.75; }
+.adminItem:hover { opacity: 1; color: #a78bfa; }
+.adminItem.active { color: #a78bfa; opacity: 1; }
+.adminItem.active svg { stroke: #a78bfa; }

@@ -1,0 +1,61 @@
+/* client/src/admin/pages/AdminAnalytics.module.css */
+
+.page       { padding: 2rem; max-width: 1100px; display: flex; flex-direction: column; gap: 1.5rem; }
+.state      { padding: 2rem; color: #64748b; }
+.error      { padding: 2rem; color: #b91c1c; }
+.empty      { font-size: .875rem; color: #64748b; padding: .5rem 0; }
+.noData     { font-size: .83rem; color: #94a3b8; padding: 1rem 0; }
+
+.pageHeader { margin-bottom: .5rem; }
+.pageTitle  { font-size: 1.6rem; font-weight: 800; letter-spacing: -.02em; }
+.pageSub    { font-size: .85rem; color: #64748b; margin-top: .25rem; }
+
+/* Stats row */
+.statsRow {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem;
+}
+@media (max-width: 700px) { .statsRow { grid-template-columns: repeat(2, 1fr); } }
+
+.statCard {
+  background: #fff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 1.25rem;
+}
+.statValue { font-size: 1.85rem; font-weight: 800; color: #0f172a; line-height: 1.2; }
+.statLabel { font-size: .8rem; font-weight: 700; color: #374151; margin-top: .2rem; }
+.statSub   { font-size: .72rem; color: #64748b; margin-top: .1rem; }
+
+/* Cards */
+.card {
+  background: #fff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 1.5rem;
+}
+.cardTitle { font-size: 1rem; font-weight: 700; margin-bottom: 1rem; }
+
+.courseSelectRow { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap; }
+.courseSelect {
+  border: 1px solid #e2e8f0; border-radius: 8px; padding: .4rem .75rem;
+  font-size: .875rem; outline: none; min-width: 240px; background: #fff;
+}
+.courseSelect:focus { border-color: #1a56db; }
+
+/* Chart */
+.chartWrap { padding: .25rem 0; overflow-x: auto; }
+.chartSvg  { display: block; }
+
+/* Detail stats */
+.detailStats {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: .75rem; margin-bottom: 1.25rem;
+}
+@media (max-width: 600px) { .detailStats { grid-template-columns: repeat(2, 1fr); } }
+
+.dStatCard {
+  background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px;
+  padding: 1rem; border-top: 3px solid var(--dc);
+}
+.dStatValue { font-size: 1.6rem; font-weight: 800; color: var(--dc); }
+.dStatLabel { font-size: .75rem; font-weight: 700; color: #374151; margin-top: .2rem; }
+
+/* Two-col */
+.twoCol { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem; }
+@media (max-width: 700px) { .twoCol { grid-template-columns: 1fr; } }
+
+.subCard { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 1rem; }
+.subTitle { font-size: .9rem; font-weight: 700; margin-bottom: .75rem; }
