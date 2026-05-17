@@ -19,3 +19,8 @@ alter table public.courses
   add column if not exists topics             text[] default '{}',
   add column if not exists learning_outcomes  text[] default '{}',
   add column if not exists video_url          text;
+
+-- Add missing enrolment columns
+alter table public.enrolments
+  add column if not exists progress_pct  numeric(5,2) not null default 0,
+  add column if not exists updated_at    timestamptz not null default now();
