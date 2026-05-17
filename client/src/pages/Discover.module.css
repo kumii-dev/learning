@@ -159,6 +159,127 @@
 }
 .roleStar { color: var(--color-star); }
 
+/* ── ESD Programmes section ───────────────────────────────────────────────── */
+.esdSection { margin-bottom: 2rem; }
+
+.esdHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: .85rem;
+}
+
+.esdSub {
+  font-size: .78rem;
+  color: var(--color-muted);
+  margin: 0;
+}
+
+.esdViewAll {
+  display: flex;
+  align-items: center;
+  gap: .25rem;
+  font-size: .75rem;
+  font-weight: 600;
+  color: #16a34a;
+  text-decoration: none;
+  white-space: nowrap;
+  padding-top: .15rem;
+}
+.esdViewAll:hover { text-decoration: underline; }
+
+/* Horizontal scroll row */
+.esdScroll {
+  display: flex;
+  gap: .75rem;
+  overflow-x: auto;
+  padding-bottom: .5rem;
+  scrollbar-width: none;
+}
+.esdScroll::-webkit-scrollbar { display: none; }
+
+/* ESD card */
+.esdCard {
+  flex-shrink: 0;
+  width: 185px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  text-decoration: none;
+  color: var(--color-text);
+  box-shadow: var(--shadow);
+  transition: box-shadow .15s, transform .15s;
+}
+.esdCard:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+  text-decoration: none;
+}
+
+.esdCardHero {
+  height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.esdLevelBadge {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  background: rgba(0,0,0,.35);
+  color: #fff;
+  font-size: .58rem;
+  font-weight: 600;
+  border-radius: 3px;
+  padding: 1px 5px;
+  white-space: nowrap;
+}
+
+.esdCardBody {
+  padding: .55rem .65rem .6rem;
+  display: flex;
+  flex-direction: column;
+  gap: .3rem;
+}
+
+.esdCardTitle {
+  font-size: .78rem;
+  font-weight: 700;
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.esdCardMeta {
+  display: flex;
+  align-items: center;
+  gap: .45rem;
+  font-size: .67rem;
+  color: var(--color-muted);
+}
+.esdCardMeta svg { vertical-align: middle; }
+
+.esdTag {
+  background: #f0fdf4;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+  border-radius: 3px;
+  font-size: .6rem;
+  font-weight: 600;
+  padding: 1px 5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 90px;
+}
+
 /* ── Providers section ────────────────────────────────────────────────────── */
 .providersSection { margin-bottom: 1rem; }
 

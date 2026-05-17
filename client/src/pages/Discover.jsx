@@ -261,6 +261,66 @@ export default function Discover({ search }) {
         </div>
       </section>
 
+      {/* ── ESD Programmes (live from Admin CMS) ────────────────────────── */}
+      {courses.length > 0 && !activeCategory && (
+        <section className={styles.esdSection}>
+          <div className={styles.esdHeader}>
+            <div>
+              <h2 className={styles.sectionTitle} style={{ marginBottom: '.15rem' }}>
+                <FeatherIcon icon="star" size={15} style={{ marginRight: 6, color: '#16a34a', verticalAlign: 'middle' }} />
+                ESD Programmes
+              </h2>
+              <p className={styles.esdSub}>
+                Enterprise &amp; Supplier Development programmes — enrol and earn your certificate.
+              </p>
+            </div>
+            <Link to="/careers?tab=esd" className={styles.esdViewAll}>
+              View all <FeatherIcon icon="arrow-right" size={13} />
+            </Link>
+          </div>
+
+          <div className={styles.esdScroll}>
+            {courses.slice(0, 8).map((course) => {
+              const BG_PALETTE = ['#0d7f4f','#0e7490','#6d28d9','#d97706','#be185d','#0f2d5e','#15803d','#0369a1'];
+              let h = 0;
+              for (let i = 0; i < (course.title ?? '').length; i++) h = (h * 31 + course.title.charCodeAt(i)) >>> 0;
+              const bg = BG_PALETTE[h % BG_PALETTE.length];
+              const CAT_ICON = {
+                'Technical Skills / ESD': 'tool',
+                'Environmental / Compliance / ESD': 'wind',
+                'Maritime / Business Support / ESD': 'anchor',
+                'Construction / Business Management / ESD': 'home',
+                'Export Readiness / Market Access / ESD': 'globe',
+                'Supplier Development / Manufacturing / Quality': 'settings',
+                'ISO Standards / Quality / Compliance': 'check-circle',
+                'Business Management / Entrepreneurship': 'briefcase',
+                'Programme Management / Reporting': 'bar-chart-2',
+              };
+              const icon = CAT_ICON[course.category] ?? 'book-open';
+              return (
+                <Link key={course.id} to={`/courses/${course.id}`} className={styles.esdCard}>
+                  <div className={styles.esdCardHero} style={{ background: bg }}>
+                    <FeatherIcon icon={icon} size={26} color="rgba(255,255,255,.8)" />
+                    {course.level && <span className={styles.esdLevelBadge}>{course.level}</span>}
+                  </div>
+                  <div className={styles.esdCardBody}>
+                    <div className={styles.esdCardTitle}>{course.title}</div>
+                    <div className={styles.esdCardMeta}>
+                      {course.estimated_hours && (
+                        <span><FeatherIcon icon="clock" size={10} /> {course.estimated_hours}h</span>
+                      )}
+                      {course.tags?.[0] && (
+                        <span className={styles.esdTag}>{course.tags[0]}</span>
+                      )}
+                    </div>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
       {/* ── Software providers ──────────────────────────────────────────── */}
       <section className={styles.providersSection}>
         <h2 className={styles.sectionTitle}>Software Learning Providers</h2>
