@@ -167,18 +167,41 @@ export default function Discover({ search }) {
 
   // ── Main discover view ───────────────────────────────────────────────────
   return (
-    <div className={styles.page}>
-
-      {/* ── Page header (matches Careers "Explore roles" style) ──────── */}
-      <div>
-        <h1 className={styles.pageTitle}>Explore roles</h1>
-        <p className={styles.pageSub}>
-          Advance in your career with recognised credentials across levels.
-          Choose from 16 roles · 10 ESD programmes.
-        </p>
+    <>
+      {/* ── Full-bleed hero ──────────────────────────────────────────── */}
+      <div className={styles.heroBleed}>
+        <div className={styles.heroInner}>
+          <div className={styles.heroBadge}>
+            <FeatherIcon icon="star" size={13} />
+            10 ESD Programmes now available
+          </div>
+          <h1 className={styles.heroHeading}>Learning Hub</h1>
+          <p className={styles.heroSubtitle}>
+            Advance in your career with recognised credentials across levels.<br />
+            From ESD programmes to global tech certifications.
+          </p>
+          <div className={styles.heroCtas}>
+            <Link to="/careers#esd" className={styles.heroCtaPrimary}>
+              <FeatherIcon icon="star" size={15} />
+              Browse ESD Programmes
+            </Link>
+            <Link to="/careers" className={styles.heroCtaOutline}>
+              <FeatherIcon icon="briefcase" size={15} />
+              Career Paths
+            </Link>
+            <Link to="/my-learning" className={styles.heroCtaOutline}>
+              <FeatherIcon icon="book-open" size={15} />
+              My Learning
+            </Link>
+            <Link to="/live-sessions" className={styles.heroCtaOutline}>
+              <FeatherIcon icon="video" size={15} />
+              Live Sessions
+            </Link>
+          </div>
+        </div>
       </div>
 
-      {/* ── Career path cards ────────────────────────────────────────── */}
+    <div className={styles.page}>
       <section className={styles.heroSection}>
         <div className={styles.heroCards}>
           {CAREER_PATHS.map((path, i) => (
@@ -367,6 +390,7 @@ export default function Discover({ search }) {
       </section>
 
     </div>
+    </>
   );
 }
 

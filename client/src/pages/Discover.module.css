@@ -4,10 +4,105 @@
 .page {
   max-width: 1100px;
   margin: 0 auto;
-  padding: 1.5rem 1rem 2rem;
+  padding: 2rem 1rem 2rem;
 }
 
-/* ── Shared section typography ───────────────────────────────────────────── */
+/* ── Full-bleed hero strip ───────────────────────────────────────────────── */
+.heroBleed {
+  width: 100%;
+  background: var(--color-bg, #f5f3ee);
+  border-bottom: 1px solid var(--color-border, #e5ddd4);
+  padding: 3rem 1.5rem 2.75rem;
+  text-align: center;
+}
+
+.heroInner {
+  max-width: 640px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: .75rem;
+}
+
+/* Small badge — "10 ESD Programmes available" */
+.heroBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  background: #1c1c1c;
+  color: #fff;
+  font-size: .72rem;
+  font-weight: 600;
+  padding: .3rem .85rem;
+  border-radius: 999px;
+  letter-spacing: .02em;
+  margin-bottom: .25rem;
+}
+
+/* Large gradient title */
+.heroHeading {
+  font-size: clamp(2.4rem, 6vw, 3.6rem);
+  font-weight: 900;
+  letter-spacing: -.04em;
+  line-height: 1.05;
+  margin: 0;
+  /* olive-to-light-green gradient clipped to text */
+  background: linear-gradient(135deg, #3a6b30 0%, #78b85a 55%, #a8d48a 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.heroSubtitle {
+  font-size: .95rem;
+  color: var(--color-muted, #6b7280);
+  line-height: 1.6;
+  margin: 0;
+  max-width: 480px;
+}
+
+/* CTA button row */
+.heroCtas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .6rem;
+  justify-content: center;
+  margin-top: .5rem;
+}
+
+.heroCtaPrimary {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  padding: .6rem 1.25rem;
+  border-radius: 999px;
+  background: #4a7c3e;
+  color: #fff;
+  font-size: .85rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition: background .15s, transform .15s;
+}
+.heroCtaPrimary:hover { background: #3a6b30; transform: translateY(-1px); }
+
+.heroCtaOutline {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  padding: .58rem 1.1rem;
+  border-radius: 999px;
+  border: 1.5px solid var(--color-border, #e5ddd4);
+  background: var(--color-surface, #fff);
+  color: var(--color-text, #111827);
+  font-size: .85rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: border-color .15s, transform .15s;
+}
+.heroCtaOutline:hover { border-color: #4a7c3e; color: #4a7c3e; transform: translateY(-1px); }
+
+
 .sectionTitle {
   font-size: 1.2rem;
   font-weight: 800;
@@ -20,22 +115,6 @@
   color: var(--color-muted);
   margin: 0 0 1rem;
 }
-
-/* ── Page header (matches Careers style) ────────────────────────────────── */
-.pageTitle {
-  font-size: 2rem;
-  font-weight: 800;
-  letter-spacing: -.03em;
-  margin-bottom: .3rem;
-}
-.pageSub {
-  font-size: .875rem;
-  color: var(--color-muted);
-  margin-bottom: 1.5rem;
-}
-
-/* kept for backwards compat but no longer rendered */
-.heroBanner { display: none; }
 
 /* ── Hero career cards (landscape, 3-col) ────────────────────────────────── */
 .heroSection { margin-bottom: 2rem; }
