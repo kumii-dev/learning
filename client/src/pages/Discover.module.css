@@ -2,9 +2,9 @@
 
 /* ── Page shell ──────────────────────────────────────────────────────────── */
 .page {
-  max-width: 1000px;
+  max-width: 1100px;
   margin: 0 auto;
-  padding: 0 1rem 3rem;
+  padding: 1.5rem 1rem 2rem;
 }
 
 /* ── Shared section typography ───────────────────────────────────────────── */
@@ -21,29 +21,21 @@
   margin: 0 0 1rem;
 }
 
-/* ── Hero banner (full-width warm strip) ─────────────────────────────────── */
-.heroBanner {
-  background: #eeeae2;
-  border-radius: var(--radius-lg, 16px);
-  padding: 2rem 1.5rem;
-  margin: 1.25rem 0 1.5rem;
-  text-align: center;
+/* ── Page header (matches Careers style) ────────────────────────────────── */
+.pageTitle {
+  font-size: 2rem;
+  font-weight: 800;
+  letter-spacing: -.03em;
+  margin-bottom: .3rem;
 }
-.heroBannerInner { max-width: 540px; margin: 0 auto; }
-.heroBannerTitle {
-  font-size: 1.65rem;
-  font-weight: 900;
-  color: var(--color-heading, #4a7c3e);
-  letter-spacing: -.025em;
-  line-height: 1.2;
-  margin: 0 0 .5rem;
-}
-.heroBannerSub {
+.pageSub {
   font-size: .875rem;
   color: var(--color-muted);
-  line-height: 1.5;
-  margin: 0;
+  margin-bottom: 1.5rem;
 }
+
+/* kept for backwards compat but no longer rendered */
+.heroBanner { display: none; }
 
 /* ── Hero career cards (landscape, 3-col) ────────────────────────────────── */
 .heroSection { margin-bottom: 2rem; }

@@ -169,15 +169,14 @@ export default function Discover({ search }) {
   return (
     <div className={styles.page}>
 
-      {/* ── Hero banner (Kumii page-header style) ────────────────────── */}
-      <section className={styles.heroBanner}>
-        <div className={styles.heroBannerInner}>
-          <h1 className={styles.heroBannerTitle}>Ready to reimagine your career?</h1>
-          <p className={styles.heroBannerSub}>
-            Get the skills and real-world experience employers want with Career Accelerators.
-          </p>
-        </div>
-      </section>
+      {/* ── Page header (matches Careers "Explore roles" style) ──────── */}
+      <div>
+        <h1 className={styles.pageTitle}>Explore roles</h1>
+        <p className={styles.pageSub}>
+          Advance in your career with recognised credentials across levels.
+          Choose from 16 roles · 10 ESD programmes.
+        </p>
+      </div>
 
       {/* ── Career path cards ────────────────────────────────────────── */}
       <section className={styles.heroSection}>
