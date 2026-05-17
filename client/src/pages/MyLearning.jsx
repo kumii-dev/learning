@@ -4,6 +4,7 @@
 
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import FeatherIcon from 'feather-icons-react';
 import apiClient from '../lib/apiClient';
 import { getProfile } from '../lib/authBridge';
 import styles from './MyLearning.module.css';
@@ -68,10 +69,10 @@ function CourseCard({ course, enrolment }) {
       </Link>
       <p className={styles.cardDesc}>{course.description ?? course.short_description ?? ''}</p>
       <div className={styles.cardMeta}>
-        <span className={styles.metaTag}>📦 {type}</span>
-        <span className={styles.metaTag}>📊 {level}</span>
+        <span className={styles.metaTag}><FeatherIcon icon="package" size={12} /> {type}</span>
+        <span className={styles.metaTag}><FeatherIcon icon="bar-chart-2" size={12} /> {level}</span>
       </div>
-      {duration && <div className={styles.cardDuration}>⏱ {duration}</div>}
+      {duration && <div className={styles.cardDuration}><FeatherIcon icon="clock" size={12} /> {duration}</div>}
       {tags.length > 0 && (
         <div className={styles.cardTags}>
           {tags.slice(0, 3).map((t) => <span key={t} className={styles.topicTag}>{t}</span>)}
@@ -88,7 +89,7 @@ function CourseCard({ course, enrolment }) {
         )
         : (
           <Link to={`/courses/${course.id}`} className={styles.startBtn}>
-            Start Learning ↗
+            Start Learning <FeatherIcon icon="external-link" size={14} />
           </Link>
         )
       }
@@ -216,12 +217,12 @@ export default function MyLearning() {
           <div className={styles.sideSection}>
             <div className={styles.sideSectionHeader}>
               <h3>Additional info</h3>
-              <button className={styles.editBtn} title="Edit">✏️</button>
+              <button className={styles.editBtn} title="Edit"><FeatherIcon icon="edit-2" size={14} /></button>
             </div>
             <p className={styles.sideSectionLabel}>LINKS &amp; RESUME</p>
             {resumeUrl
-              ? <a href={resumeUrl} target="_blank" rel="noreferrer" className={styles.resumeLink}>📄 Resume</a>
-              : <span className={styles.noResume}>📄 No resume uploaded</span>
+              ? <a href={resumeUrl} target="_blank" rel="noreferrer" className={styles.resumeLink}><FeatherIcon icon="file-text" size={14} /> Resume</a>
+              : <span className={styles.noResume}><FeatherIcon icon="file-text" size={14} /> No resume uploaded</span>
             }
           </div>
 
@@ -246,29 +247,29 @@ export default function MyLearning() {
           {/* ── Your Learning Journey ───────────────────────────────── */}
           <section className={styles.journeyBox}>
             <div className={styles.journeyHeader}>
-              <span className={styles.journeyTitle}>🎯 Your Learning Journey</span>
+              <span className={styles.journeyTitle}><FeatherIcon icon="target" size={16} /> Your Learning Journey</span>
               {enrolments.length === 0 && <span className={styles.newLearnerBadge}>New Learner</span>}
             </div>
             <div className={styles.journeyBody}>
               <ProgressRing pct={totalPct} />
               <div className={styles.statsGrid}>
                 <div className={styles.statCell}>
-                  <span className={styles.statIcon}>📚</span>
+                  <span className={styles.statIcon}><FeatherIcon icon="book-open" size={20} /></span>
                   <span className={styles.statNum}>{enrolments.length}</span>
                   <span className={styles.statLabel}>Courses Enrolled</span>
                 </div>
                 <div className={styles.statCell}>
-                  <span className={styles.statIcon}>🏆</span>
+                  <span className={styles.statIcon}><FeatherIcon icon="award" size={20} /></span>
                   <span className={styles.statNum}>{completed.length}</span>
                   <span className={styles.statLabel}>Courses Completed</span>
                 </div>
                 <div className={styles.statCell}>
-                  <span className={styles.statIcon}>⚡</span>
+                  <span className={styles.statIcon}><FeatherIcon icon="zap" size={20} /></span>
                   <span className={styles.statNum}>{inProgress.length}</span>
                   <span className={styles.statLabel}>In Progress</span>
                 </div>
                 <div className={styles.statCell}>
-                  <span className={styles.statIcon}>🌐</span>
+                  <span className={styles.statIcon}><FeatherIcon icon="globe" size={20} /></span>
                   <span className={styles.statNum}>{courses.length}</span>
                   <span className={styles.statLabel}>Available Courses</span>
                 </div>
@@ -276,7 +277,7 @@ export default function MyLearning() {
             </div>
             {enrolments.length === 0 && (
               <p className={styles.journeyHint}>
-                👋 Welcome! Start your learning journey by enrolling in a course or registering for a live session.
+                <FeatherIcon icon="smile" size={16} /> Welcome! Start your learning journey by enrolling in a course or registering for a live session.
               </p>
             )}
           </section>
@@ -284,14 +285,14 @@ export default function MyLearning() {
           {/* ── AI Recommended ──────────────────────────────────────── */}
           <div className={styles.aiBanner}>
             <div className={styles.aiBannerLeft}>
-              <span className={styles.aiIcon}>🤖</span>
+              <span className={styles.aiIcon}><FeatherIcon icon="cpu" size={20} /></span>
               <div>
                 <p className={styles.aiBannerTitle}>AI-Recommended For You</p>
                 <p className={styles.aiBannerSub}>Personalised courses based on your profile, goals, and learning history</p>
               </div>
             </div>
             <Link to="/courses" className={styles.smartMatch}>
-              Smart Match →
+              Smart Match <FeatherIcon icon="arrow-right" size={14} />
             </Link>
           </div>
 
@@ -317,7 +318,7 @@ export default function MyLearning() {
               <p className={styles.emptyMsg}>
                 {tab === 'completed'
                   ? 'No completed courses yet.'
-                  : 'No courses in progress. Explore recommended courses below ↓'}
+                  : 'No courses in progress. Explore recommended courses below.'}
               </p>
               {/* Show recommended courses when tab is empty */}
               {recommended.length > 0 && (

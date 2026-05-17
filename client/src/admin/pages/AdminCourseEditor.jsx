@@ -7,6 +7,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import apiClient from '../../lib/apiClient';
 import styles from './AdminCourseEditor.module.css';
+import FeatherIcon from 'feather-icons-react';
 
 const STEPS = ['Course Details', 'Modules', 'Assessment', 'Review & Publish'];
 
@@ -79,7 +80,7 @@ function ModulesStep({ modules, setModules }) {
         <div key={i} className={styles.moduleCard}>
           <div className={styles.moduleHeader}>
             <span className={styles.moduleNum}>Module {i + 1}</span>
-            <button className={styles.removeBtn} onClick={() => remove(i)}>✕ Remove</button>
+            <button className={styles.removeBtn} onClick={() => remove(i)}><FeatherIcon icon="x" size={14} /> Remove</button>
           </div>
           <div className={styles.field}>
             <label className={styles.label}>Title *</label>
@@ -145,7 +146,7 @@ function AssessmentStep({ assessment, setAssessment }) {
         <div key={i} className={styles.moduleCard}>
           <div className={styles.moduleHeader}>
             <span className={styles.moduleNum}>Question {i + 1}</span>
-            <button className={styles.removeBtn} onClick={() => removeQ(i)}>✕ Remove</button>
+            <button className={styles.removeBtn} onClick={() => removeQ(i)}><FeatherIcon icon="x" size={14} /> Remove</button>
           </div>
           <div className={styles.fieldRow}>
             <div className={styles.field}>
@@ -169,7 +170,7 @@ function AssessmentStep({ assessment, setAssessment }) {
           </div>
           {(q.type === 'mcq' || q.type === 'multi') && (
             <div className={styles.field}>
-              <label className={styles.label}>Options (mark correct with ✓)</label>
+              <label className={styles.label}>Options (mark correct with <FeatherIcon icon="check" size={13} />)</label>
               {q.options.map((opt, oi) => (
                 <div key={oi} className={styles.optionRow}>
                   <input
@@ -233,7 +234,7 @@ function ReviewStep({ form, modules, assessment, courseId, onPublish, publishing
       {!courseId && (
         <div className={styles.publishBox}>
           <p className={styles.publishNote}>
-            ✓ Everything looks good! Save as a draft first, then publish when ready.
+            <FeatherIcon icon="check-circle" size={14} /> Everything looks good! Save as a draft first, then publish when ready.
           </p>
           <button className={styles.publishBtn} onClick={() => onPublish(false)} disabled={publishing}>
             {publishing ? 'Saving…' : 'Save as Draft'}
@@ -369,7 +370,7 @@ export default function AdminCourseEditor() {
       {/* Header */}
       <div className={styles.pageHeader}>
         <button className={styles.backBtn} onClick={() => navigate('/admin/courses')}>
-          ← Back to Courses
+          <FeatherIcon icon="arrow-left" size={16} /> Back to Courses
         </button>
         <h1 className={styles.pageTitle}>{isEdit ? 'Edit Course' : 'New Course'}</h1>
       </div>
@@ -384,7 +385,7 @@ export default function AdminCourseEditor() {
             className={`${styles.stepDot} ${i === step ? styles.stepActive : ''} ${i < step ? styles.stepDone : ''}`}
             onClick={() => setStep(i)}
           >
-            <span className={styles.stepCircle}>{i < step ? '✓' : i + 1}</span>
+            <span className={styles.stepCircle}>{i < step ? <FeatherIcon icon="check" size={14} /> : i + 1}</span>
             <span className={styles.stepLabel}>{s}</span>
           </button>
         ))}
@@ -406,12 +407,12 @@ export default function AdminCourseEditor() {
         <div className={styles.stepNav}>
           {step > 0 && (
             <button className={styles.prevBtn} onClick={() => setStep((s) => s - 1)}>
-              ← Previous
+              <FeatherIcon icon="arrow-left" size={16} /> Previous
             </button>
           )}
           {step < STEPS.length - 1 && (
             <button className={styles.nextBtn} onClick={() => setStep((s) => s + 1)}>
-              Next →
+              Next <FeatherIcon icon="arrow-right" size={16} />
             </button>
           )}
         </div>

@@ -4,6 +4,7 @@
 
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import FeatherIcon from 'feather-icons-react';
 import apiClient from '../lib/apiClient';
 import styles from './Courses.module.css';
 
@@ -52,7 +53,7 @@ export default function Courses() {
               <div key={course.id} className={styles.card}>
                 {course.thumbnail_url
                   ? <img src={course.thumbnail_url} alt={course.title} className={styles.thumb} />
-                  : <div className={styles.thumbPlaceholder}>⭐</div>
+                  : <div className={styles.thumbPlaceholder}><FeatherIcon icon="star" size={32} /></div>
                 }
                 <div className={styles.body}>
                   <h3><Link to={`/courses/${course.id}`}>{course.title}</Link></h3>
@@ -77,7 +78,7 @@ export default function Courses() {
           <div key={course.id} className={styles.card}>
             {course.thumbnail_url
               ? <img src={course.thumbnail_url} alt={course.title} className={styles.thumb} />
-              : <div className={styles.thumbPlaceholder}>📖</div>
+              : <div className={styles.thumbPlaceholder}><FeatherIcon icon="book-open" size={32} /></div>
             }
             <div className={styles.body}>
               <h3><Link to={`/courses/${course.id}`}>{course.title}</Link></h3>

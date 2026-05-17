@@ -8,6 +8,7 @@ import apiClient from '../lib/apiClient';
 import { getProfile, notify } from '../lib/authBridge';
 import styles from './Certificates.module.css';
 import LearnerStatCards from '../components/LearnerStatCards';
+import FeatherIcon from 'feather-icons-react';
 
 /* ── helpers ─────────────────────────────────────────────── */
 function fmtDate(iso) {
@@ -45,7 +46,7 @@ export default function Certificates() {
   if (certs.length === 0) {
     return (
       <div className={styles.empty}>
-        <div className={styles.emptyIcon}>🏅</div>
+        <div className={styles.emptyIcon}><FeatherIcon icon="award" size={48} /></div>
         <h2>No certificates yet</h2>
         <p>Complete a course to earn your first certificate!</p>
       </div>
@@ -108,7 +109,7 @@ export default function Certificates() {
           {/* Avatar + completed by */}
           <div className={styles.avatarWrap}>
             <div className={styles.avatar}>{initials(fullName)}</div>
-            <div className={styles.checkRing}>✓</div>
+            <div className={styles.checkRing}><FeatherIcon icon="check" size={16} /></div>
           </div>
           <p className={styles.completedBy}>Completed by <strong>{fullName}</strong></p>
           <p className={styles.completedDate}>{fmtDate(cert.issued_at)}</p>
@@ -152,7 +153,7 @@ export default function Certificates() {
               <ul className={styles.outcomeList}>
                 {outcomes.map((o, i) => (
                   <li key={i} className={styles.outcomeItem}>
-                    <span className={styles.checkIcon}>✓</span>
+                    <span className={styles.checkIcon}><FeatherIcon icon="check" size={14} /></span>
                     <span>{o}</span>
                   </li>
                 ))}
@@ -182,7 +183,7 @@ export default function Certificates() {
               <p className={styles.certName}>{fullName}</p>
               <p className={styles.certCourse}>{course.title ?? 'Course'}</p>
               <p className={styles.certDate}>{fmtDate(cert.issued_at)}</p>
-              <div className={styles.certSeal}>✦</div>
+              <div className={styles.certSeal}><FeatherIcon icon="award" size={32} /></div>
             </div>
           </div>
 
@@ -191,10 +192,10 @@ export default function Certificates() {
               className={styles.btnShare}
               onClick={() => notify.certificateIssued?.(cert.id)}
             >
-              Share Certificate ↗
+              Share Certificate <FeatherIcon icon="external-link" size={14} />
             </button>
             <button className={styles.btnDownload}>
-              Download Certificate ↓
+              Download Certificate <FeatherIcon icon="download" size={14} />
             </button>
           </div>
         </section>

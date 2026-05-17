@@ -24,7 +24,7 @@ export default function Layout({ children, searchValue, onSearchChange }) {
         <span className={styles.logo}>Learning Hub</span>
 
         <div className={styles.searchWrap}>
-          <span className={styles.searchIcon}>🔍</span>
+          <span className={styles.searchIcon}><FeatherIcon icon="search" size={16} /></span>
           <input
             className={styles.searchInput}
             type="search"

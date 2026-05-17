@@ -9,6 +9,7 @@ import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin   from '@fullcalendar/daygrid';
 import timeGridPlugin  from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
+import FeatherIcon from 'feather-icons-react';
 import apiClient from '../lib/apiClient';
 import styles from './LiveSessions.module.css';
 
@@ -42,7 +43,7 @@ function SessionCard({ session, colorIndex }) {
           {formatTime(session.scheduled_at ?? session.start_time)}
         </p>
         {session.instructor && (
-          <p className={styles.sessionInstructor}>👤 {session.instructor}</p>
+          <p className={styles.sessionInstructor}><FeatherIcon icon="user" size={14} /> {session.instructor}</p>
         )}
         {(session.join_url ?? session.meeting_url) && (
           <a
@@ -51,7 +52,7 @@ function SessionCard({ session, colorIndex }) {
             rel="noreferrer"
             className={styles.joinBtn}
           >
-            Join →
+            Join <FeatherIcon icon="arrow-right" size={14} />
           </a>
         )}
       </div>

@@ -5,6 +5,7 @@
 
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import FeatherIcon from 'feather-icons-react';
 import apiClient from '../lib/apiClient';
 import styles from './Discover.module.css';
 import CategoryChips from '../components/CategoryChips';
@@ -19,7 +20,7 @@ const CAREER_PATHS = [
     reviews: '327K',
     hours: '29.1',
     grad: 'grad0',
-    emoji: '☁️',
+    icon: 'cloud',
   },
   {
     title: 'Data Scientist',
@@ -28,7 +29,7 @@ const CAREER_PATHS = [
     reviews: '227K',
     hours: '47.1',
     grad: 'grad1',
-    emoji: '📊',
+    icon: 'bar-chart-2',
   },
   {
     title: 'Digital Marketer',
@@ -37,7 +38,7 @@ const CAREER_PATHS = [
     reviews: '3.9K',
     hours: '20.4',
     grad: 'grad2',
-    emoji: '📱',
+    icon: 'smartphone',
   },
 ];
 
@@ -74,11 +75,11 @@ const ROLE_COLS = [
 
 // ── Static providers ──────────────────────────────────────────────────────────
 const PROVIDERS = [
-  { name: 'Microsoft Learn', desc: 'Azure, Microsoft 365, and…', emoji: '🪟', color: '#f25022' },
-  { name: 'Coursera',        desc: 'Top universities and…',       emoji: '🎓', color: '#0056d2' },
-  { name: 'Udemy',           desc: 'Business, tech, and creati…', emoji: '🎯', color: '#a435f0' },
-  { name: 'edX',             desc: 'Harvard, MIT, and…',          emoji: '📚', color: '#02262b' },
-  { name: 'Khan Academy',    desc: 'Math, science…',              emoji: '🌿', color: '#14bf96' },
+  { name: 'Microsoft Learn', desc: 'Azure, Microsoft 365, and…', initial: 'M', color: '#f25022' },
+  { name: 'Coursera',        desc: 'Top universities and…',       initial: 'C', color: '#0056d2' },
+  { name: 'Udemy',           desc: 'Business, tech, and creati…', initial: 'U', color: '#a435f0' },
+  { name: 'edX',             desc: 'Harvard, MIT, and…',          initial: 'e', color: '#02262b' },
+  { name: 'Khan Academy',    desc: 'Math, science…',              initial: 'K', color: '#14bf96' },
 ];
 
 export default function Discover({ search }) {
@@ -132,7 +133,7 @@ export default function Discover({ search }) {
             >
               {c.thumbnail_url
                 ? <img src={c.thumbnail_url} alt={c.title} style={{ width: 48, height: 48, borderRadius: 6, objectFit: 'cover' }} />
-                : <span style={{ width: 48, height: 48, borderRadius: 6, background: 'var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>📖</span>
+                : <span style={{ width: 48, height: 48, borderRadius: 6, background: 'var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><FeatherIcon icon="book-open" size={24} /></span>
               }
               <div>
                 <div style={{ fontWeight: 600, fontSize: '.9rem' }}>{c.title}</div>
@@ -169,13 +170,12 @@ export default function Discover({ search }) {
               tabIndex={0}
               onKeyDown={(e) => e.key === 'Enter' && navigate(`/careers/${path.slug}`)}
             >
-              {/* Emoji/icon centred in the card body area */}
               <div style={{
                 position: 'absolute', top: '50%', left: '50%',
                 transform: 'translate(-50%,-60%)',
-                fontSize: '3.5rem', opacity: .35, userSelect: 'none',
+                opacity: .35, userSelect: 'none',
               }}>
-                {path.emoji}
+                <FeatherIcon icon={path.icon} size={56} color="#fff" />
               </div>
 
               {/* Sparkline bottom-right */}
@@ -213,7 +213,7 @@ export default function Discover({ search }) {
                 <Link key={c.id} to={`/courses/${c.id}`} className={styles.categoryResultCard}>
                   {c.thumbnail_url
                     ? <img src={c.thumbnail_url} alt={c.title} className={styles.catThumb} />
-                    : <span className={styles.catThumbPlaceholder}>📖</span>
+                    : <span className={styles.catThumbPlaceholder}><FeatherIcon icon="book-open" size={28} /></span>
                   }
                   <div className={styles.catInfo}>
                     <div className={styles.catTitle}>{c.title}</div>
@@ -246,7 +246,7 @@ export default function Discover({ search }) {
                   to={`/careers/${col.slug}`}
                   className={styles.roleCourseCard}
                 >
-                  <div className={styles.roleThumbPlaceholder}>{course.emoji}</div>
+                  <div className={styles.roleThumbPlaceholder}><FeatherIcon icon="book-open" size={20} /></div>
                   <div className={styles.roleInfo}>
                     <div className={styles.roleName}>{course.name}</div>
                     <div className={styles.roleType}>
@@ -272,9 +272,9 @@ export default function Discover({ search }) {
             <Link key={p.name} to="/courses" className={styles.providerCard}>
               <div
                 className={styles.providerLogo}
-                style={{ background: p.color + '20', fontSize: '1.4rem' }}
+                style={{ background: p.color + '20', color: p.color, fontWeight: 700, fontSize: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
               >
-                {p.emoji}
+                {p.initial}
               </div>
               <div className={styles.providerName}>{p.name}</div>
               <div className={styles.providerDesc}>{p.desc}</div>

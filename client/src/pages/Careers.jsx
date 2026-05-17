@@ -5,6 +5,7 @@
 
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import FeatherIcon from 'feather-icons-react';
 import styles from './Careers.module.css';
 
 // ── Data ──────────────────────────────────────────────────────────────────────
@@ -34,8 +35,7 @@ const ROLES = [
     title: 'Digital Marketing Specialist',
     category: 'Sales & Marketing',
     arc: ARC.navy,
-    icon: '📣',
-    person: '👩🏾',
+    icon: 'radio',
     desc: 'A Digital Marketing Specialist manages campaigns, optimizing SEO, SEM, and social media with tools like Google Analytics to increase engagement.',
     ifYouLike: 'creating online marketing campaigns, analyzing digital data, driving customer engagement',
     salary: 'ZAR 116,352',
@@ -50,8 +50,7 @@ const ROLES = [
     title: 'Content Creator',
     category: 'Sales & Marketing',
     arc: ARC.navy,
-    icon: '✏️',
-    person: '👩🏽‍🦱',
+    icon: 'edit',
     desc: 'A Content Creator produces a variety of content formats for digital platforms, including articles, videos, and social media posts.',
     ifYouLike: 'creating engaging digital content, experimenting with new strategies, analyzing audience feedback to enhance brand visibility',
     salary: 'ZAR 98,400',
@@ -65,8 +64,7 @@ const ROLES = [
     title: 'Cyber Security Specialist / Technician',
     category: 'Software Engineering & IT',
     arc: ARC.navy,
-    icon: '🔒',
-    person: '👨🏼',
+    icon: 'lock',
     desc: 'A Cyber Security Specialist monitors systems, responds to incidents, enforces policies, and protects data from unauthorized access and cyber threats.',
     ifYouLike: 'monitoring computer systems for security issues, responding to cyber incidents, protecting sensitive data',
     salary: 'ZAR 557,366',
@@ -80,8 +78,7 @@ const ROLES = [
     title: 'Cyber Security Analyst',
     category: 'Software Engineering & IT',
     arc: ARC.navy,
-    icon: '🛡️',
-    person: '👩🏻',
+    icon: 'shield',
     desc: 'A Cyber Security Analyst monitors IT systems, analyzes threats, finds vulnerabilities, and implements measures to protect data from cyber attacks.',
     ifYouLike: 'protecting networks and data from cyber threats, analyzing security vulnerabilities, developing security protocols',
     salary: 'ZAR 1,018,130',
@@ -98,8 +95,7 @@ const ROLES = [
     title: 'Machine Learning Engineer',
     category: 'Data Science & Analytics',
     arc: ARC.amber,
-    icon: '⚙️',
-    person: '👨🏽',
+    icon: 'settings',
     desc: 'A Machine Learning Engineer builds and optimizes algorithms that enable computers to learn from data, using large datasets and neural networks.',
     ifYouLike: 'developing machine learning models, working with large datasets, coding in Python or R…',
     salary: 'ZAR 842,000',
@@ -114,8 +110,7 @@ const ROLES = [
     title: 'Data Scientist',
     category: 'Data Science & Analytics',
     arc: ARC.amber,
-    icon: '⚡',
-    person: '👨🏻',
+    icon: 'zap',
     desc: 'A Data Scientist analyzes large datasets to uncover insights, using statistics, machine learning, and visualization to inform business strategies.',
     ifYouLike: 'analyzing complex datasets, developing machine learning models, solving…',
     salary: 'ZAR 128,600',
@@ -130,8 +125,7 @@ const ROLES = [
     title: 'Data Analyst',
     category: 'Data Science & Analytics',
     arc: ARC.amber,
-    icon: '📈',
-    person: '👨🏽‍💼',
+    icon: 'trending-up',
     desc: 'A Data Analyst collects, cleans, and interprets data, using tools like Excel, SQL, and Tableau to analyze trends and provide insights for decisions.',
     ifYouLike: 'analyzing data to find insights, creating reports and visualizations, working with spreadsheets and databases',
     salary: 'ZAR 96,800',
@@ -146,8 +140,7 @@ const ROLES = [
     title: 'Network / Systems Administrator',
     category: 'Software Engineering & IT',
     arc: ARC.navy,
-    icon: '🖧',
-    person: '👨🏻‍💻',
+    icon: 'server',
     desc: 'A Network Administrator manages IT infrastructure, ensuring reliable and secure operations through configuration, monitoring, and troubleshooting.',
     ifYouLike: 'managing and configuring computer networks, ensuring network security…',
     salary: 'ZAR 380,000',
@@ -163,8 +156,7 @@ const ROLES = [
     title: 'Cloud Engineer',
     category: 'Software Engineering & IT',
     arc: ARC.navy,
-    icon: '☁️',
-    person: '👩🏽‍💻',
+    icon: 'cloud',
     desc: 'A Cloud Engineer designs, builds and maintains cloud-based infrastructure on platforms like AWS, Azure and GCP, optimising for reliability and cost.',
     ifYouLike: 'building scalable infrastructure, solving complex systems problems, working with DevOps tools',
     salary: 'ZAR 142,800',
@@ -179,8 +171,7 @@ const ROLES = [
     title: 'Front-End Developer',
     category: 'Software Engineering & IT',
     arc: ARC.teal,
-    icon: '🖥️',
-    person: '👩🏾‍💻',
+    icon: 'monitor',
     desc: 'A Front-End Developer builds the visual and interactive parts of websites and apps using HTML, CSS, JavaScript, and modern frameworks like React.',
     ifYouLike: 'designing user interfaces, writing clean code, creating responsive web experiences',
     salary: 'ZAR 112,000',
@@ -195,8 +186,7 @@ const ROLES = [
     title: 'Back-End Developer',
     category: 'Software Engineering & IT',
     arc: ARC.teal,
-    icon: '⚙️',
-    person: '👨🏿‍💻',
+    icon: 'settings',
     desc: 'A Back-End Developer builds and maintains server-side logic, databases and APIs that power web applications.',
     ifYouLike: 'solving complex logic problems, working with databases, building APIs and services',
     salary: 'ZAR 128,000',
@@ -212,8 +202,7 @@ const ROLES = [
     title: 'Project Manager',
     category: 'Business',
     arc: ARC.green,
-    icon: '📋',
-    person: '👩🏽',
+    icon: 'clipboard',
     desc: 'A Project Manager plans, organises and oversees projects to ensure they are completed on time, within scope, and on budget.',
     ifYouLike: 'planning and organising, leading teams, keeping projects on track',
     salary: 'ZAR 104,000',
@@ -228,8 +217,7 @@ const ROLES = [
     title: 'HR Specialist',
     category: 'Business',
     arc: ARC.green,
-    icon: '🤝',
-    person: '👩🏼',
+    icon: 'users',
     desc: 'An HR Specialist manages recruiting, onboarding, employee relations, and compliance to create a productive and inclusive workplace.',
     ifYouLike: 'working with people, managing talent processes, creating positive workplace culture',
     salary: 'ZAR 88,200',
@@ -245,8 +233,7 @@ const ROLES = [
     title: 'Health Informatics Specialist',
     category: 'Healthcare',
     arc: ARC.rose,
-    icon: '🏥',
-    person: '👩🏾‍⚕️',
+    icon: 'activity',
     desc: 'A Health Informatics Specialist manages and analyses clinical data to improve healthcare delivery, using IT systems and data analytics.',
     ifYouLike: 'combining technology with healthcare, analysing patient data, improving clinical workflows',
     salary: 'ZAR 210,000',
@@ -261,8 +248,7 @@ const ROLES = [
     title: 'UX Designer',
     category: 'Business',
     arc: ARC.purple,
-    icon: '🎨',
-    person: '👩🏻',
+    icon: 'pen-tool',
     desc: 'A UX Designer crafts user-centred digital experiences by researching user needs, prototyping solutions, and testing designs.',
     ifYouLike: 'understanding user behaviour, designing intuitive interfaces, collaborating with product teams',
     salary: 'ZAR 118,000',
@@ -277,8 +263,7 @@ const ROLES = [
     title: 'IT Support Specialist',
     category: 'Software Engineering & IT',
     arc: ARC.navy,
-    icon: '🛠️',
-    person: '👨🏽',
+    icon: 'tool',
     desc: 'An IT Support Specialist helps users resolve technical issues with hardware, software, and networks, keeping systems running smoothly.',
     ifYouLike: 'helping people solve problems, working with hardware and software, troubleshooting systems',
     salary: 'ZAR 72,000',
@@ -342,9 +327,9 @@ export default function Careers() {
                 className={styles.cardArc}
                 style={{ background: role.arc }}
               />
-              <div className={styles.cardIcon}>{role.icon}</div>
+              <div className={styles.cardIcon}><FeatherIcon icon={role.icon} size={28} color="#fff" /></div>
               <div className={styles.cardPersonWrap}>
-                <span className={styles.cardPersonEmoji}>{role.person}</span>
+                <FeatherIcon icon="user" size={32} color="#fff" />
               </div>
             </div>
 
@@ -366,7 +351,7 @@ export default function Careers() {
               <div className={styles.credList}>
                 {role.credentials.map((c, i) => (
                   <div key={i} className={styles.credRow}>
-                    <span className={styles.credLogo}>{c.logo}</span>
+                    <span className={styles.credLogo}>{(c.provider ?? '?')[0]}</span>
                     <span>{c.name}</span>
                   </div>
                 ))}

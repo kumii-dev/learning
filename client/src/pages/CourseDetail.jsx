@@ -4,6 +4,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
+import FeatherIcon from 'feather-icons-react';
 import apiClient from '../lib/apiClient';
 import styles from './CourseDetail.module.css';
 
@@ -38,10 +39,10 @@ function InstructorCard({ course }) {
         </div>
       </div>
       {course.enrolled_count != null && (
-        <div className={styles.enrolledBadge}>
-          👥 {course.enrolled_count.toLocaleString()} enrolled
-        </div>
-      )}
+          <div className={styles.enrolledBadge}>
+            <FeatherIcon icon="users" size={14} /> {course.enrolled_count.toLocaleString()} enrolled
+          </div>
+        )}
     </div>
   );
 }
@@ -79,10 +80,10 @@ export default function CourseDetail() {
 
       {/* Breadcrumb */}
       <div className={styles.breadcrumb}>
-        <Link to="/">🏠</Link>
-        <span>›</span>
+        <Link to="/"><FeatherIcon icon="home" size={14} /></Link>
+        <FeatherIcon icon="chevron-right" size={14} />
         <Link to="/courses">Courses</Link>
-        <span>›</span>
+        <FeatherIcon icon="chevron-right" size={14} />
         <span>{course.title}</span>
       </div>
 
@@ -90,7 +91,7 @@ export default function CourseDetail() {
       <div className={styles.heroCard}>
         {course.thumbnail_url
           ? <img src={course.thumbnail_url} alt={course.title} className={styles.heroThumb} />
-          : <div className={styles.heroThumbPlaceholder}>📖</div>
+          : <div className={styles.heroThumbPlaceholder}><FeatherIcon icon="book-open" size={40} /></div>
         }
         <div className={styles.heroBody}>
           <h1 className={styles.heading}>{course.title}</h1>

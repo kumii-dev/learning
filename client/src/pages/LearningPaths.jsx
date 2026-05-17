@@ -5,6 +5,7 @@
  */
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import FeatherIcon from 'feather-icons-react';
 import apiClient from '../lib/apiClient';
 import ProgressRing from '../components/ProgressRing';
 import styles from './LearningPaths.module.css';
@@ -14,7 +15,7 @@ const PATHS = [
   {
     slug: 'cloud-engineer',
     title: 'Cloud Engineer',
-    emoji: '☁️',
+    icon: 'cloud',
     description: 'Master cloud infrastructure with AWS, Azure, and GCP.',
     courseCount: 8,
     from: '#1a56db',
@@ -24,7 +25,7 @@ const PATHS = [
   {
     slug: 'data-scientist',
     title: 'Data Scientist',
-    emoji: '📊',
+    icon: 'bar-chart-2',
     description: 'Learn Python, machine learning, and data visualisation.',
     courseCount: 11,
     from: '#7c3aed',
@@ -34,7 +35,7 @@ const PATHS = [
   {
     slug: 'digital-marketer',
     title: 'Digital Marketer',
-    emoji: '📱',
+    icon: 'smartphone',
     description: 'Build skills in SEO, social media, and analytics.',
     courseCount: 7,
     from: '#ea580c',
@@ -44,7 +45,7 @@ const PATHS = [
   {
     slug: 'cybersecurity',
     title: 'Cybersecurity',
-    emoji: '🔒',
+    icon: 'lock',
     description: 'Defend systems with ethical hacking and threat analysis.',
     courseCount: 9,
     from: '#16a34a',
@@ -62,7 +63,7 @@ function PathCard({ path, progress }) {
         className={styles.cardHeader}
         style={{ background: `linear-gradient(135deg, ${path.from} 0%, ${path.to} 100%)` }}
       >
-        <span className={styles.cardEmoji}>{path.emoji}</span>
+        <span className={styles.cardEmoji}><FeatherIcon icon={path.icon} size={32} color="#fff" /></span>
       </div>
 
       <div className={styles.cardBody}>
@@ -75,7 +76,7 @@ function PathCard({ path, progress }) {
         <p className={styles.cardDesc}>{path.description}</p>
 
         <div className={styles.cardMeta}>
-          <span className={styles.metaPill}>📚 {path.courseCount} courses</span>
+          <span className={styles.metaPill}><FeatherIcon icon="book-open" size={13} /> {path.courseCount} courses</span>
           {path.tags.map((t) => (
             <span key={t} className={styles.metaTag}>{t}</span>
           ))}
@@ -86,7 +87,7 @@ function PathCard({ path, progress }) {
             <div className={styles.progressFill} style={{ width: `${progress}%`, background: path.from }} />
           </div>
           <Link to={`/careers/${path.slug}`} className={styles.btn} style={{ background: path.from }}>
-            {progress > 0 ? 'Continue →' : 'Start Path →'}
+            {progress > 0 ? <>Continue <FeatherIcon icon="arrow-right" size={14} /></> : <>Start Path <FeatherIcon icon="arrow-right" size={14} /></>}
           </Link>
         </div>
       </div>
@@ -132,7 +133,7 @@ export default function LearningPaths() {
 
       <div className={styles.cta}>
         <p className={styles.ctaText}>Looking for a specific skill?</p>
-        <Link to="/courses" className={styles.ctaBtn}>Browse All Courses →</Link>
+        <Link to="/courses" className={styles.ctaBtn}>Browse All Courses <FeatherIcon icon="arrow-right" size={14} /></Link>
       </div>
     </main>
   );

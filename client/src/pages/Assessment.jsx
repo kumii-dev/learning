@@ -10,6 +10,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
+import FeatherIcon from 'feather-icons-react';
 import apiClient from '../lib/apiClient';
 import { notify, getProfile } from '../lib/authBridge';
 import styles from './Assessment.module.css';
@@ -83,12 +84,12 @@ export default function Assessment() {
       <div className={styles.resultsPage}>
         {/* Sub-header */}
         <div className={styles.subHeader}>
-          <button className={styles.backBtn} onClick={() => navigate(-1)}>← Back</button>
+          <button className={styles.backBtn} onClick={() => navigate(-1)}><FeatherIcon icon="arrow-left" size={16} /> Back</button>
           <div className={styles.subHeaderMid}>
             <span className={styles.subTitle}>{assessment.title}</span>
             <span className={styles.subMeta}>Practice Assignment · {assessment.duration_min ?? 10} min</span>
           </div>
-          {due && <span className={styles.dueLabel}>🌐 Due {due}</span>}
+          {due && <span className={styles.dueLabel}><FeatherIcon icon="calendar" size={14} /> Due {due}</span>}
         </div>
 
         {/* Grade banner */}
@@ -100,7 +101,7 @@ export default function Assessment() {
             </span>
           </div>
           <button className={styles.nextItemBtn} onClick={() => navigate(-1)}>
-            Next Item →
+            Next Item <FeatherIcon icon="arrow-right" size={16} />
           </button>
         </div>
 
@@ -132,7 +133,7 @@ export default function Assessment() {
                 })}
                 {isCorrect && (
                   <div className={styles.niceWork}>
-                    <span className={styles.niceIcon}>✅ Nice work</span>
+                    <span className={styles.niceIcon}><FeatherIcon icon="check-circle" size={14} /> Nice work</span>
                     <p>{result?.question_feedback?.[idx] ?? q.explanation ?? 'Correct!'}</p>
                   </div>
                 )}
@@ -150,12 +151,12 @@ export default function Assessment() {
       <form className={styles.takingPage} onSubmit={submit}>
         {/* Sub-header */}
         <div className={styles.subHeader}>
-          <button type="button" className={styles.backBtn} onClick={() => setScreen('start')}>← Back</button>
+          <button type="button" className={styles.backBtn} onClick={() => setScreen('start')}><FeatherIcon icon="arrow-left" size={16} /> Back</button>
           <div className={styles.subHeaderMid}>
             <span className={styles.subTitle}>{assessment.title}</span>
             <span className={styles.subMeta}>Practice Assignment · {assessment.duration_min ?? 10} min</span>
           </div>
-          {due && <span className={styles.dueLabel}>🌐 Due {due}</span>}
+          {due && <span className={styles.dueLabel}><FeatherIcon icon="calendar" size={14} /> Due {due}</span>}
         </div>
 
         <div className={styles.takingBody}>
@@ -257,7 +258,7 @@ export default function Assessment() {
       <div className={styles.coachBox}>
         <div className={styles.coachHeader}>
           <span className={styles.coachLabel}>coach</span>
-          <button className={styles.coachChevron}>∧</button>
+          <button className={styles.coachChevron}><FeatherIcon icon="chevron-up" size={16} /></button>
         </div>
         <p className={styles.coachText}>
           Ready to review what you've learned before starting the assignment? I'm here to help.
@@ -294,11 +295,11 @@ export default function Assessment() {
       {/* Footer */}
       <div className={styles.startFooter}>
         <div className={styles.footerLeft}>
-          <button className={styles.reactBtn}>👍 Like</button>
-          <button className={styles.reactBtn}>👎 Dislike</button>
-          <button className={styles.reactBtn}>🚩 Report an issue</button>
+          <button className={styles.reactBtn}><FeatherIcon icon="thumbs-up" size={14} /> Like</button>
+          <button className={styles.reactBtn}><FeatherIcon icon="thumbs-down" size={14} /> Dislike</button>
+          <button className={styles.reactBtn}><FeatherIcon icon="flag" size={14} /> Report an issue</button>
         </div>
-        <button className={styles.nextItemBtn} onClick={() => navigate(-1)}>Go to next item →</button>
+        <button className={styles.nextItemBtn} onClick={() => navigate(-1)}>Go to next item <FeatherIcon icon="arrow-right" size={16} /></button>
       </div>
     </div>
   );

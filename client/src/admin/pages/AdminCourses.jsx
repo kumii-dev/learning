@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import apiClient from '../../lib/apiClient';
 import styles from './AdminCourses.module.css';
+import FeatherIcon from 'feather-icons-react';
 
 function fmtDate(iso) {
   if (!iso) return '—';
@@ -165,7 +166,7 @@ export default function AdminCourses() {
           <button className={styles.bulkBtn} onClick={() => bulkPublish(true)}>Publish all</button>
           <button className={styles.bulkBtn} onClick={() => bulkPublish(false)}>Unpublish all</button>
           <button className={`${styles.bulkBtn} ${styles.bulkDelete}`} onClick={bulkDelete}>Delete all</button>
-          <button className={styles.bulkClear} onClick={() => setChecked(new Set())}>✕ Clear</button>
+          <button className={styles.bulkClear} onClick={() => setChecked(new Set())}><FeatherIcon icon="x" size={14} /> Clear</button>
         </div>
       )}
 
@@ -257,9 +258,9 @@ export default function AdminCourses() {
                 Showing {(safePage - 1) * PAGE_SIZE + 1}–{Math.min(safePage * PAGE_SIZE, filtered.length)} of {filtered.length}
               </span>
               <div className={styles.pageButtons}>
-                <button className={styles.pageBtn} disabled={safePage === 1} onClick={() => setPage(safePage - 1)}>‹ Prev</button>
+                <button className={styles.pageBtn} disabled={safePage === 1} onClick={() => setPage(safePage - 1)}><FeatherIcon icon="chevron-left" size={16} /> Prev</button>
                 <span className={styles.pageCount}>{safePage} / {totalPages}</span>
-                <button className={styles.pageBtn} disabled={safePage === totalPages} onClick={() => setPage(safePage + 1)}>Next ›</button>
+                <button className={styles.pageBtn} disabled={safePage === totalPages} onClick={() => setPage(safePage + 1)}>Next <FeatherIcon icon="chevron-right" size={16} /></button>
               </div>
             </div>
           </>

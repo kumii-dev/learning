@@ -5,6 +5,7 @@
 
 import { useState } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
+import FeatherIcon from 'feather-icons-react';
 import apiClient from '../lib/apiClient';
 import styles from './CareerDetail.module.css';
 
@@ -18,32 +19,32 @@ const CAREERS = {
     skills: ['Cloud Architecture', 'AWS / Azure / GCP', 'Infrastructure as Code', 'Networking', 'Security', 'DevOps', 'Kubernetes', 'CI/CD Pipelines'],
     salary: 'ZAR 142,800',
     jobs: '1,240',
-    emoji: '☁️',
+    icon: 'cloud',
     grad: 'linear-gradient(145deg, #0f172a, #1e3a5f)',
     credentials: [
       {
-        provider: 'Google', emoji: '🔵',
+        provider: 'Google', providerInitial: 'G',
         name: 'Google Cloud Professional Cloud Architect',
         skills: ['Cloud Architecture', 'GCP Services', 'Networking', 'Security', 'Cost Optimisation'],
         rating: '4.8', reviews: '32,145', level: 'Intermediate', months: '6',
         courses: [
-          { title: 'Google Cloud Fundamentals: Core Infrastructure', seq: 'Course 1 of 6', emoji: '☁️' },
-          { title: 'Essential Google Cloud Infrastructure: Foundation', seq: 'Course 2 of 6', emoji: '🏗️' },
-          { title: 'Elastic Google Cloud Infrastructure', seq: 'Course 3 of 6', emoji: '⚡' },
-          { title: 'Architecting with Google Kubernetes Engine', seq: 'Course 4 of 6', emoji: '🐳' },
+          { title: 'Google Cloud Fundamentals: Core Infrastructure', seq: 'Course 1 of 6', icon: 'cloud' },
+          { title: 'Essential Google Cloud Infrastructure: Foundation', seq: 'Course 2 of 6', icon: 'layers' },
+          { title: 'Elastic Google Cloud Infrastructure', seq: 'Course 3 of 6', icon: 'zap' },
+          { title: 'Architecting with Google Kubernetes Engine', seq: 'Course 4 of 6', icon: 'box' },
         ],
         top: true,
       },
       {
-        provider: 'Microsoft', emoji: '🪟',
+        provider: 'Microsoft', providerInitial: 'M',
         name: 'Microsoft Azure Administrator Professional Certificate',
         skills: ['Azure Services', 'Virtual Machines', 'Storage', 'Networking', 'Identity'],
         rating: '4.7', reviews: '18,490', level: 'Beginner', months: '5',
         courses: [
-          { title: 'Azure Fundamentals AZ-900', seq: 'Course 1 of 5', emoji: '🔵' },
-          { title: 'Azure Administration Essentials', seq: 'Course 2 of 5', emoji: '⚙️' },
-          { title: 'Deploying and Managing Azure Resources', seq: 'Course 3 of 5', emoji: '🚀' },
-          { title: 'Azure Security and Identity', seq: 'Course 4 of 5', emoji: '🔒' },
+          { title: 'Azure Fundamentals AZ-900', seq: 'Course 1 of 5', icon: 'cloud' },
+          { title: 'Azure Administration Essentials', seq: 'Course 2 of 5', icon: 'settings' },
+          { title: 'Deploying and Managing Azure Resources', seq: 'Course 3 of 5', icon: 'upload-cloud' },
+          { title: 'Azure Security and Identity', seq: 'Course 4 of 5', icon: 'lock' },
         ],
         top: false,
       },
@@ -57,32 +58,32 @@ const CAREERS = {
     skills: ['Python', 'Machine Learning', 'Statistics', 'SQL', 'Data Visualisation', 'TensorFlow / PyTorch', 'Feature Engineering', 'A/B Testing'],
     salary: 'ZAR 128,600',
     jobs: '956',
-    emoji: '📊',
+    icon: 'bar-chart-2',
     grad: 'linear-gradient(145deg, #4a0072, #9c27b0)',
     credentials: [
       {
-        provider: 'IBM', emoji: '🔵',
+        provider: 'IBM', providerInitial: 'I',
         name: 'IBM Data Science Professional Certificate',
         skills: ['Python', 'SQL', 'Data Analysis', 'Machine Learning', 'Data Visualisation'],
         rating: '4.6', reviews: '49,210', level: 'Beginner', months: '11',
         courses: [
-          { title: 'What is Data Science?', seq: 'Course 1 of 10', emoji: '🔬' },
-          { title: 'Tools for Data Science', seq: 'Course 2 of 10', emoji: '🛠️' },
-          { title: 'Data Science Methodology', seq: 'Course 3 of 10', emoji: '📐' },
-          { title: 'Python for Data Science, AI & Development', seq: 'Course 4 of 10', emoji: '🐍' },
+          { title: 'What is Data Science?', seq: 'Course 1 of 10', icon: 'search' },
+          { title: 'Tools for Data Science', seq: 'Course 2 of 10', icon: 'tool' },
+          { title: 'Data Science Methodology', seq: 'Course 3 of 10', icon: 'git-branch' },
+          { title: 'Python for Data Science, AI & Development', seq: 'Course 4 of 10', icon: 'code' },
         ],
         top: true,
       },
       {
-        provider: 'Google', emoji: '🔵',
+        provider: 'Google', providerInitial: 'G',
         name: 'Google Advanced Data Analytics Professional Certificate',
         skills: ['Python', 'Tableau', 'Regression', 'Machine Learning', 'Statistics'],
         rating: '4.8', reviews: '21,345', level: 'Intermediate', months: '6',
         courses: [
-          { title: 'Foundations of Data Science', seq: 'Course 1 of 7', emoji: '📊' },
-          { title: 'Get Started with Python', seq: 'Course 2 of 7', emoji: '🐍' },
-          { title: 'Go Beyond the Numbers: Translate Data', seq: 'Course 3 of 7', emoji: '📈' },
-          { title: 'The Power of Statistics', seq: 'Course 4 of 7', emoji: '📉' },
+          { title: 'Foundations of Data Science', seq: 'Course 1 of 7', icon: 'bar-chart-2' },
+          { title: 'Get Started with Python', seq: 'Course 2 of 7', icon: 'code' },
+          { title: 'Go Beyond the Numbers: Translate Data', seq: 'Course 3 of 7', icon: 'trending-up' },
+          { title: 'The Power of Statistics', seq: 'Course 4 of 7', icon: 'activity' },
         ],
         top: false,
       },
@@ -96,32 +97,32 @@ const CAREERS = {
     skills: ['Digital Marketing', 'Search Engine Optimisation', 'Social Media Marketing', 'Google Analytics', 'Content Marketing', 'Email Marketing', 'Search Engine Marketing', 'Data Analysis'],
     salary: 'ZAR 116,352.12',
     jobs: '803',
-    emoji: '📱',
+    icon: 'smartphone',
     grad: 'linear-gradient(145deg, #0f172a, #1e3a5f)',
     credentials: [
       {
-        provider: 'Google', emoji: '🔵',
+        provider: 'Google', providerInitial: 'G',
         name: 'Google Digital Marketing & E-commerce Professional Certificate',
         skills: ['Email Marketing', 'Social Media Strategy', 'E-Commerce', 'Social Media Marketing', 'Google Ads', 'Search Engine Optimisation', 'Data Storytelling', 'Loyalty Program…'],
         rating: '4.8', reviews: '49,379', level: 'Beginner', months: '6',
         courses: [
-          { title: 'Foundations of Digital Marketing and E-commerce', seq: 'Course 1 of 8', emoji: '📱' },
-          { title: 'Attract and Engage Customers with Digital Marketing', seq: 'Course 2 of 8', emoji: '🎯' },
-          { title: 'From Likes to Leads: Interact with Customers Online', seq: 'Course 3 of 8', emoji: '❤️' },
-          { title: 'Think Outside the Inbox: Email Marketing', seq: 'Course 4 of 8', emoji: '📧' },
+          { title: 'Foundations of Digital Marketing and E-commerce', seq: 'Course 1 of 8', icon: 'smartphone' },
+          { title: 'Attract and Engage Customers with Digital Marketing', seq: 'Course 2 of 8', icon: 'target' },
+          { title: 'From Likes to Leads: Interact with Customers Online', seq: 'Course 3 of 8', icon: 'heart' },
+          { title: 'Think Outside the Inbox: Email Marketing', seq: 'Course 4 of 8', icon: 'mail' },
         ],
         top: true,
       },
       {
-        provider: 'IBM', emoji: '🔵',
+        provider: 'IBM', providerInitial: 'I',
         name: 'IBM Digital Marketing and Growth Hacking with GenAI Professional Certificate',
         skills: ['Growth Hacking', 'GenAI for Marketing', 'SEO', 'Paid Ads', 'Analytics', 'Content Strategy'],
         rating: '4.7', reviews: '12,881', level: 'Intermediate', months: '4',
         courses: [
-          { title: 'Digital Marketing Fundamentals with GenAI', seq: 'Course 1 of 5', emoji: '🤖' },
-          { title: 'SEO and SEM with AI Tools', seq: 'Course 2 of 5', emoji: '🔍' },
-          { title: 'Social Media and Content Strategy', seq: 'Course 3 of 5', emoji: '📲' },
-          { title: 'Data-Driven Marketing Analytics', seq: 'Course 4 of 5', emoji: '📊' },
+          { title: 'Digital Marketing Fundamentals with GenAI', seq: 'Course 1 of 5', icon: 'cpu' },
+          { title: 'SEO and SEM with AI Tools', seq: 'Course 2 of 5', icon: 'search' },
+          { title: 'Social Media and Content Strategy', seq: 'Course 3 of 5', icon: 'share-2' },
+          { title: 'Data-Driven Marketing Analytics', seq: 'Course 4 of 5', icon: 'bar-chart-2' },
         ],
         top: false,
       },
@@ -141,7 +142,7 @@ export default function CareerDetail() {
     return (
       <div style={{ padding: '2rem 1rem', textAlign: 'center' }}>
         <p style={{ color: 'var(--color-muted)' }}>Career path not found.</p>
-        <Link to="/">← Back to Discover</Link>
+        <Link to="/"><FeatherIcon icon="arrow-left" size={14} /> Back to Discover</Link>
       </div>
     );
   }
@@ -164,8 +165,8 @@ export default function CareerDetail() {
 
       {/* Breadcrumb */}
       <div className={styles.breadcrumb}>
-        <Link to="/">🏠</Link>
-        <span>›</span>
+        <Link to="/"><FeatherIcon icon="home" size={14} /></Link>
+        <FeatherIcon icon="chevron-right" size={14} />
         <Link to="/">Careers</Link>
       </div>
 
@@ -183,7 +184,7 @@ export default function CareerDetail() {
 
         <div className={styles.heroImg}>
           <div className={styles.heroCircle} style={{ background: career.grad }}>
-            <span style={{ fontSize: '5rem', opacity: .6 }}>{career.emoji}</span>
+            <FeatherIcon icon={career.icon} size={80} color="rgba(255,255,255,0.6)" />
           </div>
           <div className={styles.heroPill}>
             <span className={styles.heroPillBold}>{career.salary}</span>
@@ -216,10 +217,10 @@ export default function CareerDetail() {
             <div key={i} className={styles.credCard}>
               <div className={styles.credCardTop}>
                 {cred.top && (
-                  <div className={styles.topBadge}>⭐ Top recommendation</div>
+                  <div className={styles.topBadge}><FeatherIcon icon="star" size={12} /> Top recommendation</div>
                 )}
                 <div className={styles.providerRow}>
-                  <span className={styles.providerLogo}>{cred.emoji}</span>
+                  <span className={styles.providerLogo}>{cred.providerInitial}</span>
                 </div>
                 <div className={styles.credName}>{cred.name}</div>
                 <div className={styles.credSkills}>
@@ -243,7 +244,7 @@ export default function CareerDetail() {
                     View details
                   </button>
                   <span style={{ fontSize: '.78rem', color: 'var(--color-muted)' }}>
-                    💡 Why is this recommended?
+                    <FeatherIcon icon="info" size={12} /> Why is this recommended?
                   </span>
                 </div>
               </div>
@@ -252,7 +253,7 @@ export default function CareerDetail() {
               <div className={styles.courseScroll}>
                 {cred.courses.map((course, j) => (
                   <div key={j} className={styles.courseThumbCard}>
-                    <div className={styles.courseThumb}>{course.emoji}</div>
+                    <div className={styles.courseThumb}><FeatherIcon icon={course.icon} size={24} /></div>
                     <div className={styles.courseThumbSeq}>{course.seq}</div>
                     <div className={styles.courseThumbTitle}>{course.title}</div>
                   </div>
@@ -260,8 +261,10 @@ export default function CareerDetail() {
                 {/* Arrow hint */}
                 <div style={{
                   flexShrink: 0, width: 32, display: 'flex', alignItems: 'center',
-                  justifyContent: 'center', color: 'var(--color-muted)', fontSize: '1.2rem',
-                }}>›</div>
+                  justifyContent: 'center', color: 'var(--color-muted)',
+                }}>
+                  <FeatherIcon icon="chevron-right" size={18} />
+                </div>
               </div>
             </div>
           ))}

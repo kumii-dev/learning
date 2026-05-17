@@ -15,17 +15,18 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
+import FeatherIcon from 'feather-icons-react';
 import apiClient from '../lib/apiClient';
 import { getProfile } from '../lib/authBridge';
 import styles from './CoursePlayer.module.css';
 
 /* ── Helpers ──────────────────────────────────────────────────────────────── */
 function typeIcon(type = '') {
-  if (type.includes('video'))   return '▶';
-  if (type.includes('reading')) return '📄';
-  if (type.includes('quiz') || type.includes('assignment') || type.includes('practice')) return '📝';
-  if (type.includes('plugin'))  return '🔌';
-  return '●';
+  if (type.includes('video'))   return <FeatherIcon icon="play" size={14} />;
+  if (type.includes('reading')) return <FeatherIcon icon="file-text" size={14} />;
+  if (type.includes('quiz') || type.includes('assignment') || type.includes('practice')) return <FeatherIcon icon="edit" size={14} />;
+  if (type.includes('plugin'))  return <FeatherIcon icon="zap" size={14} />;
+  return <FeatherIcon icon="circle" size={14} />;
 }
 
 function itemDuration(item) {
@@ -129,7 +130,7 @@ export default function CoursePlayer() {
 
   if (error === 'no_course') return (
     <div className={styles.noCourse}>
-      <div className={styles.noCourseIcon}>🎓</div>
+      <div className={styles.noCourseIcon}><FeatherIcon icon="book-open" size={48} /></div>
       <h2>No course in progress</h2>
       <p>Enrol in a course to start your learning journey here.</p>
       <Link to="/courses" className={styles.browseBtn}>Browse Courses</Link>
@@ -152,7 +153,7 @@ export default function CoursePlayer() {
         {/* Header */}
         <div className={styles.sideHeader}>
           <p className={styles.courseTitle}>{course.title}</p>
-          <button className={styles.closeSide} onClick={() => setSideOpen(false)} title="Close">✕</button>
+          <button className={styles.closeSide} onClick={() => setSideOpen(false)} title="Close"><FeatherIcon icon="x" size={18} /></button>
         </div>
 
         {/* Module + item list */}
@@ -171,7 +172,7 @@ export default function CoursePlayer() {
 
       {/* ── Sidebar toggle when closed ───────────────────────────── */}
       {!sideOpen && (
-        <button className={styles.openSide} onClick={() => setSideOpen(true)} title="Open menu">☰</button>
+        <button className={styles.openSide} onClick={() => setSideOpen(true)} title="Open menu"><FeatherIcon icon="menu" size={20} /></button>
       )}
 
       {/* ── Main content ────────────────────────────────────────────── */}
@@ -199,16 +200,16 @@ export default function CoursePlayer() {
               </div>
               {/* Fake controls */}
               <div className={styles.videoControls}>
-                <button className={styles.vcBtn}>▶</button>
-                <button className={styles.vcBtn}>🔇</button>
+                <button className={styles.vcBtn}><FeatherIcon icon="play" size={16} /></button>
+                <button className={styles.vcBtn}><FeatherIcon icon="volume-x" size={16} /></button>
                 <span className={styles.vcTime}>0:10 / 7:38</span>
                 <div className={styles.vcProgress}>
                   <div className={styles.vcProgressFill} style={{ width: '2%' }} />
                 </div>
-                <button className={styles.vcBtn}>↻</button>
+                <button className={styles.vcBtn}><FeatherIcon icon="rotate-cw" size={16} /></button>
                 <span className={styles.vcSpeed}>1x</span>
-                <button className={styles.vcBtn}>⚙</button>
-                <button className={styles.vcBtn}>⛶</button>
+                <button className={styles.vcBtn}><FeatherIcon icon="settings" size={16} /></button>
+                <button className={styles.vcBtn}><FeatherIcon icon="maximize" size={16} /></button>
               </div>
             </div>
           )}
@@ -216,7 +217,7 @@ export default function CoursePlayer() {
           {/* Theater mode toast */}
           {theaterNote && (
             <div className={styles.theaterToast}>
-              <button className={styles.theaterClose} onClick={() => setTheaterNote(false)}>✕</button>
+              <button className={styles.theaterClose} onClick={() => setTheaterNote(false)}><FeatherIcon icon="x" size={16} /></button>
               <p className={styles.theaterTitle}>Theater mode available</p>
               <p className={styles.theaterSub}>Enjoy an immersive video experience with dark mode and an auto-scrolling transcript.</p>
             </div>
@@ -258,12 +259,12 @@ export default function CoursePlayer() {
         {/* Footer actions */}
         <div className={styles.footer}>
           <div className={styles.footerLeft}>
-            <button className={styles.reactBtn}>👍 Like</button>
-            <button className={styles.reactBtn}>👎 Dislike</button>
-            <button className={styles.reactBtn}>🚩 Report an issue</button>
+            <button className={styles.reactBtn}><FeatherIcon icon="thumbs-up" size={14} /> Like</button>
+            <button className={styles.reactBtn}><FeatherIcon icon="thumbs-down" size={14} /> Dislike</button>
+            <button className={styles.reactBtn}><FeatherIcon icon="flag" size={14} /> Report an issue</button>
           </div>
           <button className={styles.nextBtn} onClick={goNext} disabled={activeIdx >= allItems.length - 1}>
-            Go to next item →
+            Go to next item <FeatherIcon icon="arrow-right" size={16} />
           </button>
         </div>
       </main>
@@ -286,7 +287,7 @@ function ModuleSection({ mod, moduleIdx, activeItem, onSelect }) {
           <span className={styles.modLabel}>Module {moduleIdx + 1}</span>
           <span className={styles.modTitle}>{mod.title}</span>
         </div>
-        <span className={styles.modChevron}>{open ? '∧' : '∨'}</span>
+        <span className={styles.modChevron}>{open ? <FeatherIcon icon="chevron-up" size={16} /> : <FeatherIcon icon="chevron-down" size={16} />}</span>
       </button>
 
       {open && (

@@ -7,6 +7,7 @@ import { Link } from 'react-router-dom';
 import ReactApexChart from 'react-apexcharts';
 import apiClient from '../../lib/apiClient';
 import styles from './AdminDashboard.module.css';
+import FeatherIcon from 'feather-icons-react';
 
 /* ── ApexCharts bar chart — 7-day enrolments ──────────────────────────────── */
 function EnrolmentBarChart({ data }) {
@@ -118,7 +119,7 @@ export default function AdminDashboard() {
         <div className={styles.card}>
           <div className={styles.cardHeader}>
             <h2 className={styles.cardTitle}>Top courses by enrolment</h2>
-            <Link to="/admin/courses" className={styles.viewAll}>View all →</Link>
+            <Link to="/admin/courses" className={styles.viewAll}>View all <FeatherIcon icon="arrow-right" size={14} /></Link>
           </div>
           {data.topCourses.length === 0
             ? <p className={styles.empty}>No enrolment data yet.</p>
