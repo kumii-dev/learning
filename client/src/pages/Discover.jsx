@@ -48,27 +48,27 @@ const ROLE_COLS = [
     label: 'Business Roles',
     slug: 'digital-marketer',
     courses: [
-      { name: 'Intuit Academy Bookkeeping', provider: 'Intuit', rating: '4.6', emoji: '📘' },
-      { name: 'Google Project Management', provider: 'Google', rating: '4.8', emoji: '📗' },
-      { name: 'HRCI Human Resource Associate', provider: 'HRCI', rating: '4.8', emoji: '📙' },
+      { name: 'Intuit Academy Bookkeeping', provider: 'Intuit', rating: '4.6' },
+      { name: 'Google Project Management', provider: 'Google', rating: '4.8' },
+      { name: 'HRCI Human Resource Associate', provider: 'HRCI', rating: '4.8' },
     ],
   },
   {
     label: 'Data Roles',
     slug: 'data-scientist',
     courses: [
-      { name: 'Microsoft Power BI Data Analyst', provider: 'Microsoft', rating: '4.6', emoji: '📊' },
-      { name: 'IBM Data Analyst', provider: 'IBM', rating: '4.6', emoji: '🔵' },
-      { name: 'Google Data Analytics', provider: 'Google', rating: '4.8', emoji: '📈' },
+      { name: 'Microsoft Power BI Data Analyst', provider: 'Microsoft', rating: '4.6' },
+      { name: 'IBM Data Analyst', provider: 'IBM', rating: '4.6' },
+      { name: 'Google Data Analytics', provider: 'Google', rating: '4.8' },
     ],
   },
   {
     label: 'Tech Roles',
     slug: 'cloud-engineer',
     courses: [
-      { name: 'Microsoft Back-End Developer', provider: 'Microsoft', rating: '4.6', emoji: '💻' },
-      { name: 'Meta Front-End Developer', provider: 'Meta', rating: '4.7', emoji: '⚛️' },
-      { name: 'Google IT Support', provider: 'Google', rating: '4.8', emoji: '🛠️' },
+      { name: 'Microsoft Back-End Developer', provider: 'Microsoft', rating: '4.6' },
+      { name: 'Meta Front-End Developer', provider: 'Meta', rating: '4.7' },
+      { name: 'Google IT Support', provider: 'Google', rating: '4.8' },
     ],
   },
 ];
