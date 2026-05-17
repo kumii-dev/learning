@@ -17,7 +17,7 @@ async function getAllCourses() {
   const { data, error } = await supabaseAdmin
     .from('courses')
     .select(
-      'id, title, description, tags, pass_mark, thumbnail_url, created_at, published'
+      'id, title, description, tags, pass_mark, thumbnail_url, created_at, published, level, category, estimated_hours, instructor, instructor_rating, enrolled_count'
     )
     .eq('published', true)
     .order('created_at', { ascending: false });
@@ -84,7 +84,7 @@ async function getRecommendationsForUser(userId) {
   const { data: matchedCourses } = await supabaseAdmin
     .from('courses')
     .select(
-      'id, title, description, tags, pass_mark, thumbnail_url, created_at, published'
+      'id, title, description, tags, pass_mark, thumbnail_url, created_at, published, level, category, estimated_hours, instructor, instructor_rating, enrolled_count'
     )
     .eq('published', true)
     .in('title', titles)

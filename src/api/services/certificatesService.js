@@ -89,8 +89,9 @@ async function getUserCertificates(userId) {
     .select(`
       *,
       courses (
-        title, description, tags,
-        thumbnail_url
+        title, description, tags, thumbnail_url,
+        skills, topics, learning_outcomes, estimated_hours,
+        module_count, rating_count, instructor, provider, level, category
       )
     `)
     .eq('user_id', userId)

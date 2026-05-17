@@ -19,11 +19,13 @@ async function getMyLearning(userId) {
     .select(`
       id,
       status,
+      progress_pct,
       enrolled_at,
       completed_at,
+      updated_at,
       courses (
         id, title, thumbnail_url, description,
-        tags,
+        tags, level, estimated_hours, duration_min, instructor,
         assessments ( id, type, title )
       )
     `)
