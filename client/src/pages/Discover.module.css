@@ -30,7 +30,7 @@
   display: inline-flex;
   align-items: center;
   gap: .35rem;
-  background: #1c1c1c;
+  background: #474447;
   color: #fff;
   font-size: .72rem;
   font-weight: 600;
@@ -43,12 +43,12 @@
 /* Large gradient title */
 .heroHeading {
   font-size: clamp(2.4rem, 6vw, 3.6rem);
-  font-weight: 900;
+  font-weight: 700;
   letter-spacing: -.04em;
   line-height: 1.05;
   margin: 0;
   /* olive-to-light-green gradient clipped to text */
-  background: linear-gradient(135deg, #3a6b30 0%, #78b85a 55%, #a8d48a 100%);
+  background: linear-gradient(135deg, #a5b981 0%, #c3dd94 55%, #a4b981 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -77,14 +77,14 @@
   gap: .4rem;
   padding: .6rem 1.25rem;
   border-radius: 999px;
-  background: #4a7c3e;
+  background: #7a8567;
   color: #fff;
   font-size: .85rem;
   font-weight: 700;
   text-decoration: none;
   transition: background .15s, transform .15s;
 }
-.heroCtaPrimary:hover { background: #3a6b30; transform: translateY(-1px); }
+.heroCtaPrimary:hover { background: #c5df96; transform: translateY(-1px); }
 
 .heroCtaOutline {
   display: inline-flex;
@@ -100,13 +100,13 @@
   text-decoration: none;
   transition: border-color .15s, transform .15s;
 }
-.heroCtaOutline:hover { border-color: #4a7c3e; color: #4a7c3e; transform: translateY(-1px); }
+.heroCtaOutline:hover {   background: var(#d1d1d1); border-color: #7a8567; color: #7a8567; transform: translateY(-1px); }
 
 
 .sectionTitle {
   font-size: 1.2rem;
   font-weight: 800;
-  color: var(--color-heading, #4a7c3e);
+  color: var(--color-heading, #7a8567);
   letter-spacing: -.02em;
   margin: 0 0 .25rem;
 }
@@ -286,7 +286,7 @@
 .roleColTitle {
   font-size: 1rem;
   font-weight: 700;
-  color: var(--color-heading, #4a7c3e);
+  color: var(--color-heading, #7a8567);
   text-decoration: none;
 }
 .roleColTitle:hover { text-decoration: underline; }

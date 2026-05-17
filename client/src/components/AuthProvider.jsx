@@ -56,7 +56,7 @@ export default function AuthProvider({ children }) {
         }} />
         <style>{`@keyframes lh-spin { to { transform: rotate(360deg); } }`}</style>
         <span style={{ fontSize: '.82rem', color: '#9ca3af', letterSpacing: '.01em' }}>
-          Connecting to Learning Hub…
+          Loading Learning Hub…
         </span>
       </div>
     );
