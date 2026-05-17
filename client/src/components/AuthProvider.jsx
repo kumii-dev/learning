@@ -43,10 +43,21 @@ export default function AuthProvider({ children }) {
   if (!ready) {
     return (
       <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        height: '100vh', color: '#6b7280', fontFamily: 'system-ui, sans-serif',
+        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+        height: '100vh', gap: '.75rem',
+        fontFamily: 'system-ui, sans-serif', background: 'var(--color-bg, #f5f3ee)',
       }}>
-        Connecting to Kumii platform…
+        <div style={{
+          width: 32, height: 32,
+          border: '3px solid #e5ddd4',
+          borderTopColor: '#4a7c3e',
+          borderRadius: '50%',
+          animation: 'lh-spin .7s linear infinite',
+        }} />
+        <style>{`@keyframes lh-spin { to { transform: rotate(360deg); } }`}</style>
+        <span style={{ fontSize: '.82rem', color: '#9ca3af', letterSpacing: '.01em' }}>
+          Connecting to Learning Hub…
+        </span>
       </div>
     );
   }
