@@ -1,16 +1,19 @@
 /**
  * client/src/pages/Careers.jsx
  * "Explore roles" careers catalogue — role cards with credentials.
+ * Also surfaces live ESD programme courses added via the Admin CMS.
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import FeatherIcon from 'feather-icons-react';
+import apiClient from '../lib/apiClient';
 import styles from './Careers.module.css';
 
 // ── Data ──────────────────────────────────────────────────────────────────────
 const CATEGORIES = [
   'All',
+  'ESD Programmes',
   'Software Engineering & IT',
   'Business',
   'Sales & Marketing',
@@ -275,14 +278,61 @@ const ROLES = [
   },
 ];
 
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+/** Pick a deterministic arc colour from the course category string. */
+const PROG_ARCS = ['#0d7f4f', '#0e7490', '#6d28d9', '#d97706', '#be185d', '#0f2d5e'];
+function progArc(str = '') {
+  let h = 0;
+  for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) >>> 0;
+  return PROG_ARCS[h % PROG_ARCS.length];
+}
+
+/** Map a course category string to a feather icon name. */
+const CAT_ICON = {
+  'Technical Skills / ESD': 'tool',
+  'Environmental / Compliance / ESD': 'wind',
+  'Maritime / Business Support / ESD': 'anchor',
+  'Construction / Business Management / ESD': 'home',
+  'Export Readiness / Market Access / ESD': 'globe',
+  'Supplier Development / Manufacturing / Quality': 'settings',
+  'ISO Standards / Quality / Compliance': 'check-circle',
+  'Business Management / Entrepreneurship': 'briefcase',
+  'Programme Management / Reporting': 'bar-chart-2',
+};
+function catIcon(category = '') {
+  return CAT_ICON[category] ?? 'book-open';
+}
+
 // ── Component ─────────────────────────────────────────────────────────────────
 export default function Careers() {
   const [level,    setLevel]    = useState('Beginner');
   const [category, setCategory] = useState('All');
 
-  const visible = ROLES.filter(
-    (r) => category === 'All' || r.category === category
-  );
+  // Live CMS courses
+  const [courses,        setCourses]        = useState([]);
+  const [coursesLoading, setCoursesLoading] = useState(true);
+  const [coursesError,   setCoursesError]   = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    setCoursesLoading(true);
+    apiClient.get('/api/courses')
+      .then((res) => { if (!cancelled) setCourses(res.data ?? []); })
+      .catch((err) => { if (!cancelled) setCoursesError(err.message ?? 'Failed to load programmes'); })
+      .finally(() => { if (!cancelled) setCoursesLoading(false); });
+    return () => { cancelled = true; };
+  }, []);
+
+  // Static roles visible in the current category filter (excludes ESD Programmes tab)
+  const showRoles   = category !== 'ESD Programmes';
+  const showPrograms = category === 'All' || category === 'ESD Programmes';
+
+  const visibleRoles = showRoles
+    ? ROLES.filter((r) => category === 'All' || r.category === category)
+    : [];
+
+  const totalCount = ROLES.length + courses.length;
 
   return (
     <div className={styles.page}>
@@ -290,7 +340,9 @@ export default function Careers() {
       {/* Header */}
       <h1 className={styles.pageTitle}>Explore roles</h1>
       <p className={styles.pageSub}>
-        Advance in your career with recognised credentials across levels. Choose from {ROLES.length} roles.
+        Advance in your career with recognised credentials across levels.{' '}
+        Choose from {ROLES.length} roles
+        {courses.length > 0 && ` · ${courses.length} ESD programme${courses.length !== 1 ? 's' : ''}`}.
       </p>
 
       {/* Filters */}
@@ -308,62 +360,166 @@ export default function Careers() {
         {CATEGORIES.map((cat) => (
           <button
             key={cat}
-            className={[styles.pill, category === cat ? styles.pillActive : ''].join(' ')}
+            className={[
+              styles.pill,
+              category === cat ? styles.pillActive : '',
+              cat === 'ESD Programmes' ? styles.pillESD : '',
+            ].join(' ')}
             onClick={() => setCategory(cat)}
           >
+            {cat === 'ESD Programmes' && (
+              <FeatherIcon icon="star" size={11} style={{ marginRight: 3, verticalAlign: 'middle' }} />
+            )}
             {cat}
           </button>
         ))}
       </div>
 
-      {/* Grid */}
-      <div className={styles.grid}>
-        {visible.map((role) => (
-          <Link key={role.slug} to={`/careers/${role.slug}`} className={styles.card}>
+      {/* ── Static roles grid ── */}
+      {showRoles && visibleRoles.length > 0 && (
+        <div className={styles.grid}>
+          {visibleRoles.map((role) => (
+            <Link key={role.slug} to={`/careers/${role.slug}`} className={styles.card}>
 
-            {/* Hero arc */}
-            <div className={styles.cardHero}>
-              <div
-                className={styles.cardArc}
-                style={{ background: role.arc }}
-              />
-              <div className={styles.cardIcon}><FeatherIcon icon={role.icon} size={28} color="#fff" /></div>
-              <div className={styles.cardPersonWrap}>
-                <FeatherIcon icon="user" size={32} color="#fff" />
+              {/* Hero arc */}
+              <div className={styles.cardHero}>
+                <div className={styles.cardArc} style={{ background: role.arc }} />
+                <div className={styles.cardIcon}><FeatherIcon icon={role.icon} size={28} color="#fff" /></div>
+                <div className={styles.cardPersonWrap}>
+                  <FeatherIcon icon="user" size={32} color="#fff" />
+                </div>
               </div>
+
+              {/* Body */}
+              <div className={styles.cardBody}>
+                <div className={styles.cardTitle}>{role.title}</div>
+                <div className={styles.cardDesc}>{role.desc}</div>
+
+                <div className={styles.cardIfYou}>
+                  <strong>If you like: </strong>{role.ifYouLike}
+                </div>
+
+                <div className={styles.cardStats}>
+                  <div className={styles.cardSalary}>{role.salary} median salary ¹</div>
+                  <div className={styles.cardJobs}>{role.jobs} jobs available ¹</div>
+                </div>
+
+                <div className={styles.cardCredLabel}>Credentials</div>
+                <div className={styles.credList}>
+                  {role.credentials.map((c, i) => (
+                    <div key={i} className={styles.credRow}>
+                      <span className={styles.credLogo}>{(c.provider ?? '?')[0]}</span>
+                      <span>{c.name}</span>
+                    </div>
+                  ))}
+                  {role.moreCount && (
+                    <div className={styles.credMore}>+ {role.moreCount} more</div>
+                  )}
+                </div>
+              </div>
+
+            </Link>
+          ))}
+        </div>
+      )}
+
+      {/* ── ESD Programmes section (live from Admin CMS) ── */}
+      {showPrograms && (
+        <section className={styles.progSection}>
+          <div className={styles.progHeader}>
+            <div>
+              <h2 className={styles.progTitle}>
+                <FeatherIcon icon="star" size={16} style={{ marginRight: 6, color: '#16a34a', verticalAlign: 'middle' }} />
+                ESD Programmes
+              </h2>
+              <p className={styles.progSub}>
+                Enterprise &amp; Supplier Development programmes managed by your organisation's Admin CMS.
+              </p>
             </div>
+          </div>
 
-            {/* Body */}
-            <div className={styles.cardBody}>
-              <div className={styles.cardTitle}>{role.title}</div>
-              <div className={styles.cardDesc}>{role.desc}</div>
-
-              <div className={styles.cardIfYou}>
-                <strong>If you like: </strong>{role.ifYouLike}
-              </div>
-
-              <div className={styles.cardStats}>
-                <div className={styles.cardSalary}>{role.salary} median salary ¹</div>
-                <div className={styles.cardJobs}>{role.jobs} jobs available ¹</div>
-              </div>
-
-              <div className={styles.cardCredLabel}>Credentials</div>
-              <div className={styles.credList}>
-                {role.credentials.map((c, i) => (
-                  <div key={i} className={styles.credRow}>
-                    <span className={styles.credLogo}>{(c.provider ?? '?')[0]}</span>
-                    <span>{c.name}</span>
-                  </div>
-                ))}
-                {role.moreCount && (
-                  <div className={styles.credMore}>+ {role.moreCount} more</div>
-                )}
-              </div>
+          {coursesLoading && (
+            <div className={styles.progLoading}>
+              <FeatherIcon icon="loader" size={20} className={styles.spin} />
+              Loading programmes…
             </div>
+          )}
 
-          </Link>
-        ))}
-      </div>
+          {coursesError && !coursesLoading && (
+            <p className={styles.progError}>
+              <FeatherIcon icon="alert-circle" size={14} style={{ marginRight: 4 }} />
+              {coursesError}
+            </p>
+          )}
+
+          {!coursesLoading && !coursesError && courses.length === 0 && (
+            <p className={styles.progEmpty}>
+              No programmes published yet. Admins can add them via the CMS.
+            </p>
+          )}
+
+          {!coursesLoading && courses.length > 0 && (
+            <div className={styles.progGrid}>
+              {courses.map((course) => {
+                const arc  = progArc(course.category ?? course.title);
+                const icon = catIcon(course.category);
+                return (
+                  <Link
+                    key={course.id}
+                    to={`/courses/${course.id}`}
+                    className={styles.progCard}
+                  >
+                    {/* Hero */}
+                    <div className={styles.progCardHero} style={{ background: arc }}>
+                      <FeatherIcon icon={icon} size={28} color="rgba(255,255,255,.85)" />
+                      {course.level && (
+                        <span className={styles.progLevelBadge}>{course.level}</span>
+                      )}
+                    </div>
+
+                    {/* Body */}
+                    <div className={styles.progCardBody}>
+                      <div className={styles.progCardTitle}>{course.title}</div>
+                      <div className={styles.progCardDesc}>
+                        {course.description?.slice(0, 110)}{course.description?.length > 110 ? '…' : ''}
+                      </div>
+
+                      {/* Tags */}
+                      {course.tags?.length > 0 && (
+                        <div className={styles.progTags}>
+                          {course.tags.slice(0, 3).map((tag) => (
+                            <span key={tag} className={styles.progTag}>{tag}</span>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Footer meta */}
+                      <div className={styles.progMeta}>
+                        {course.estimated_hours && (
+                          <span className={styles.progMetaItem}>
+                            <FeatherIcon icon="clock" size={11} />
+                            {course.estimated_hours}h
+                          </span>
+                        )}
+                        {course.category && (
+                          <span className={styles.progMetaItem}>
+                            <FeatherIcon icon="tag" size={11} />
+                            {course.category.split('/')[0].trim()}
+                          </span>
+                        )}
+                      </div>
+
+                      <div className={styles.progEnrolCta}>
+                        Enrol now <FeatherIcon icon="arrow-right" size={12} />
+                      </div>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
+        </section>
+      )}
 
     </div>
   );

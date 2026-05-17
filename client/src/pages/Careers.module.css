@@ -140,3 +140,184 @@
 }
 .credLogo { font-size: .9rem; flex-shrink: 0; margin-top: .05rem; }
 .credMore  { font-size: .73rem; color: var(--color-muted); margin-top: .15rem; font-weight: 600; }
+
+/* ── ESD pill highlight ───────────────────────────────────────────────────── */
+.pillESD {
+  border-color: #16a34a;
+  color: #16a34a;
+}
+.pillESD:hover { background: #f0fdf4; }
+.pillActive.pillESD {
+  background: #16a34a;
+  border-color: #16a34a;
+  color: #fff !important;
+}
+
+/* ── ESD Programmes section ───────────────────────────────────────────────── */
+.progSection { margin-top: 2rem; }
+
+.progHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.progTitle {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin: 0 0 .2rem;
+  color: var(--color-text);
+  display: flex;
+  align-items: center;
+}
+
+.progSub {
+  font-size: .8rem;
+  color: var(--color-muted);
+  margin: 0;
+}
+
+/* States */
+.progLoading {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  font-size: .85rem;
+  color: var(--color-muted);
+  padding: 1rem 0;
+}
+
+.progError {
+  font-size: .8rem;
+  color: #dc2626;
+  display: flex;
+  align-items: center;
+}
+
+.progEmpty {
+  font-size: .83rem;
+  color: var(--color-muted);
+  padding: .75rem 0;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+.spin { animation: spin 1s linear infinite; }
+
+/* Programme grid — 3 cols */
+.progGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+}
+@media (max-width: 900px) { .progGrid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 540px) { .progGrid { grid-template-columns: 1fr; } }
+
+/* Programme card */
+.progCard {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  text-decoration: none;
+  color: var(--color-text);
+  display: flex;
+  flex-direction: column;
+  box-shadow: var(--shadow);
+  transition: box-shadow .15s, transform .15s;
+}
+.progCard:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-3px);
+  text-decoration: none;
+}
+
+/* Hero band */
+.progCardHero {
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.progLevelBadge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: rgba(0,0,0,.35);
+  color: #fff;
+  font-size: .62rem;
+  font-weight: 600;
+  border-radius: 4px;
+  padding: 2px 6px;
+  white-space: nowrap;
+}
+
+/* Card body */
+.progCardBody {
+  padding: .8rem .9rem .85rem;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: .35rem;
+}
+
+.progCardTitle {
+  font-size: .9rem;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.progCardDesc {
+  font-size: .75rem;
+  color: var(--color-muted);
+  line-height: 1.5;
+}
+
+/* Tags */
+.progTags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .3rem;
+  margin-top: .1rem;
+}
+.progTag {
+  background: #f0fdf4;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+  border-radius: 4px;
+  font-size: .62rem;
+  font-weight: 600;
+  padding: 1px 6px;
+}
+
+/* Footer meta row */
+.progMeta {
+  display: flex;
+  align-items: center;
+  gap: .65rem;
+  margin-top: auto;
+  padding-top: .4rem;
+}
+.progMetaItem {
+  display: flex;
+  align-items: center;
+  gap: .25rem;
+  font-size: .72rem;
+  color: var(--color-muted);
+}
+
+/* CTA */
+.progEnrolCta {
+  display: flex;
+  align-items: center;
+  gap: .3rem;
+  font-size: .75rem;
+  font-weight: 700;
+  color: #16a34a;
+  margin-top: .35rem;
+}
