@@ -274,7 +274,7 @@ export default function Discover({ search }) {
                 Enterprise &amp; Supplier Development programmes — enrol and earn your certificate.
               </p>
             </div>
-            <Link to="/careers?tab=esd" className={styles.esdViewAll}>
+            <Link to="/careers#esd" className={styles.esdViewAll}>
               View all <FeatherIcon icon="arrow-right" size={13} />
             </Link>
           </div>

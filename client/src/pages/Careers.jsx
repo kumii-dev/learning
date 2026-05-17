@@ -5,7 +5,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import FeatherIcon from 'feather-icons-react';
 import apiClient from '../lib/apiClient';
 import styles from './Careers.module.css';
@@ -306,8 +306,16 @@ function catIcon(category = '') {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 export default function Careers() {
+  const location = useLocation();
   const [level,    setLevel]    = useState('Beginner');
-  const [category, setCategory] = useState('All');
+  const [category, setCategory] = useState(
+    location.hash === '#esd' ? 'ESD Programmes' : 'All'
+  );
+
+  // Sync if user navigates here with #esd hash after initial render
+  useEffect(() => {
+    if (location.hash === '#esd') setCategory('ESD Programmes');
+  }, [location.hash]);
 
   // Live CMS courses
   const [courses,        setCourses]        = useState([]);
@@ -317,8 +325,8 @@ export default function Careers() {
   useEffect(() => {
     let cancelled = false;
     setCoursesLoading(true);
-    apiClient.get('/api/courses')
-      .then((res) => { if (!cancelled) setCourses(res.data ?? []); })
+    apiClient.get('/courses')
+      .then((res) => { if (!cancelled) setCourses(res.data.data ?? res.data ?? []); })
       .catch((err) => { if (!cancelled) setCoursesError(err.message ?? 'Failed to load programmes'); })
       .finally(() => { if (!cancelled) setCoursesLoading(false); });
     return () => { cancelled = true; };
