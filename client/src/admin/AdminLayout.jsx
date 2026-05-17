@@ -1,6 +1,7 @@
 /**
  * client/src/admin/AdminLayout.jsx
- * Fixed left sidebar layout for the admin CMS portal.
+ * Top header + bottom tab nav layout for the admin CMS portal.
+ * Mirrors the learner Layout pattern.
  */
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import FeatherIcon from 'feather-icons-react';
@@ -21,8 +22,8 @@ export default function AdminLayout() {
 
   return (
     <div className={styles.shell}>
-      {/* ── Sidebar ── */}
-      <aside className={styles.sidebar}>
+      {/* ── Top header ── */}
+      <header className={styles.header}>
         <div className={styles.brand}>
           <div className={styles.brandLogo}>K</div>
           <div>
@@ -31,42 +32,43 @@ export default function AdminLayout() {
           </div>
         </div>
 
-        <nav className={styles.nav}>
-          {NAV.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              end={item.end}
-              className={({ isActive }) =>
-                `${styles.navItem} ${isActive ? styles.navActive : ''}`
-              }
-            >
-              <span className={styles.navIcon}><FeatherIcon icon={item.icon} size={18} /></span>
-              {item.label}
-            </NavLink>
-          ))}
-        </nav>
-
-        <div className={styles.sidebarFooter}>
-          <div className={styles.footerAvatar}>{firstName[0]?.toUpperCase()}</div>
-          <div className={styles.footerInfo}>
-            <div className={styles.footerName}>{firstName}</div>
-            <div className={styles.footerRole}>Administrator</div>
+        <div className={styles.headerRight}>
+          <div className={styles.adminChip}>
+            <div className={styles.adminAvatar}>{firstName[0]?.toUpperCase()}</div>
+            <span className={styles.adminName}>{firstName}</span>
           </div>
           <button
-            className={styles.footerBack}
+            className={styles.backBtn}
             onClick={() => navigate('/')}
             title="Back to learner view"
           >
-            ←
+            <FeatherIcon icon="arrow-left" size={15} />
+            Learner view
           </button>
         </div>
-      </aside>
+      </header>
 
       {/* ── Main content ── */}
       <main className={styles.main}>
         <Outlet />
       </main>
+
+      {/* ── Bottom tab nav ── */}
+      <nav className={styles.nav}>
+        {NAV.map((item) => (
+          <NavLink
+            key={item.to}
+            to={item.to}
+            end={item.end}
+            className={({ isActive }) =>
+              `${styles.navItem} ${isActive ? styles.navActive : ''}`
+            }
+          >
+            <FeatherIcon icon={item.icon} size={20} />
+            {item.label}
+          </NavLink>
+        ))}
+      </nav>
     </div>
   );
 }
