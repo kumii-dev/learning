@@ -8,7 +8,7 @@
   display: flex; align-items: flex-start; justify-content: space-between;
   margin-bottom: 1.75rem; gap: 1rem; flex-wrap: wrap;
 }
-.pageTitle  { font-size: 1.6rem; font-weight: 800; letter-spacing: -.02em; }
+.pageTitle  { font-size: 1.6rem; font-weight: 800; letter-spacing: -.02em; color: #0d2818; }
 .pageSub    { font-size: .85rem; color: #64748b; margin-top: .25rem; }
 .newBtn {
   background: #16a34a; color: #fff; border: none;
@@ -31,7 +31,7 @@
 
 .statCard {
   background: #fff;
-  border: 1px solid #e2e8f0;
+  border: 1px solid #d1fae5;
   border-radius: 14px;
   padding: 1.25rem 1.25rem 1rem;
   position: relative;
@@ -56,7 +56,7 @@
 
 .card {
   background: #fff;
-  border: 1px solid #e2e8f0;
+  border: 1px solid #d1fae5;
   border-radius: 14px;
   padding: 1.25rem;
 }
@@ -64,8 +64,8 @@
   display: flex; align-items: center; justify-content: space-between;
   margin-bottom: 1rem;
 }
-.cardTitle  { font-size: .95rem; font-weight: 700; }
-.viewAll    { font-size: .8rem; color: #1a56db; text-decoration: none; }
+.cardTitle  { font-size: .95rem; font-weight: 700; color: #0d2818; }
+.viewAll    { font-size: .8rem; color: #16a34a; text-decoration: none; }
 .viewAll:hover { text-decoration: underline; }
 .empty      { font-size: .85rem; color: #64748b; }
 
@@ -83,13 +83,13 @@
   text-align: left; padding: .4rem .5rem;
   font-size: .72rem; font-weight: 700; color: #64748b;
   text-transform: uppercase; letter-spacing: .05em;
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid #d1fae5;
 }
-.table td { padding: .55rem .5rem; border-bottom: 1px solid #f1f5f9; color: #0f172a; }
+.table td { padding: .55rem .5rem; border-bottom: 1px solid #f0fdf4; color: #0d2818; }
 .table tr:last-child td { border-bottom: none; }
 .num        { text-align: right !important; }
-.courseLink { color: #0f172a; font-weight: 600; text-decoration: none; }
-.courseLink:hover { color: #1a56db; text-decoration: underline; }
+.courseLink { color: #0d2818; font-weight: 600; text-decoration: none; }
+.courseLink:hover { color: #16a34a; text-decoration: underline; }
 .draftBadge {
   margin-left: .4rem; font-size: .65rem; font-weight: 700;
   padding: .1rem .35rem; border-radius: 4px;
