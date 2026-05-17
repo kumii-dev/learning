@@ -86,7 +86,14 @@ async function issueCertificate(userId, courseId) {
 async function getUserCertificates(userId) {
   const { data, error } = await supabaseAdmin
     .from('certificates')
-    .select('*, courses(title)')
+    .select(`
+      *,
+      courses (
+        title, description, skills, topics, learning_outcomes,
+        estimated_hours, module_count, rating_count,
+        instructor, provider, thumbnail_url, tags, level, category
+      )
+    `)
     .eq('user_id', userId)
     .order('issued_at', { ascending: false });
 

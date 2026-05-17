@@ -20,6 +20,13 @@ const listCourses = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
+const getCourse = async (req, res, next) => {
+  try {
+    const course = await cmsService.getCourseById(req.params.id);
+    res.json({ data: course });
+  } catch (err) { next(err); }
+};
+
 const addCourse = async (req, res, next) => {
   try {
     const { success, data, errors } = validate(cmsCourseSchema, req.body);
@@ -133,7 +140,7 @@ const listLearners = async (req, res, next) => {
 };
 
 module.exports = {
-  listCourses, addCourse, updateCourse, deleteCourse, publishCourse, unpublishCourse,
+  listCourses, getCourse, addCourse, updateCourse, deleteCourse, publishCourse, unpublishCourse,
   addModule, upsertModules,
   addAssessment, upsertAssessment,
   publish,

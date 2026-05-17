@@ -281,7 +281,7 @@ export default function AdminCourseEditor() {
   useEffect(() => {
     if (!isEdit) return;
     Promise.all([
-      apiClient.get(`/courses/${id}`),
+      apiClient.get(`/cms/courses/${id}`),
     ]).then(([courseRes]) => {
       const c = courseRes.data.data;
       setForm({
@@ -298,11 +298,13 @@ export default function AdminCourseEditor() {
           title: m.title, content: m.content ?? '', videoUrl: m.video_url ?? '',
         })));
       }
-      if (c.assessment) {
+      // assessments is an array — take the first one
+      const firstAssessment = c.assessments?.[0] ?? c.assessment ?? null;
+      if (firstAssessment) {
         setAssessment({
-          title:     c.assessment.title ?? 'Course Assessment',
-          passMark:  c.assessment.pass_mark ?? 70,
-          questions: c.assessment.questions ?? [BLANK_QUESTION()],
+          title:     firstAssessment.title ?? 'Course Assessment',
+          passMark:  firstAssessment.pass_mark ?? 70,
+          questions: firstAssessment.questions ?? [BLANK_QUESTION()],
         });
       }
     }).catch((e) => setError(e.message))

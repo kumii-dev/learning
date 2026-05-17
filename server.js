@@ -21,6 +21,7 @@ const myLearningRouter    = require('./src/api/routes/myLearning');
 const assessmentsRouter   = require('./src/api/routes/assessments');
 const gradingRouter       = require('./src/api/routes/grading');
 const certificatesRouter  = require('./src/api/routes/certificates');
+const liveSessionsRouter  = require('./src/api/routes/liveSessions');
 const cmsRouter           = require('./src/cms/routes');
 
 const app  = express();
@@ -100,14 +101,15 @@ app.use((req, _res, next) => {
 app.get('/health', (_req, res) => res.json({ status: 'ok', ts: new Date().toISOString() }));
 
 // ── API routes ───────────────────────────────────────────────────────────────
-app.use('/api/auth',         authRouter);       // sync Kumii user → hub DB
-app.use('/api/courses',      coursesRouter);
-app.use('/api/enrolments',   enrolmentsRouter);
-app.use('/api/my-learning',  myLearningRouter);
-app.use('/api/assessments',  assessmentsRouter);
-app.use('/api/grading',      gradingRouter);
-app.use('/api/certificates', certificatesRouter);
-app.use('/api/cms',          cmsRouter);
+app.use('/api/auth',          authRouter);
+app.use('/api/courses',       coursesRouter);
+app.use('/api/enrolments',    enrolmentsRouter);
+app.use('/api/my-learning',   myLearningRouter);
+app.use('/api/assessments',   assessmentsRouter);
+app.use('/api/grading',       gradingRouter);
+app.use('/api/certificates',  certificatesRouter);
+app.use('/api/live-sessions', liveSessionsRouter);
+app.use('/api/cms',           cmsRouter);
 
 // ── 404 handler ──────────────────────────────────────────────────────────────
 app.use((_req, res) => res.status(404).json({ error: 'Route not found' }));

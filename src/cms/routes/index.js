@@ -14,6 +14,7 @@ const adminOnly = [authenticate, requireRole('admin')];
 
 /* ── Courses ─────────────────────────────────────────────────────────────── */
 router.get('/courses',                   ...adminOnly, ctrl.listCourses);
+router.get('/courses/:id',               ...adminOnly, ctrl.getCourse);
 router.post('/courses',                  ...adminOnly, ctrl.addCourse);
 router.put('/courses/:id',               ...adminOnly, ctrl.updateCourse);
 router.delete('/courses/:id',            ...adminOnly, ctrl.deleteCourse);

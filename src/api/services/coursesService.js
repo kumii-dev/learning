@@ -16,7 +16,10 @@ const logger                        = require('../../utils/logger');
 async function getAllCourses() {
   const { data, error } = await supabaseAdmin
     .from('courses')
-    .select('id, title, description, tags, pass_mark, thumbnail_url, created_at')
+    .select(
+      'id, title, description, tags, pass_mark, thumbnail_url, created_at, ' +
+      'level, category, estimated_hours, instructor, instructor_rating, enrolled_count'
+    )
     .eq('published', true)
     .order('created_at', { ascending: false });
 
@@ -32,7 +35,7 @@ async function getAllCourses() {
 async function getCourseById(courseId) {
   const { data: course, error } = await supabaseAdmin
     .from('courses')
-    .select('*, modules(*)')
+    .select('*, modules(*), assessments(*)')
     .eq('id', courseId)
     .eq('published', true)
     .single();
@@ -75,7 +78,21 @@ async function getRecommendationsForUser(userId) {
     persona: userRow?.persona ?? 'learner',
   });
 
-  return recommendations ?? [];
+  if (!recommendations || recommendations.length === 0) return [];
+
+  // Match AI-returned title strings against published courses in the DB
+  const titles = recommendations.map((t) => t.trim()).filter(Boolean);
+  const { data: matchedCourses } = await supabaseAdmin
+    .from('courses')
+    .select(
+      'id, title, description, tags, pass_mark, thumbnail_url, created_at, ' +
+      'level, category, estimated_hours, instructor, instructor_rating, enrolled_count'
+    )
+    .eq('published', true)
+    .in('title', titles)
+    .limit(6);
+
+  return matchedCourses ?? [];
 }
 
 module.exports = { getAllCourses, getCourseById, getRecommendationsForUser };

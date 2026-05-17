@@ -132,22 +132,47 @@ async function createModule(payload) {
 }
 
 async function upsertModules(courseId, modules) {
-  // Delete existing modules for this course, then insert new set
-  await supabaseAdmin.from('modules').delete().eq('course_id', courseId);
+  if (!modules || modules.length === 0) {
+    // Only delete all if explicitly passing empty array
+    await supabaseAdmin.from('modules').delete().eq('course_id', courseId);
+    return [];
+  }
 
-  if (!modules || modules.length === 0) return [];
+  // Fetch existing modules so we can update in-place (preserves IDs)
+  const { data: existing } = await supabaseAdmin
+    .from('modules')
+    .select('id, order')
+    .eq('course_id', courseId)
+    .order('order', { ascending: true });
 
+  const existingIds = (existing ?? []).map((m) => m.id);
   const rows = modules.map((m, i) => ({
     course_id: courseId,
     title:     m.title,
     content:   m.content ?? '',
     video_url: m.videoUrl ?? null,
     order:     i,
-    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
   }));
 
-  const { data, error } = await supabaseAdmin.from('modules').insert(rows).select();
+  // Upsert: match on (course_id, order) to update existing slots in-place
+  const { data, error } = await supabaseAdmin
+    .from('modules')
+    .upsert(rows, { onConflict: 'course_id,order', ignoreDuplicates: false })
+    .select();
   if (error) throw error;
+
+  // Remove any extra modules beyond the new count (e.g. admin removed last module)
+  if (existingIds.length > modules.length) {
+    const upsertedOrders = rows.map((r) => r.order);
+    const maxOrder = Math.max(...upsertedOrders);
+    await supabaseAdmin
+      .from('modules')
+      .delete()
+      .eq('course_id', courseId)
+      .gt('order', maxOrder);
+  }
+
   return data;
 }
 
@@ -174,22 +199,40 @@ async function createAssessment(payload) {
 }
 
 async function upsertAssessment(courseId, payload) {
-  // Delete existing assessment for this course, then insert new one
-  await supabaseAdmin.from('assessments').delete().eq('course_id', courseId);
+  // Check if an assessment already exists for this course
+  const { data: existing } = await supabaseAdmin
+    .from('assessments')
+    .select('id')
+    .eq('course_id', courseId)
+    .maybeSingle();
 
+  const fields = {
+    course_id:  courseId,
+    type:       payload.type ?? 'quiz',
+    title:      payload.title ?? 'Course Assessment',
+    pass_mark:  payload.passMark ?? 70,
+    questions:  payload.questions ?? [],
+    updated_at: new Date().toISOString(),
+  };
+
+  if (existing) {
+    // UPDATE in-place — preserves the assessment ID so existing submissions stay intact
+    const { data, error } = await supabaseAdmin
+      .from('assessments')
+      .update(fields)
+      .eq('id', existing.id)
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  }
+
+  // No existing assessment — safe to insert
   const { data, error } = await supabaseAdmin
     .from('assessments')
-    .insert({
-      course_id:  courseId,
-      type:       payload.type ?? 'quiz',
-      title:      payload.title ?? 'Course Assessment',
-      pass_mark:  payload.passMark ?? 70,
-      questions:  payload.questions ?? [],
-      created_at: new Date().toISOString(),
-    })
+    .insert({ ...fields, created_at: new Date().toISOString() })
     .select()
     .single();
-
   if (error) throw error;
   return data;
 }
@@ -337,8 +380,27 @@ async function listLearners() {
   });
 }
 
+/* ═══════════════════════════════════════════════════════════════════
+   COURSE DETAIL (admin — includes drafts)
+═══════════════════════════════════════════════════════════════════ */
+
+async function getCourseById(courseId) {
+  const { data: course, error } = await supabaseAdmin
+    .from('courses')
+    .select('*, modules(*), assessments(*)')
+    .eq('id', courseId)
+    .single();
+
+  if (error || !course) {
+    const err = new Error('Course not found');
+    err.status = 404;
+    throw err;
+  }
+  return course;
+}
+
 module.exports = {
-  createCourse, listCoursesAdmin, updateCourse, deleteCourse, publishCourse, unpublishCourse,
+  createCourse, listCoursesAdmin, getCourseById, updateCourse, deleteCourse, publishCourse, unpublishCourse,
   createModule, upsertModules,
   createAssessment, upsertAssessment,
   analyticsOverview, analyticsCourse,
