@@ -103,3 +103,43 @@
 .actUnpublish:hover { background: #fef3c7; }
 .actDelete          { border-color: #fca5a5; color: #b91c1c; background: #fff5f5; }
 .actDelete:hover    { background: #fee2e2; }
+
+/* Checkbox column */
+.checkCol { width: 40px; text-align: center !important; }
+.rowChecked td { background: #f0fdf4 !important; }
+
+/* Bulk bar */
+.bulkBar {
+  display: flex; align-items: center; gap: .75rem;
+  background: #0f172a; color: #e2e8f0;
+  border-radius: 10px; padding: .6rem 1rem;
+  margin-bottom: 1rem; font-size: .85rem; font-weight: 600;
+  flex-wrap: wrap;
+}
+.bulkBtn {
+  background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.2);
+  color: #fff; border-radius: 6px; padding: .3rem .75rem;
+  font-size: .8rem; font-weight: 700; cursor: pointer;
+  transition: background .12s;
+}
+.bulkBtn:hover    { background: rgba(255,255,255,.2); }
+.bulkDelete       { border-color: #fca5a5; color: #fca5a5; }
+.bulkDelete:hover { background: rgba(239,68,68,.2); }
+.bulkClear        { margin-left: auto; background: none; border: none; color: #94a3b8; cursor: pointer; font-size: .8rem; }
+.bulkClear:hover  { color: #fff; }
+
+/* Pagination */
+.pagination {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-top: 1rem; flex-wrap: wrap; gap: .75rem;
+}
+.pageInfo    { font-size: .82rem; color: #64748b; }
+.pageButtons { display: flex; align-items: center; gap: .5rem; }
+.pageBtn {
+  background: #fff; border: 1px solid #e2e8f0; border-radius: 8px;
+  padding: .35rem .85rem; font-size: .82rem; font-weight: 600;
+  cursor: pointer; color: #0f172a; transition: background .12s;
+}
+.pageBtn:disabled { opacity: .4; cursor: not-allowed; }
+.pageBtn:not(:disabled):hover { background: #f1f5f9; }
+.pageCount { font-size: .82rem; color: #64748b; min-width: 60px; text-align: center; }

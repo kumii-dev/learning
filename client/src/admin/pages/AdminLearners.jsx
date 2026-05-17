@@ -24,6 +24,8 @@ export default function AdminLearners() {
   const [q,        setQ]        = useState('');
   const [sortKey,  setSortKey]  = useState('created_at');
   const [sortDir,  setSortDir]  = useState('desc');
+  const [page,     setPage]     = useState(1);
+  const PAGE_SIZE = 20;
 
   useEffect(() => {
     apiClient.get('/cms/learners')
@@ -43,7 +45,7 @@ export default function AdminLearners() {
       const name = `${l.first_name ?? ''} ${l.last_name ?? ''} ${l.email ?? ''}`.toLowerCase();
       return name.includes(q.toLowerCase());
     })
-    .sort((a, b) => {
+      .sort((a, b) => {
       let av = a[sortKey] ?? 0;
       let bv = b[sortKey] ?? 0;
       if (typeof av === 'string') av = av.toLowerCase();
@@ -52,7 +54,9 @@ export default function AdminLearners() {
       return sortDir === 'asc' ? cmp : -cmp;
     });
 
-  function SortIcon({ k }) {
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const safePage   = Math.min(page, totalPages);
+  const paged      = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);  function SortIcon({ k }) {
     if (sortKey !== k) return <span className={styles.sortIcon}>↕</span>;
     return <span className={styles.sortIconActive}>{sortDir === 'asc' ? '↑' : '↓'}</span>;
   }
@@ -91,7 +95,7 @@ export default function AdminLearners() {
           type="search"
           placeholder="Search by name or email…"
           value={q}
-          onChange={(e) => setQ(e.target.value)}
+          onChange={(e) => { setQ(e.target.value); setPage(1); }}
         />
         <span className={styles.count}>{filtered.length} learner{filtered.length !== 1 ? 's' : ''}</span>
       </div>
@@ -99,53 +103,67 @@ export default function AdminLearners() {
       {filtered.length === 0
         ? <div className={styles.empty}>No learners found.</div>
         : (
-          <div className={styles.tableWrap}>
-            <table className={styles.table}>
-              <thead>
-                <tr>
-                  <th onClick={() => toggleSort('last_name')} className={styles.sortable}>
-                    Name <SortIcon k="last_name" />
-                  </th>
-                  <th onClick={() => toggleSort('email')} className={styles.sortable}>
-                    Email <SortIcon k="email" />
-                  </th>
-                  <th onClick={() => toggleSort('enrolled')} className={`${styles.sortable} ${styles.num}`}>
-                    Enrolled <SortIcon k="enrolled" />
-                  </th>
-                  <th onClick={() => toggleSort('completed')} className={`${styles.sortable} ${styles.num}`}>
-                    Completed <SortIcon k="completed" />
-                  </th>
-                  <th onClick={() => toggleSort('avgScore')} className={`${styles.sortable} ${styles.num}`}>
-                    Avg Score <SortIcon k="avgScore" />
-                  </th>
-                  <th onClick={() => toggleSort('created_at')} className={styles.sortable}>
-                    Joined <SortIcon k="created_at" />
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map((l) => {
-                  const name = `${l.first_name ?? ''} ${l.last_name ?? ''}`.trim() || '(no name)';
-                  const initials = `${l.first_name?.[0] ?? ''}${l.last_name?.[0] ?? ''}`.toUpperCase() || '?';
-                  return (
-                    <tr key={l.id}>
-                      <td>
-                        <div className={styles.nameCell}>
-                          <div className={styles.avatar}>{initials}</div>
-                          <span className={styles.name}>{name}</span>
-                        </div>
-                      </td>
-                      <td className={styles.email}>{l.email ?? '—'}</td>
-                      <td className={styles.num}>{l.enrolled}</td>
-                      <td className={styles.num}>{l.completed}</td>
-                      <td className={styles.num}><ScoreBadge score={l.avgScore} /></td>
-                      <td className={styles.muted}>{fmtDate(l.created_at)}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+          <>
+            <div className={styles.tableWrap}>
+              <table className={styles.table}>
+                <thead>
+                  <tr>
+                    <th onClick={() => toggleSort('last_name')} className={styles.sortable}>
+                      Name <SortIcon k="last_name" />
+                    </th>
+                    <th onClick={() => toggleSort('email')} className={styles.sortable}>
+                      Email <SortIcon k="email" />
+                    </th>
+                    <th onClick={() => toggleSort('enrolled')} className={`${styles.sortable} ${styles.num}`}>
+                      Enrolled <SortIcon k="enrolled" />
+                    </th>
+                    <th onClick={() => toggleSort('completed')} className={`${styles.sortable} ${styles.num}`}>
+                      Completed <SortIcon k="completed" />
+                    </th>
+                    <th onClick={() => toggleSort('avgScore')} className={`${styles.sortable} ${styles.num}`}>
+                      Avg Score <SortIcon k="avgScore" />
+                    </th>
+                    <th onClick={() => toggleSort('created_at')} className={styles.sortable}>
+                      Joined <SortIcon k="created_at" />
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {paged.map((l) => {
+                    const name = `${l.first_name ?? ''} ${l.last_name ?? ''}`.trim() || '(no name)';
+                    const initials = `${l.first_name?.[0] ?? ''}${l.last_name?.[0] ?? ''}`.toUpperCase() || '?';
+                    return (
+                      <tr key={l.id}>
+                        <td>
+                          <div className={styles.nameCell}>
+                            <div className={styles.avatar}>{initials}</div>
+                            <span className={styles.name}>{name}</span>
+                          </div>
+                        </td>
+                        <td className={styles.email}>{l.email ?? '—'}</td>
+                        <td className={styles.num}>{l.enrolled}</td>
+                        <td className={styles.num}>{l.completed}</td>
+                        <td className={styles.num}><ScoreBadge score={l.avgScore} /></td>
+                        <td className={styles.muted}>{fmtDate(l.created_at)}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Pagination footer */}
+            <div className={styles.pagination}>
+              <span className={styles.pageInfo}>
+                Showing {(safePage - 1) * PAGE_SIZE + 1}–{Math.min(safePage * PAGE_SIZE, filtered.length)} of {filtered.length}
+              </span>
+              <div className={styles.pageButtons}>
+                <button className={styles.pageBtn} disabled={safePage === 1} onClick={() => setPage(safePage - 1)}>‹ Prev</button>
+                <span className={styles.pageCount}>{safePage} / {totalPages}</span>
+                <button className={styles.pageBtn} disabled={safePage === totalPages} onClick={() => setPage(safePage + 1)}>Next ›</button>
+              </div>
+            </div>
+          </>
         )
       }
     </div>

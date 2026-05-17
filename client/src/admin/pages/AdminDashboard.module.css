@@ -71,7 +71,11 @@
 
 /* Chart */
 .chartWrap { padding: .5rem 0; overflow-x: auto; }
-.chart      { display: block; min-width: 260px; }
+
+/* Stat card with sparkline */
+.statTop  { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.statMeta { flex: 1; }
+.sparkWrap { margin-top: 12px; }
 
 /* Table */
 .table { width: 100%; border-collapse: collapse; font-size: .83rem; }

@@ -4,37 +4,48 @@
  */
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import ReactApexChart from 'react-apexcharts';
 import apiClient from '../../lib/apiClient';
 import styles from './AdminDashboard.module.css';
 
-/* ── Simple SVG bar chart ─────────────────────────────────────────────────── */
-function BarChart({ data, height = 80 }) {
-  const max = Math.max(...data.map((d) => d.count), 1);
-  const barW = 28;
-  const gap  = 8;
-  const w    = data.length * (barW + gap) - gap;
+/* ── ApexCharts bar chart — 7-day enrolments ──────────────────────────────── */
+function EnrolmentBarChart({ data }) {
+  const options = {
+    chart: { type: 'bar', toolbar: { show: false }, background: 'transparent' },
+    theme: { mode: 'dark' },
+    plotOptions: { bar: { borderRadius: 6, columnWidth: '52%' } },
+    colors: ['#16a34a'],
+    dataLabels: { enabled: false },
+    grid: { borderColor: '#1e293b', strokeDashArray: 4 },
+    xaxis: {
+      categories: data.map((d) => d.label),
+      labels: { style: { colors: '#64748b', fontSize: '12px', fontFamily: 'inherit' } },
+      axisBorder: { show: false },
+      axisTicks: { show: false },
+    },
+    yaxis: {
+      labels: { style: { colors: '#64748b', fontSize: '11px', fontFamily: 'inherit' } },
+      min: 0,
+    },
+    tooltip: {
+      theme: 'dark',
+      y: { formatter: (v) => `${v} enrolment${v !== 1 ? 's' : ''}` },
+    },
+  };
+  const series = [{ name: 'Enrolments', data: data.map((d) => d.count) }];
+  return <ReactApexChart options={options} series={series} type="bar" height={220} />;
+}
 
-  return (
-    <svg width="100%" viewBox={`0 0 ${w} ${height + 20}`} className={styles.chart}>
-      {data.map((d, i) => {
-        const bh = Math.max((d.count / max) * height, 2);
-        const x  = i * (barW + gap);
-        const y  = height - bh;
-        return (
-          <g key={d.day}>
-            <rect x={x} y={y} width={barW} height={bh}
-              rx="4" fill="var(--color-primary)" opacity=".85" />
-            <text x={x + barW / 2} y={height + 14} textAnchor="middle"
-              fontSize="10" fill="#64748b">{d.label}</text>
-            {d.count > 0 && (
-              <text x={x + barW / 2} y={y - 4} textAnchor="middle"
-                fontSize="9" fill="#16a34a" fontWeight="600">{d.count}</text>
-            )}
-          </g>
-        );
-      })}
-    </svg>
-  );
+/* ── ApexCharts area sparkline — per stat card ────────────────────────────── */
+function SparkLine({ data, color }) {
+  const options = {
+    chart: { type: 'area', sparkline: { enabled: true }, background: 'transparent' },
+    stroke: { curve: 'smooth', width: 2, colors: [color] },
+    fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.4, opacityTo: 0, stops: [0, 100] }, colors: [color] },
+    tooltip: { enabled: false },
+  };
+  const series = [{ data: data.map((d) => d.count) }];
+  return <ReactApexChart options={options} series={series} type="area" height={50} width="100%" />;
 }
 
 export default function AdminDashboard() {
@@ -57,10 +68,10 @@ export default function AdminDashboard() {
     : 0;
 
   const stats = [
-    { label: 'Total Courses',    value: data.totalCourses,    sub: `${data.publishedCourses} published`, color: '#1a56db' },
-    { label: 'Total Learners',   value: data.totalEnrolled,   sub: 'unique enrolments',                  color: '#7c3aed' },
-    { label: 'Completions',      value: data.completions,     sub: `${completionRate}% completion rate`, color: '#16a34a' },
-    { label: 'Avg. Score',       value: data.avgScore ? `${data.avgScore}%` : '—', sub: 'across all assessments', color: '#d97706' },
+    { label: 'Total Courses',  value: data.totalCourses,  sub: `${data.publishedCourses} published`,      color: '#1a56db' },
+    { label: 'Total Learners', value: data.totalEnrolled, sub: 'unique enrolments',                        color: '#7c3aed' },
+    { label: 'Completions',    value: data.completions,   sub: `${completionRate}% completion rate`,       color: '#16a34a' },
+    { label: 'Avg. Score',     value: data.avgScore ? `${data.avgScore}%` : '—', sub: 'across all assessments', color: '#d97706' },
   ];
 
   return (
@@ -76,12 +87,18 @@ export default function AdminDashboard() {
       {/* ── Stat cards ── */}
       <div className={styles.statsGrid}>
         {stats.map((s) => (
-          <div key={s.label} className={styles.statCard}
-            style={{ '--accent': s.color }}>
-            <div className={styles.statDot} />
-            <div className={styles.statValue}>{s.value}</div>
-            <div className={styles.statLabel}>{s.label}</div>
-            <div className={styles.statSub}>{s.sub}</div>
+          <div key={s.label} className={styles.statCard} style={{ '--accent': s.color }}>
+            <div className={styles.statTop}>
+              <div className={styles.statDot} />
+              <div className={styles.statMeta}>
+                <div className={styles.statValue}>{s.value}</div>
+                <div className={styles.statLabel}>{s.label}</div>
+                <div className={styles.statSub}>{s.sub}</div>
+              </div>
+            </div>
+            <div className={styles.sparkWrap}>
+              <SparkLine data={data.last7} color={s.color} />
+            </div>
           </div>
         ))}
       </div>
@@ -93,7 +110,7 @@ export default function AdminDashboard() {
             <h2 className={styles.cardTitle}>Enrolments — last 7 days</h2>
           </div>
           <div className={styles.chartWrap}>
-            <BarChart data={data.last7} />
+            <EnrolmentBarChart data={data.last7} />
           </div>
         </div>
 

@@ -193,3 +193,19 @@
   color: #f87171;
   font-size: 0.95rem;
 }
+
+/* Pagination */
+.pagination {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-top: 1rem; flex-wrap: wrap; gap: .75rem;
+}
+.pageInfo    { font-size: .82rem; color: #64748b; }
+.pageButtons { display: flex; align-items: center; gap: .5rem; }
+.pageBtn {
+  background: #fff; border: 1px solid #e2e8f0; border-radius: 8px;
+  padding: .35rem .85rem; font-size: .82rem; font-weight: 600;
+  cursor: pointer; color: #0f172a; transition: background .12s;
+}
+.pageBtn:disabled { opacity: .4; cursor: not-allowed; }
+.pageBtn:not(:disabled):hover { background: #f1f5f9; }
+.pageCount { font-size: .82rem; color: #64748b; min-width: 60px; text-align: center; }

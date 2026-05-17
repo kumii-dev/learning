@@ -1,81 +1,72 @@
 /**
  * client/src/admin/pages/AdminAnalytics.jsx
- * Overview stats + per-course drill-down with SVG charts.
+ * Overview stats + per-course drill-down with ApexCharts.
  */
 import { useEffect, useState, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import ReactApexChart from 'react-apexcharts';
 import apiClient from '../../lib/apiClient';
 import styles from './AdminAnalytics.module.css';
 
-/* ── SVG bar chart ────────────────────────────────────────────────────────── */
-function BarChart({ data, colorFn, height = 80, showLabels = true }) {
+/* ── 7-day enrolment bar chart ──────────────────────────────────────────── */
+function EnrolmentBarChart({ data }) {
   if (!data || data.length === 0) return null;
-  const max = Math.max(...data.map((d) => d.count), 1);
-  const barW = 28;
-  const gap  = 6;
-  const w    = data.length * (barW + gap) - gap;
-  return (
-    <svg width="100%" viewBox={`0 0 ${w} ${height + (showLabels ? 20 : 4)}`} className={styles.chartSvg}>
-      {data.map((d, i) => {
-        const bh = Math.max((d.count / max) * height, 2);
-        const x  = i * (barW + gap);
-        const y  = height - bh;
-        return (
-          <g key={i}>
-            <rect x={x} y={y} width={barW} height={bh} rx="3"
-              fill={colorFn ? colorFn(d, i) : '#16a34a'} opacity=".85" />
-            {showLabels && d.label && (
-              <text x={x + barW / 2} y={height + 14} textAnchor="middle"
-                fontSize="9" fill="#94a3b8">{d.label}</text>
-            )}
-            {d.count > 0 && (
-              <text x={x + barW / 2} y={y - 3} textAnchor="middle"
-                fontSize="8" fill="#374151" fontWeight="600">{d.count}</text>
-            )}
-          </g>
-        );
-      })}
-    </svg>
-  );
+  const options = {
+    chart: { type: 'bar', background: 'transparent', toolbar: { show: false }, animations: { enabled: false } },
+    theme: { mode: 'light' },
+    plotOptions: { bar: { borderRadius: 5, columnWidth: '52%' } },
+    colors: ['#16a34a'],
+    dataLabels: { enabled: false },
+    grid: { borderColor: '#f1f5f9', strokeDashArray: 3 },
+    xaxis: { categories: data.map(d => d.label), labels: { style: { colors: '#64748b', fontSize: '11px' } }, axisBorder: { show: false }, axisTicks: { show: false } },
+    yaxis: { labels: { style: { colors: '#64748b', fontSize: '11px' } } },
+    tooltip: { theme: 'light' },
+  };
+  return <ReactApexChart type="bar" options={options} series={[{ name: 'Enrolments', data: data.map(d => d.count) }]} height={220} />;
 }
 
-/* ── Simple line chart ────────────────────────────────────────────────────── */
-function LineChart({ data, height = 100 }) {
-  if (!data || data.length < 2) return (
-    <div className={styles.noData}>Not enough data to display chart.</div>
+/* ── Score distribution bar chart ──────────────────────────────────────── */
+function ScoreDistChart({ data }) {
+  if (!data || data.every(d => d.count === 0)) return <p className={styles.noData}>No submissions yet.</p>;
+  const colors = data.map(d =>
+    d.label?.startsWith('0') ? '#ef4444' :
+    d.label?.startsWith('50') ? '#f59e0b' :
+    d.label?.startsWith('70') ? '#16a34a' : '#15803d'
   );
-  const max = Math.max(...data.map((d) => d.count), 1);
-  const w = 500;
-  const pad = 8;
-  const points = data.map((d, i) => {
-    const x = pad + (i / (data.length - 1)) * (w - pad * 2);
-    const y = pad + ((1 - d.count / max) * (height - pad * 2));
-    return `${x},${y}`;
-  }).join(' ');
+  const options = {
+    chart: { type: 'bar', background: 'transparent', toolbar: { show: false }, animations: { enabled: false } },
+    plotOptions: { bar: { borderRadius: 4, columnWidth: '55%', distributed: true } },
+    colors,
+    dataLabels: { enabled: false },
+    legend: { show: false },
+    grid: { borderColor: '#f1f5f9', strokeDashArray: 3 },
+    xaxis: { categories: data.map(d => d.label), labels: { style: { colors: '#64748b', fontSize: '11px' } }, axisBorder: { show: false }, axisTicks: { show: false } },
+    yaxis: { labels: { style: { colors: '#64748b', fontSize: '11px' } } },
+    tooltip: { theme: 'light' },
+  };
+  return <ReactApexChart type="bar" options={options} series={[{ name: 'Learners', data: data.map(d => d.count) }]} height={200} />;
+}
 
-  // Only label every 5th point
-  const ticks = data.filter((_, i) => i % 5 === 0 || i === data.length - 1);
-
-  return (
-    <svg width="100%" viewBox={`0 0 ${w} ${height + 20}`} className={styles.chartSvg}>
-      <polyline points={points} fill="none" stroke="#16a34a" strokeWidth="2" strokeLinejoin="round" />
-      {data.map((d, i) => {
-        const x = pad + (i / (data.length - 1)) * (w - pad * 2);
-        const y = pad + ((1 - d.count / max) * (height - pad * 2));
-        return d.count > 0
-          ? <circle key={i} cx={x} cy={y} r="3" fill="#16a34a" />
-          : null;
-      })}
-      {ticks.map((d, idx) => {
-        const i = data.indexOf(d);
-        const x = pad + (i / (data.length - 1)) * (w - pad * 2);
-        return (
-          <text key={idx} x={x} y={height + 18} textAnchor="middle"
-            fontSize="9" fill="#94a3b8">{d.label || d.day?.slice(5)}</text>
-        );
-      })}
-    </svg>
-  );
+/* ── 30-day enrolment trend area chart ─────────────────────────────────── */
+function EnrolmentTrendChart({ data }) {
+  if (!data || data.length < 2) return <p className={styles.noData}>Not enough data to display chart.</p>;
+  const options = {
+    chart: { type: 'area', background: 'transparent', toolbar: { show: false }, animations: { enabled: false } },
+    stroke: { curve: 'smooth', width: 2 },
+    colors: ['#16a34a'],
+    fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.35, opacityTo: 0, stops: [0, 90, 100] } },
+    dataLabels: { enabled: false },
+    grid: { borderColor: '#f1f5f9', strokeDashArray: 3 },
+    xaxis: {
+      categories: data.map(d => d.label || d.day?.slice(5)),
+      tickAmount: 6,
+      labels: { style: { colors: '#64748b', fontSize: '10px' } },
+      axisBorder: { show: false }, axisTicks: { show: false },
+    },
+    yaxis: { labels: { style: { colors: '#64748b', fontSize: '11px' } } },
+    tooltip: { theme: 'light' },
+  };
+  return <ReactApexChart type="area" options={options} series={[{ name: 'Enrolments', data: data.map(d => d.count) }]} height={200} />;
 }
 
 /* ══════════════════════════════════════════════════════════════════════════ */
@@ -157,7 +148,7 @@ export default function AdminAnalytics() {
       <div className={styles.card}>
         <h2 className={styles.cardTitle}>Enrolments — last 7 days (all courses)</h2>
         <div className={styles.chartWrap}>
-          <BarChart data={overview.last7} />
+          <EnrolmentBarChart data={overview.last7} />
         </div>
       </div>
 
@@ -201,22 +192,13 @@ export default function AdminAnalytics() {
               {/* Score distribution */}
               <div className={styles.subCard}>
                 <h3 className={styles.subTitle}>Score Distribution</h3>
-                {detail.dist.every((d) => d.count === 0)
-                  ? <p className={styles.noData}>No submissions yet.</p>
-                  : (
-                    <BarChart
-                      data={detail.dist.map((d) => ({ ...d, label: d.label }))}
-                      colorFn={(d) => d.label.startsWith('0') ? '#ef4444' : d.label.startsWith('50') ? '#f59e0b' : '#16a34a'}
-                      showLabels
-                    />
-                  )
-                }
+                <ScoreDistChart data={detail.dist} />
               </div>
 
               {/* Enrollment trend */}
               <div className={styles.subCard}>
                 <h3 className={styles.subTitle}>Enrolments — last 30 days</h3>
-                <LineChart data={detail.last30} />
+                <EnrolmentTrendChart data={detail.last30} />
               </div>
             </div>
           </>

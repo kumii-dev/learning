@@ -1,0 +1,45 @@
+/* client/src/pages/Error404.module.css */
+
+.wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  padding: 2rem;
+  text-align: center;
+}
+
+.code {
+  font-size: 6rem;
+  font-weight: 900;
+  color: #e2e8f0;
+  line-height: 1;
+  letter-spacing: -.04em;
+}
+
+.title {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin: .5rem 0 .75rem;
+}
+
+.sub {
+  font-size: .95rem;
+  color: #64748b;
+  max-width: 380px;
+  margin-bottom: 1.75rem;
+}
+
+.btn {
+  background: #16a34a;
+  color: #fff;
+  text-decoration: none;
+  padding: .65rem 1.5rem;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: .9rem;
+  transition: background .15s;
+}
+.btn:hover { background: #15803d; text-decoration: none; }
