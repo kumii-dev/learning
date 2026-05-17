@@ -20,9 +20,6 @@ async function createCourse(payload) {
       description:      payload.description,
       tags:             payload.tags ?? [],
       pass_mark:        payload.passMark,
-      level:            payload.level ?? null,
-      category:         payload.category ?? null,
-      estimated_hours:  payload.estimatedHours ?? null,
       published:        false,
       created_at:       new Date().toISOString(),
     })
@@ -64,9 +61,6 @@ async function updateCourse(id, payload) {
   if (payload.description     !== undefined) updates.description     = payload.description;
   if (payload.tags            !== undefined) updates.tags            = payload.tags;
   if (payload.passMark        !== undefined) updates.pass_mark       = payload.passMark;
-  if (payload.level           !== undefined) updates.level           = payload.level;
-  if (payload.category        !== undefined) updates.category        = payload.category;
-  if (payload.estimatedHours  !== undefined) updates.estimated_hours = payload.estimatedHours;
   updates.updated_at = new Date().toISOString();
 
   const { data, error } = await supabaseAdmin

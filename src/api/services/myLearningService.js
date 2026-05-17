@@ -25,7 +25,7 @@ async function getMyLearning(userId) {
       updated_at,
       courses (
         id, title, thumbnail_url, description,
-        level, tags, estimated_hours, duration_min, instructor,
+        tags,
         assessments ( id, type, title )
       )
     `)
