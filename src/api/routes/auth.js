@@ -115,12 +115,8 @@ router.post('/sync', async (req, res) => {
     logger.error('[HUB:SYNC] profiles upsert failed', { message: upsertError.message });
   }
 
-  // ── Check admin status from hub's own user_roles ───────────────────────────
-  const { data: isAdminData } = await supabaseAdmin.rpc('has_role', {
-    _user_id: userId,
-    _role:    'admin',
-  });
-  const isAdmin = isAdminData === true;
+  // ── Trust admin status from Kumii (origin-validated postMessage) ────────────
+  const isAdmin = kumiiIsAdmin === true;
 
   // ── Issue hub JWT ──────────────────────────────────────────────────────────
   const hubToken = jwt.sign(
