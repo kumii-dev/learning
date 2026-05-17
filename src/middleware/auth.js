@@ -81,7 +81,7 @@ async function authenticate(req, res, next) {
 
     const userId  = decoded.sub;
     const email   = decoded.email ?? '';
-    const isAdmin = await checkHasRole(userId, 'admin');
+    const isAdmin = decoded.isAdmin === true;
 
     logger.info('[HUB:AUTH] authenticate OK', { isAdmin });
 
