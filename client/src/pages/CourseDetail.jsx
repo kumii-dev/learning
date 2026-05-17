@@ -7,6 +7,45 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import apiClient from '../lib/apiClient';
 import styles from './CourseDetail.module.css';
 
+/* ── Instructor bio card ─────────────────────────────────────────────────── */
+function InstructorCard({ course }) {
+  const name   = course.instructor ?? course.instructor_name ?? null;
+  const rating = course.instructor_rating ?? course.rating ?? 4.5;
+  const role   = course.instructor_role ?? 'Course Instructor';
+  const initials = name
+    ? name.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase()
+    : '?';
+
+  if (!name) return null;
+
+  const fullStars  = Math.floor(rating);
+  const hasHalf    = rating - fullStars >= 0.5;
+
+  return (
+    <div className={styles.instructorCard}>
+      <div className={styles.instructorAvatar}>{initials}</div>
+      <div className={styles.instructorInfo}>
+        <p className={styles.instructorName}>{name}</p>
+        <p className={styles.instructorRole}>{role}</p>
+        <div className={styles.instructorStars}>
+          {Array.from({ length: 5 }, (_, i) => (
+            <span
+              key={i}
+              className={i < fullStars ? styles.starFilled : (i === fullStars && hasHalf ? styles.starHalf : styles.starEmpty)}
+            >★</span>
+          ))}
+          <span className={styles.ratingNum}>{rating.toFixed(1)}</span>
+        </div>
+      </div>
+      {course.enrolled_count != null && (
+        <div className={styles.enrolledBadge}>
+          👥 {course.enrolled_count.toLocaleString()} enrolled
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function CourseDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -66,6 +105,9 @@ export default function CourseDetail() {
           </div>
         </div>
       </div>
+
+      {/* Instructor card */}
+      <InstructorCard course={course} />
 
       {/* Modules */}
       {modules.length > 0 && (

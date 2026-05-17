@@ -1,0 +1,61 @@
+/* client/src/components/LearnerStatCards.module.css */
+
+.strip {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: .75rem;
+}
+@media (max-width: 600px) {
+  .strip { grid-template-columns: 1fr; }
+}
+
+.card {
+  border-radius: var(--radius-lg);
+  padding: 1rem 1.1rem;
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  gap: .3rem;
+  box-shadow: 0 4px 14px rgba(0,0,0,.12);
+}
+
+.top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: .2rem;
+}
+
+.iconWrap {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: rgba(255,255,255,.22);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.diff {
+  font-size: .7rem;
+  font-weight: 700;
+  background: rgba(255,255,255,.2);
+  border-radius: 999px;
+  padding: .15rem .55rem;
+  letter-spacing: .02em;
+}
+
+.value {
+  font-size: 1.65rem;
+  font-weight: 800;
+  letter-spacing: -.03em;
+  line-height: 1;
+}
+
+.label {
+  font-size: .72rem;
+  font-weight: 600;
+  opacity: .85;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+}

@@ -7,6 +7,7 @@ import { useEffect, useState } from 'react';
 import apiClient from '../lib/apiClient';
 import { getProfile, notify } from '../lib/authBridge';
 import styles from './Certificates.module.css';
+import LearnerStatCards from '../components/LearnerStatCards';
 
 /* ── helpers ─────────────────────────────────────────────── */
 function fmtDate(iso) {
@@ -65,8 +66,24 @@ export default function Certificates() {
   const grade  = cert.grade ?? cert.score ?? 100;
   const hours  = course.estimated_hours ?? Math.round((course.module_count ?? 4) * 1.5);
 
+  /* ── Achievement stat strip ──────────────────────────────────────── */
+  const avgGrade = certs.length
+    ? Math.round(certs.reduce((s, c) => s + (c.grade ?? c.score ?? 100), 0) / certs.length)
+    : 0;
+  const totalHours = certs.reduce((s, c) => s + (c.course?.estimated_hours ?? Math.round((c.course?.module_count ?? 4) * 1.5)), 0);
+  const certStats = [
+    { label: 'Certificates',  value: certs.length, diff: null, icon: 'award',       from: '#7c3aed', to: '#4f46e5' },
+    { label: 'Avg Score',     value: `${avgGrade}%`, diff: null, icon: 'trending-up', from: '#16a34a', to: '#059669' },
+    { label: 'Hours Learned', value: `${totalHours}h`, diff: null, icon: 'clock',    from: '#0891b2', to: '#0284c7' },
+  ];
+
   return (
     <main className={styles.page}>
+
+      {/* Achievement stat strip */}
+      <div className={styles.statStrip}>
+        <LearnerStatCards stats={certStats} />
+      </div>
 
       {/* Tab row if multiple certs */}
       {certs.length > 1 && (

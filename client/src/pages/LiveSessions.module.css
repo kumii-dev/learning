@@ -1,0 +1,158 @@
+/* client/src/pages/LiveSessions.module.css */
+
+.page {
+  max-width: 1050px;
+  margin: 0 auto;
+  padding: 1.25rem 1rem 3rem;
+}
+
+.heading {
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: -.02em;
+  margin-bottom: .25rem;
+}
+
+.sub {
+  font-size: .875rem;
+  color: var(--color-muted);
+  margin-bottom: 1.25rem;
+}
+
+.state {
+  font-size: .82rem;
+  color: var(--color-muted);
+}
+
+/* ── Layout ─────────────────────────────────────────────────────────────── */
+.layout {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 1.25rem;
+  align-items: start;
+}
+
+@media (max-width: 720px) {
+  .layout { grid-template-columns: 1fr; }
+}
+
+/* ── Sidebar ────────────────────────────────────────────────────────────── */
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: .65rem;
+}
+
+.sideTitle {
+  font-size: .8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--color-muted);
+  margin: 0 0 .1rem;
+}
+
+.sessionCard {
+  display: flex;
+  gap: 0;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.sessionColorBar {
+  width: 5px;
+  flex-shrink: 0;
+}
+
+.sessionBody {
+  padding: .7rem .85rem;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: .2rem;
+}
+
+.sessionTitle {
+  font-size: .82rem;
+  font-weight: 700;
+  color: var(--color-text);
+  margin: 0;
+  line-height: 1.35;
+}
+
+.sessionMeta {
+  font-size: .72rem;
+  color: var(--color-muted);
+  margin: 0;
+}
+
+.sessionInstructor {
+  font-size: .72rem;
+  color: var(--color-muted);
+  margin: 0;
+}
+
+.joinBtn {
+  display: inline-flex;
+  align-items: center;
+  margin-top: .35rem;
+  background: var(--color-accent);
+  color: #fff;
+  border-radius: 6px;
+  padding: .28rem .65rem;
+  font-size: .72rem;
+  font-weight: 700;
+  text-decoration: none;
+  width: fit-content;
+  transition: opacity .15s;
+}
+.joinBtn:hover { opacity: .85; }
+
+/* ── Calendar wrapper ───────────────────────────────────────────────────── */
+.calWrap {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 1rem;
+  overflow: hidden;
+}
+
+/* FullCalendar overrides ─────────────────────────────────────────────────── */
+.calWrap :global(.fc .fc-toolbar-title) {
+  font-size: 1rem;
+  font-weight: 700;
+}
+.calWrap :global(.fc .fc-button) {
+  background: #f1f5f9;
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+  font-size: .75rem;
+  padding: .3rem .65rem;
+  border-radius: 6px;
+  box-shadow: none;
+  text-transform: capitalize;
+}
+.calWrap :global(.fc .fc-button:hover) {
+  background: #e2e8f0;
+}
+.calWrap :global(.fc .fc-button-primary:not(:disabled).fc-button-active) {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: #fff;
+}
+.calWrap :global(.fc .fc-today-button) {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: #fff;
+}
+.calWrap :global(.fc-event) {
+  border-radius: 4px;
+  font-size: .72rem;
+  padding: 1px 4px;
+  cursor: pointer;
+}
+.calWrap :global(.fc-daygrid-day.fc-day-today) {
+  background: #f0fdf4;
+}

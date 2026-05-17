@@ -7,6 +7,8 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import apiClient from '../lib/apiClient';
 import styles from './Discover.module.css';
+import CategoryChips from '../components/CategoryChips';
+import CourseSparkline from '../components/CourseSparkline';
 
 // ── Static career path cards ─────────────────────────────────────────────────
 const CAREER_PATHS = [
@@ -80,8 +82,9 @@ const PROVIDERS = [
 ];
 
 export default function Discover({ search }) {
-  const [courses,  setCourses]  = useState([]);
-  const [selected, setSelected] = useState(1); // highlight middle card by default
+  const [courses,     setCourses]     = useState([]);
+  const [selected,    setSelected]    = useState(1); // highlight middle card by default
+  const [activeCategory, setActiveCategory] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -90,13 +93,20 @@ export default function Discover({ search }) {
       .catch(() => {});
   }, []);
 
+  // Derive unique categories from live courses
+  const categories = [...new Set(
+    courses.map((c) => c.category ?? c.course_type).filter(Boolean)
+  )].slice(0, 10);
+
   // Filter courses by search term if provided
   const filtered = search
     ? courses.filter((c) =>
         c.title?.toLowerCase().includes(search.toLowerCase()) ||
         c.description?.toLowerCase().includes(search.toLowerCase())
       )
-    : courses;
+    : activeCategory
+      ? courses.filter((c) => (c.category ?? c.course_type) === activeCategory)
+      : courses;
 
   // If user is actively searching, show course results instead of the full discover view
   if (search && search.trim().length > 0) {
@@ -168,6 +178,11 @@ export default function Discover({ search }) {
                 {path.emoji}
               </div>
 
+              {/* Sparkline bottom-right */}
+              <div className={styles.sparklineWrap}>
+                <CourseSparkline grad={path.grad} color="rgba(255,255,255,0.85)" />
+              </div>
+
               <div className={styles.heroCardOverlay}>
                 <div className={styles.heroCardTitle}>{path.title}</div>
                 <div className={styles.heroCardMeta}>
@@ -182,6 +197,37 @@ export default function Discover({ search }) {
           ))}
         </div>
       </section>
+
+      {/* ── Category filter chips ───────────────────────────────────────── */}
+      {categories.length > 0 && (
+        <section className={styles.categorySection}>
+          <h2 className={styles.sectionTitle}>Browse by Category</h2>
+          <CategoryChips
+            categories={categories}
+            active={activeCategory}
+            onChange={setActiveCategory}
+          />
+          {activeCategory && filtered.length > 0 && (
+            <div className={styles.categoryResults}>
+              {filtered.map((c) => (
+                <Link key={c.id} to={`/courses/${c.id}`} className={styles.categoryResultCard}>
+                  {c.thumbnail_url
+                    ? <img src={c.thumbnail_url} alt={c.title} className={styles.catThumb} />
+                    : <span className={styles.catThumbPlaceholder}>📖</span>
+                  }
+                  <div className={styles.catInfo}>
+                    <div className={styles.catTitle}>{c.title}</div>
+                    <div className={styles.catDesc}>{c.description?.slice(0, 70)}{c.description?.length > 70 ? '…' : ''}</div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
+          {activeCategory && filtered.length === 0 && (
+            <p style={{ fontSize: '.85rem', color: 'var(--color-muted)' }}>No courses found in this category.</p>
+          )}
+        </section>
+      )}
 
       {/* ── In-demand roles ─────────────────────────────────────────────── */}
       <section className={styles.rolesSection}>

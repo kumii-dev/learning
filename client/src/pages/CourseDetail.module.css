@@ -71,3 +71,73 @@
 
 .state { color: var(--color-muted); font-size: .875rem; padding: 1rem 0; }
 .error { color: #b91c1c; padding: 1rem 0; }
+
+/* ── Instructor card ────────────────────────────────────────────────────── */
+.instructorCard {
+  display: flex;
+  align-items: center;
+  gap: .85rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: .85rem 1.1rem;
+  margin-bottom: 1.25rem;
+  box-shadow: var(--shadow);
+}
+
+.instructorAvatar {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #1a56db 0%, #7c3aed 100%);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.instructorInfo { flex: 1; }
+
+.instructorName {
+  font-size: .9rem;
+  font-weight: 700;
+  margin: 0;
+  color: var(--color-text);
+}
+
+.instructorRole {
+  font-size: .75rem;
+  color: var(--color-muted);
+  margin: .1rem 0 .3rem;
+}
+
+.instructorStars {
+  display: flex;
+  align-items: center;
+  gap: 1px;
+}
+
+.starFilled { color: #f59e0b; font-size: .85rem; }
+.starHalf   { color: #f59e0b; font-size: .85rem; opacity: .6; }
+.starEmpty  { color: #cbd5e1; font-size: .85rem; }
+
+.ratingNum {
+  font-size: .75rem;
+  font-weight: 700;
+  color: var(--color-text);
+  margin-left: .3rem;
+}
+
+.enrolledBadge {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 999px;
+  padding: .3rem .75rem;
+  font-size: .72rem;
+  font-weight: 600;
+  color: #16a34a;
+  white-space: nowrap;
+}

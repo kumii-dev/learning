@@ -7,6 +7,9 @@ import { Link } from 'react-router-dom';
 import apiClient from '../lib/apiClient';
 import { getProfile } from '../lib/authBridge';
 import styles from './MyLearning.module.css';
+import LearnerStatCards from '../components/LearnerStatCards';
+import CompletionDonut from '../components/CompletionDonut';
+import WeeklyActivityChart from '../components/WeeklyActivityChart';
 
 const QUOTES = [
   '"The expert in anything was once a beginner."',
@@ -151,10 +154,43 @@ export default function MyLearning() {
   const enrolledIds = new Set(enrolments.map((e) => e.courses?.id).filter(Boolean));
   const recommended = courses.filter((c) => !enrolledIds.has(c.id));
 
+  /* Stat strip data */
+  const statCards = [
+    {
+      label: 'Enrolled',
+      value: enrolments.length,
+      diff: null,
+      icon: 'book-open',
+      from: '#16a34a',
+      to: '#059669',
+    },
+    {
+      label: 'Completed',
+      value: completed.length,
+      diff: null,
+      icon: 'award',
+      from: '#7c3aed',
+      to: '#4f46e5',
+    },
+    {
+      label: 'Avg Progress',
+      value: `${totalPct}%`,
+      diff: null,
+      icon: 'trending-up',
+      from: '#0891b2',
+      to: '#0284c7',
+    },
+  ];
+
   return (
     <main className={styles.page}>
       {/* ── Full-width greeting ─────────────────────────────────────── */}
       <h1 className={styles.greeting}>{getGreeting()}, {firstName}</h1>
+
+      {/* ── Gradient stat strip ─────────────────────────────────────── */}
+      <div className={styles.statStrip}>
+        <LearnerStatCards stats={statCards} />
+      </div>
 
       <div className={styles.layout}>
         {/* ════ LEFT SIDEBAR ══════════════════════════════════════════ */}
@@ -188,6 +224,20 @@ export default function MyLearning() {
               : <span className={styles.noResume}>📄 No resume uploaded</span>
             }
           </div>
+
+          {/* Completion donut */}
+          {enrolments.length > 0 && (
+            <CompletionDonut
+              inProgress={inProgress.length}
+              completed={completed.length}
+              notStarted={Math.max(0, courses.length - enrolments.length)}
+            />
+          )}
+
+          {/* Weekly activity */}
+          {enrolments.length > 0 && (
+            <WeeklyActivityChart enrolments={enrolments} />
+          )}
         </aside>
 
         {/* ════ RIGHT CONTENT ═════════════════════════════════════════ */}
