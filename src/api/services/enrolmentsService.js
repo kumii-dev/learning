@@ -17,6 +17,12 @@ const { emit, EVENTS }  = require('../../utils/eventEmitter');
  * @returns {Promise<object>}
  */
 async function enrolUser(userId, courseId) {
+  // Safety-net: ensure a profiles row exists for this user before any FK write.
+  // This catches users whose auth/sync profile upsert silently failed previously.
+  await supabaseAdmin
+    .from('profiles')
+    .upsert({ id: userId, updated_at: new Date().toISOString() }, { onConflict: 'id', ignoreDuplicates: true });
+
   // Verify course exists and is published
   const { data: course, error: courseError } = await supabaseAdmin
     .from('courses')

@@ -111,8 +111,10 @@ router.post('/sync', async (req, res) => {
     .upsert(upsertRow, { onConflict: 'id' });
 
   if (upsertError) {
-    // Non-fatal: log and continue
-    logger.error('[HUB:SYNC] profiles upsert failed', { message: upsertError.message });
+    // FATAL — if the profile row doesn't exist, every FK-protected write
+    // (enrolments, submissions, etc.) will fail with a constraint violation.
+    logger.error('[HUB:SYNC] profiles upsert failed — aborting sync', { message: upsertError.message });
+    return res.status(500).json({ error: 'Failed to sync user profile', detail: upsertError.message });
   }
 
   // ── Trust admin status from Kumii (origin-validated postMessage) ────────────
