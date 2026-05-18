@@ -20,16 +20,28 @@ const { emit, EVENTS }  = require('../../utils/eventEmitter');
 async function enrolUser(userId, courseId, email) {
   // Safety-net: ensure a profiles row exists before any FK write.
   // Covers users whose auth/sync profile upsert silently failed.
-  // email is included to satisfy the (now-nullable) NOT NULL constraint
-  // on older DB instances before migration 006 runs.
+  // email is included to satisfy the NOT NULL constraint on profiles.email.
   const profileRow = {
     id:         userId,
     updated_at: new Date().toISOString(),
     ...(email ? { email } : {}),
   };
-  await supabaseAdmin
+  const { error: profileErr } = await supabaseAdmin
     .from('profiles')
-    .upsert(profileRow, { onConflict: 'id', ignoreDuplicates: true });
+    .upsert(profileRow, { onConflict: 'id', ignoreDuplicates: false });
+
+  if (profileErr) {
+    // Surface this — a silent failure here always causes the FK violation below.
+    // Most common causes:
+    //   • profiles.email is still NOT NULL and email was missing (run migration 006)
+    //   • enrolments FK still points at public.users instead of profiles (run migration 005)
+    const safetyErr = new Error(
+      `[enrolUser] safety-net profiles upsert failed for userId=${userId}: ${profileErr.message}`
+    );
+    safetyErr.status = 500;
+    safetyErr.cause  = profileErr;
+    throw safetyErr;
+  }
 
   // Verify course exists and is published
   const { data: course, error: courseError } = await supabaseAdmin
