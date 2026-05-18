@@ -1,15 +1,14 @@
 -- ============================================================
 -- supabase/migrations/008_profiles_role_default.sql
 --
--- The profiles.role column exists as NOT NULL with no default.
--- Any upsert that omits the column fails with:
---   "null value in column role violates not-null constraint"
+-- profiles.role CHECK constraint (profiles_role_check) only allows:
+--   'platform_admin' | 'tenant_admin' | 'staff' | 'user'
 --
--- Fix: add a column-level default of 'learner' so partial upserts
--- (e.g. safety-net inserts) can never be blocked by a missing role.
+-- Previous code was inserting 'learner' → check violation.
+-- Fix: set column default to 'user' (correct value for regular users).
 --
 -- Run in: Supabase Dashboard → SQL Editor
 -- ============================================================
 
 alter table public.profiles
-  alter column role set default 'learner';
+  alter column role set default 'user';

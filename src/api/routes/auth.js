@@ -78,7 +78,7 @@ router.post('/sync', async (req, res) => {
     email,
     full_name:   name,
     kumii_id:    userId,
-    role:        kumiiIsAdmin === true ? 'admin' : 'learner',
+    role:        kumiiIsAdmin === true ? 'platform_admin' : 'user',
     updated_at:  new Date().toISOString(),
     ...(profile && {
       phone:                       profile.phone                         ?? null,

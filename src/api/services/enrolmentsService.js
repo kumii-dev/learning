@@ -23,7 +23,7 @@ async function enrolUser(userId, courseId, email) {
   // email is included to satisfy the NOT NULL constraint on profiles.email.
   const profileRow = {
     id:         userId,
-    role:       'learner',           // NOT NULL column — must always be supplied
+    role:       'user',              // profiles_role_check: platform_admin|tenant_admin|staff|user
     updated_at: new Date().toISOString(),
     ...(email ? { email } : {}),
   };
