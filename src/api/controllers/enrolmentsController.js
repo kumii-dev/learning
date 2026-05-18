@@ -11,7 +11,7 @@ const enrol = async (req, res, next) => {
     const { success, data, errors } = validate(enrolmentSchema, req.body);
     if (!success) return res.status(400).json({ errors });
 
-    const enrolment = await enrolmentsService.enrolUser(req.user.id, data.courseId);
+    const enrolment = await enrolmentsService.enrolUser(req.user.id, data.courseId, req.user.email);
     res.status(201).json({ data: enrolment });
   } catch (err) { next(err); }
 };

@@ -14,14 +14,22 @@ const { emit, EVENTS }  = require('../../utils/eventEmitter');
  *
  * @param {string} userId
  * @param {string} courseId
+ * @param {string} [email]   - passed from req.user for safety-net profile row
  * @returns {Promise<object>}
  */
-async function enrolUser(userId, courseId) {
-  // Safety-net: ensure a profiles row exists for this user before any FK write.
-  // This catches users whose auth/sync profile upsert silently failed previously.
+async function enrolUser(userId, courseId, email) {
+  // Safety-net: ensure a profiles row exists before any FK write.
+  // Covers users whose auth/sync profile upsert silently failed.
+  // email is included to satisfy the (now-nullable) NOT NULL constraint
+  // on older DB instances before migration 006 runs.
+  const profileRow = {
+    id:         userId,
+    updated_at: new Date().toISOString(),
+    ...(email ? { email } : {}),
+  };
   await supabaseAdmin
     .from('profiles')
-    .upsert({ id: userId, updated_at: new Date().toISOString() }, { onConflict: 'id', ignoreDuplicates: true });
+    .upsert(profileRow, { onConflict: 'id', ignoreDuplicates: true });
 
   // Verify course exists and is published
   const { data: course, error: courseError } = await supabaseAdmin
