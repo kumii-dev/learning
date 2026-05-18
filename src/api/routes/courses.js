@@ -9,8 +9,11 @@ const ctrl                  = require('../controllers/coursesController');
 
 const router = Router();
 
-router.get('/',                  authenticate, ctrl.list);
+// Course browsing is public — no JWT needed to read course listings
+router.get('/',                  ctrl.list);
+router.get('/:id',               ctrl.getOne);
+
+// Personalised recommendations still require a logged-in user
 router.get('/recommendations',   authenticate, ctrl.recommendations);
-router.get('/:id',               authenticate, ctrl.getOne);
 
 module.exports = router;
