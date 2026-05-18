@@ -3,7 +3,7 @@
 
 .breadcrumb { display: flex; align-items: center; gap: .35rem; font-size: .78rem; color: var(--color-muted); margin-bottom: 1.25rem; }
 .breadcrumb a { color: var(--color-muted); text-decoration: none; }
-.breadcrumb a:hover { color: var(--color-accent); text-decoration: underline; }
+.breadcrumb a:hover { color: var(--color-primary); text-decoration: underline; }
 .breadcrumb span { opacity: .4; }
 
 /* Hero card */
@@ -18,7 +18,7 @@
 .heroThumb { width: 100%; height: 200px; object-fit: cover; }
 .heroThumbPlaceholder {
   width: 100%; height: 200px;
-  background: linear-gradient(135deg, #0f172a, #1e40af);
+  background: var(--gradient-accent);
   display: flex; align-items: center; justify-content: center;
   font-size: 5rem;
 }
@@ -26,16 +26,16 @@
 .heading { font-size: 1.4rem; font-weight: 800; margin-bottom: .5rem; letter-spacing: -.02em; line-height: 1.25; }
 .desc { font-size: .85rem; color: var(--color-muted); margin-bottom: .85rem; line-height: 1.6; }
 .tags { display: flex; flex-wrap: wrap; gap: .3rem; margin-bottom: .85rem; }
-.tag { background: #f1f5f9; color: #475569; font-size: .7rem; padding: .15rem .5rem; border-radius: 999px; font-weight: 500; }
+.tag { background: var(--color-surface); color: var(--color-muted); font-size: .7rem; padding: .15rem .5rem; border-radius: 999px; font-weight: 500; }
 
 .actions { display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; }
 .btn {
   background: var(--color-primary); color: #fff;
   border: none; border-radius: var(--radius);
   padding: .55rem 1.25rem; font-size: .875rem; font-weight: 700;
-  cursor: pointer; transition: opacity .15s;
+  cursor: pointer; transition: background .15s, color .15s;
 }
-.btn:hover { opacity: .88; }
+.btn:hover { background: var(--color-primary-h); color: var(--color-text); }
 
 /* Modules */
 .sectionTitle { font-size: 1.05rem; font-weight: 800; margin-bottom: .85rem; letter-spacing: -.01em; }
@@ -65,12 +65,12 @@
   border-radius: var(--radius); padding: .7rem 1rem;
   display: flex; align-items: center; justify-content: space-between;
 }
-.assessments a { color: var(--color-accent); font-weight: 600; font-size: .875rem; text-decoration: none; }
+.assessments a { color: var(--color-primary); font-weight: 600; font-size: .875rem; text-decoration: none; }
 .assessments a:hover { text-decoration: underline; }
 .type { font-size: .75rem; color: var(--color-muted); background: var(--color-bg); padding: .15rem .45rem; border-radius: 999px; }
 
 .state { color: var(--color-muted); font-size: .875rem; padding: 1rem 0; }
-.error { color: #b91c1c; padding: 1rem 0; }
+.error { color: var(--color-error); padding: 1rem 0; }
 
 /* ── Instructor card ────────────────────────────────────────────────────── */
 .instructorCard {
@@ -86,17 +86,11 @@
 }
 
 .instructorAvatar {
-  width: 46px;
-  height: 46px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #1a56db 0%, #7c3aed 100%);
+  width: 46px; height: 46px; border-radius: 50%;
+  background: var(--gradient-accent);
   color: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1rem;
-  font-weight: 800;
-  flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1rem; font-weight: 800; flex-shrink: 0;
 }
 
 .instructorInfo { flex: 1; }
@@ -120,9 +114,9 @@
   gap: 1px;
 }
 
-.starFilled { color: #f59e0b; font-size: .85rem; }
-.starHalf   { color: #f59e0b; font-size: .85rem; opacity: .6; }
-.starEmpty  { color: #cbd5e1; font-size: .85rem; }
+.starFilled { color: var(--color-star); font-size: .85rem; }
+.starHalf   { color: var(--color-star); font-size: .85rem; opacity: .6; }
+.starEmpty  { color: var(--color-border); font-size: .85rem; }
 
 .ratingNum {
   font-size: .75rem;
@@ -132,12 +126,9 @@
 }
 
 .enrolledBadge {
-  background: #f0fdf4;
-  border: 1px solid #bbf7d0;
-  border-radius: 999px;
-  padding: .3rem .75rem;
-  font-size: .72rem;
-  font-weight: 600;
-  color: #16a34a;
-  white-space: nowrap;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 999px; padding: .3rem .75rem;
+  font-size: .72rem; font-weight: 600;
+  color: var(--color-primary); white-space: nowrap;
 }

@@ -52,7 +52,7 @@
 }
 .searchInput:focus {
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(22,163,74,.15);
+  box-shadow: 0 0 0 3px rgba(122,132,102,.18);
 }
 .searchInput::placeholder { color: var(--color-muted); }
 
@@ -93,6 +93,6 @@
 
 /* Admin nav item — subtle accent */
 .adminItem { opacity: 0.75; }
-.adminItem:hover { opacity: 1; color: #a78bfa; }
-.adminItem.active { color: #a78bfa; opacity: 1; }
-.adminItem.active svg { stroke: #a78bfa; }
+.adminItem:hover { opacity: 1; color: var(--color-primary-h); }
+.adminItem.active { color: var(--color-primary-h); opacity: 1; }
+.adminItem.active svg { stroke: var(--color-primary-h); }

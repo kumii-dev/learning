@@ -81,7 +81,7 @@
   position: relative;
   height: 160px;
   overflow: hidden;
-  background: #f1f5f9; /* fallback */
+  background: var(--color-surface); /* fallback */
 }
 
 /* The large fan/arc shape */
@@ -135,7 +135,7 @@
 .credList { display: flex; flex-direction: column; gap: .25rem; }
 .credRow {
   display: flex; align-items: flex-start; gap: .4rem;
-  font-size: .73rem; color: var(--color-accent);
+  font-size: .73rem; color: var(--color-primary);
   font-weight: 500; line-height: 1.3;
 }
 .credLogo { font-size: .9rem; flex-shrink: 0; margin-top: .05rem; }
@@ -143,13 +143,13 @@
 
 /* ── ESD pill highlight ───────────────────────────────────────────────────── */
 .pillESD {
-  border-color: #16a34a;
-  color: #16a34a;
+  border-color: var(--color-primary);
+  color: var(--color-primary);
 }
-.pillESD:hover { background: #f0fdf4; }
+.pillESD:hover { background: var(--color-surface); }
 .pillActive.pillESD {
-  background: #16a34a;
-  border-color: #16a34a;
+  background: var(--color-primary);
+  border-color: var(--color-primary);
   color: #fff !important;
 }
 
@@ -190,7 +190,7 @@
 
 .progError {
   font-size: .8rem;
-  color: #dc2626;
+  color: var(--color-error);
   display: flex;
   align-items: center;
 }
@@ -286,9 +286,9 @@
   margin-top: .1rem;
 }
 .progTag {
-  background: #f0fdf4;
-  color: #166534;
-  border: 1px solid #bbf7d0;
+  background: var(--color-surface);
+  color: var(--color-primary);
+  border: 1px solid var(--color-border);
   border-radius: 4px;
   font-size: .62rem;
   font-weight: 600;
@@ -318,6 +318,6 @@
   gap: .3rem;
   font-size: .75rem;
   font-weight: 700;
-  color: #16a34a;
+  color: var(--color-primary);
   margin-top: .35rem;
 }

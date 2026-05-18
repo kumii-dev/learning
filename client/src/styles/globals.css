@@ -2,16 +2,27 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  --color-primary:   #16a34a;   /* Kumii green */
-  --color-primary-h: #15803d;
-  --color-heading:   #4a7c3e;   /* olive green — Kumii page headings */
-  --color-accent:    #1a56db;   /* blue for links */
-  --color-bg:        #f5f3ee;   /* warm cream — matches Kumii app bg */
-  --color-surface:   #ffffff;
-  --color-text:      #111827;
-  --color-muted:     #6b7280;
-  --color-border:    #e5ddd4;   /* warm-toned border */
-  --color-star:      #f59e0b;
+  /* ── Brand palette ────────────────────────────────────────────────────── */
+  --color-primary:       #7A8466;   /* Primary Button */
+  --color-primary-h:     #C3DE94;   /* Hover & Active State */
+  --color-accent-grad-from: #7A8466;
+  --color-accent-grad-to:   #C3DE94;
+  --color-hero-bg-from:  #EFF1ED;   /* Hero Background gradient start */
+  --color-hero-bg-to:    #E7E8E5;   /* Hero Background gradient end */
+  --color-bg:            #f7f7f7;   /* Primary Background */
+  --color-surface:       #F6F3EF;   /* Secondary Background / surfaces */
+  --color-surface-white: #ffffff;   /* Cards, modals */
+  --color-text:          #333333;   /* Primary Text */
+  --color-muted:         #6b7280;
+  --color-border:        #e5e5e5;
+  --color-star:          #f59e0b;
+  --color-error:         #b91c1c;
+
+  /* ── Accent button gradient (applied as background) ──────────────────── */
+  --gradient-accent: linear-gradient(135deg, #7A8466, #C3DE94);
+  --gradient-hero:   linear-gradient(135deg, #EFF1ED, #E7E8E5);
+
+  /* ── Spacing / shape ─────────────────────────────────────────────────── */
   --radius:          10px;
   --radius-lg:       16px;
   --shadow:          0 1px 3px rgba(0,0,0,.05), 0 1px 2px rgba(0,0,0,.04);
@@ -25,10 +36,9 @@ body {
   background: var(--color-bg);
   color: var(--color-text);
   line-height: 1.5;
-  /* room for fixed header + fixed nav */
   padding-top: var(--header-h);
   padding-bottom: var(--nav-h);
 }
 
-a { color: var(--color-accent); text-decoration: none; }
+a { color: var(--color-primary); text-decoration: none; }
 a:hover { text-decoration: underline; }

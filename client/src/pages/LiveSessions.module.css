@@ -125,7 +125,7 @@
   font-weight: 700;
 }
 .calWrap :global(.fc .fc-button) {
-  background: #f1f5f9;
+  background: var(--color-surface);
   border: 1px solid var(--color-border);
   color: var(--color-text);
   font-size: .75rem;
@@ -135,7 +135,7 @@
   text-transform: capitalize;
 }
 .calWrap :global(.fc .fc-button:hover) {
-  background: #e2e8f0;
+  background: var(--color-border);
 }
 .calWrap :global(.fc .fc-button-primary:not(:disabled).fc-button-active) {
   background: var(--color-primary);
@@ -154,5 +154,5 @@
   cursor: pointer;
 }
 .calWrap :global(.fc-daygrid-day.fc-day-today) {
-  background: #f0fdf4;
+  background: var(--color-surface);
 }

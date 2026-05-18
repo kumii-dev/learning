@@ -1,18 +1,18 @@
 /* client/src/pages/Assessment.module.css */
 
 .state { color: var(--color-muted); padding: 2rem; }
-.error { color: #b91c1c; padding: 2rem; }
+.error { color: var(--color-error); padding: 2rem; }
 
 /* ── Sub-header (shared across all screens) ──────────────────────────────── */
 .subHeader {
   display: flex; align-items: center; gap: 1rem;
   padding: .6rem 1.5rem;
   border-bottom: 1px solid var(--color-border);
-  background: #fff; flex-shrink: 0;
+  background: var(--color-surface-white); flex-shrink: 0;
 }
 .backBtn {
   background: none; border: none; cursor: pointer;
-  color: var(--color-accent); font-size: .85rem; font-weight: 600; padding: 0;
+  color: var(--color-primary); font-size: .85rem; font-weight: 600; padding: 0;
 }
 .backBtn:hover { text-decoration: underline; }
 .subHeaderMid  { display: flex; flex-direction: column; flex: 1; gap: .1rem; }
@@ -23,7 +23,7 @@
 /* ════ START SCREEN ════════════════════════════════════════════════════════ */
 .startPage { max-width: 680px; margin: 0 auto; padding: 2rem 1.5rem; display: flex; flex-direction: column; gap: 1.25rem; }
 .assignTitle { font-size: 1.6rem; font-weight: 800; letter-spacing: -.02em; line-height: 1.25; }
-.objLink { font-size: .875rem; color: var(--color-accent); text-decoration: none; }
+.objLink { font-size: .875rem; color: var(--color-primary); text-decoration: none; }
 .objLink:hover { text-decoration: underline; }
 
 /* Coach */
@@ -41,24 +41,24 @@
   padding: .35rem .85rem; font-size: .8rem; cursor: pointer; font-weight: 600;
   color: var(--color-text); transition: background .12s;
 }
-.coachBtn:hover { background: #f1f5f9; }
+.coachBtn:hover { background: var(--color-surface); }
 
 /* Details box */
 .detailsBox {
   border: 2px solid var(--color-primary); border-radius: var(--radius-lg);
-  padding: 1rem 1.25rem; background: #f0fdf4;
+  padding: 1rem 1.25rem; background: var(--color-surface);
 }
 .detailsTitle { font-size: .9rem; font-weight: 700; margin: 0 0 .75rem; }
 .detailsRow   { display: flex; align-items: center; gap: 2rem; }
 .detailLabel  { font-size: .75rem; color: var(--color-muted); margin: 0 0 .15rem; font-weight: 600; }
 .detailValue  { font-size: .875rem; font-weight: 700; margin: 0; }
 .startBtn {
-  background: #1a56db; color: #fff; border: none;
+  background: var(--color-primary); color: #fff; border: none;
   border-radius: 8px; padding: .55rem 1.5rem;
   font-size: .875rem; font-weight: 700; cursor: pointer;
-  margin-left: auto; transition: background .15s;
+  margin-left: auto; transition: background .15s, color .15s;
 }
-.startBtn:hover { background: #1346b8; }
+.startBtn:hover { background: var(--color-primary-h); color: var(--color-text); }
 
 /* Grade */
 .gradeSection { display: flex; flex-direction: column; gap: .35rem; }
@@ -75,14 +75,14 @@
   font-size: .78rem; cursor: pointer; color: var(--color-muted);
   transition: background .12s;
 }
-.reactBtn:hover { background: #f1f5f9; color: var(--color-text); }
+.reactBtn:hover { background: var(--color-surface); color: var(--color-text); }
 .nextItemBtn {
-  background: #fff; border: 1px solid var(--color-border);
+  background: var(--color-surface-white); border: 1px solid var(--color-border);
   border-radius: 8px; padding: .4rem 1rem;
   font-size: .82rem; font-weight: 600; cursor: pointer; color: var(--color-text);
   transition: background .12s;
 }
-.nextItemBtn:hover { background: #f1f5f9; }
+.nextItemBtn:hover { background: var(--color-surface); }
 
 /* ════ TAKING SCREEN ════════════════════════════════════════════════════════ */
 .takingPage   { display: flex; flex-direction: column; min-height: 100%; }
@@ -100,7 +100,7 @@
   font-size: .875rem; cursor: pointer; padding: .2rem 0;
   margin-left: 1.4rem;
 }
-.option input { accent-color: #1a56db; }
+.option input { accent-color: var(--color-primary); }
 
 .textarea {
   width: 100%; margin-left: 1.4rem;
@@ -108,30 +108,29 @@
   padding: .65rem; font-size: .875rem; font-family: inherit;
   resize: vertical; outline: none;
 }
-.textarea:focus { border-color: var(--color-accent); }
+.textarea:focus { border-color: var(--color-primary); }
 
 /* Honor code */
 .honorBox {
   border: 2px solid var(--color-border); border-radius: var(--radius-lg);
-  padding: 1rem 1.25rem;
-  transition: border-color .15s;
+  padding: 1rem 1.25rem; transition: border-color .15s;
 }
-.honorChecked   { border-color: var(--color-primary); background: #f0fdf4; }
+.honorChecked   { border-color: var(--color-primary); background: var(--color-surface); }
 .honorTitle     { font-size: .9rem; font-weight: 700; margin: 0 0 .5rem; }
 .honorText      { font-size: .83rem; color: var(--color-muted); margin: 0 0 .75rem; line-height: 1.55; }
-.honorLink      { color: var(--color-accent); }
+.honorLink      { color: var(--color-primary); }
 .honorLabel     { display: flex; align-items: center; gap: .6rem; font-size: .85rem; cursor: pointer; }
 .honorLabel input { accent-color: var(--color-primary); width: 16px; height: 16px; }
-.honorWarn      { font-size: .75rem; color: #b91c1c; margin: .4rem 0 0; }
+.honorWarn      { font-size: .75rem; color: var(--color-error); margin: .4rem 0 0; }
 
 .takingActions  { display: flex; gap: .75rem; }
 .submitBtn {
-  background: #1a56db; color: #fff; border: none;
+  background: var(--color-primary); color: #fff; border: none;
   border-radius: 8px; padding: .55rem 1.75rem;
   font-size: .9rem; font-weight: 700; cursor: pointer;
-  transition: background .15s, opacity .15s;
+  transition: background .15s, color .15s, opacity .15s;
 }
-.submitBtn:hover:not(:disabled) { background: #1346b8; }
+.submitBtn:hover:not(:disabled) { background: var(--color-primary-h); color: var(--color-text); }
 .submitBtn:disabled { opacity: .45; cursor: default; }
 
 .draftBtn {
@@ -140,7 +139,7 @@
   font-size: .9rem; font-weight: 600; cursor: pointer; color: var(--color-text);
   transition: background .12s;
 }
-.draftBtn:hover { background: #f1f5f9; }
+.draftBtn:hover { background: var(--color-surface); }
 
 /* ════ RESULTS SCREEN ═══════════════════════════════════════════════════════ */
 .resultsPage { display: flex; flex-direction: column; min-height: 100%; }
@@ -149,12 +148,12 @@
   display: flex; align-items: center; justify-content: space-between; gap: 1rem;
   padding: 1rem 1.5rem; flex-shrink: 0;
 }
-.gradeBannerPass { background: #dcfce7; border-bottom: 1px solid #86efac; }
+.gradeBannerPass { background: var(--color-surface); border-bottom: 1px solid var(--color-border); }
 .gradeBannerFail { background: #fee2e2; border-bottom: 1px solid #fca5a5; }
 .gradeLeft { display: flex; flex-direction: column; gap: .2rem; }
 .gradeTitle { font-size: 1.1rem; font-weight: 700; }
 .gradeTitle strong { color: var(--color-primary); }
-.gradeSub   { font-size: .78rem; color: #374151; }
+.gradeSub   { font-size: .78rem; color: var(--color-muted); }
 
 .reviewPage { max-width: 720px; margin: 0 auto; padding: 2rem 1.5rem; display: flex; flex-direction: column; gap: 2.5rem; width: 100%; }
 
@@ -162,18 +161,17 @@
 .reviewOption {
   display: flex; align-items: center; gap: .6rem;
   font-size: .875rem; cursor: default; padding: .2rem 0;
-  margin-left: 1.4rem; color: #374151;
+  margin-left: 1.4rem; color: var(--color-muted);
 }
-.reviewOption input { accent-color: #1a56db; }
+.reviewOption input { accent-color: var(--color-primary); }
 .reviewSelected { color: var(--color-text); font-weight: 600; }
 
 .niceWork {
-  background: #f0fdf4; border: 1px solid #86efac;
-  border-radius: 8px; padding: .75rem 1rem;
-  margin-left: 1.4rem;
+  background: var(--color-surface); border: 1px solid var(--color-border);
+  border-radius: 8px; padding: .75rem 1rem; margin-left: 1.4rem;
 }
-.niceIcon { font-size: .85rem; font-weight: 700; color: #15803d; display: block; margin-bottom: .35rem; }
-.niceWork p { font-size: .85rem; color: #1a2e1a; margin: 0; line-height: 1.55; }
+.niceIcon { font-size: .85rem; font-weight: 700; color: var(--color-primary); display: block; margin-bottom: .35rem; }
+.niceWork p { font-size: .85rem; color: var(--color-text); margin: 0; line-height: 1.55; }
 
 
 .form { display: flex; flex-direction: column; gap: 1.5rem; }
