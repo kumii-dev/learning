@@ -11,6 +11,11 @@ import apiClient from '../lib/apiClient';
 import styles from './Discover.module.css';
 import CategoryChips from '../components/CategoryChips';
 import CourseSparkline from '../components/CourseSparkline';
+import microsoftLogo from '../assets/providers/microsoft-logo.svg';
+import courseraLogo  from '../assets/providers/coursera-logo.svg';
+import udemyLogo     from '../assets/providers/udemy-logo.svg';
+import edxLogo       from '../assets/providers/edx-logo.svg';
+import khanLogo      from '../assets/providers/khan-logo.svg';
 
 // ── Static career path cards ─────────────────────────────────────────────────
 const CAREER_PATHS = [
@@ -104,11 +109,46 @@ function esdBg(title = '') {
 
 // ── Static providers ──────────────────────────────────────────────────────────
 const PROVIDERS = [
-  { name: 'Microsoft Learn', desc: 'Azure, Microsoft 365…', initial: 'M', color: '#f25022', bg: '#fff0ee' },
-  { name: 'Coursera',        desc: 'Universities & industry', initial: 'C', color: '#0056d2', bg: '#e8f0fe' },
-  { name: 'Udemy',           desc: 'Business, tech, creative', initial: 'U', color: '#a435f0', bg: '#f3e8ff' },
-  { name: 'edX',             desc: 'Harvard, MIT & more',  initial: 'e', color: '#02262b', bg: '#e0f2f1' },
-  { name: 'Khan Academy',    desc: 'Math, science & more', initial: 'K', color: '#14bf96', bg: '#e0faf3' },
+  {
+    name:    'Microsoft Learn',
+    desc:    'Free, interactive training on Azure, Microsoft 365, and…',
+    url:     'https://learn.microsoft.com',
+    logo:    microsoftLogo,
+    logoW:   40,
+    accent:  '#00a4ef',   // MS blue top bar
+  },
+  {
+    name:    'Coursera',
+    desc:    'World-class courses from top universities and…',
+    url:     'https://www.coursera.org',
+    logo:    courseraLogo,
+    logoW:   40,
+    accent:  '#0056d2',
+  },
+  {
+    name:    'Udemy',
+    desc:    'Affordable courses on business, tech, and creati…',
+    url:     'https://www.udemy.com',
+    logo:    udemyLogo,
+    logoW:   90,
+    accent:  '#a435f0',
+  },
+  {
+    name:    'edX',
+    desc:    'University-level courses from Harvard, MIT, and…',
+    url:     'https://www.edx.org',
+    logo:    edxLogo,
+    logoW:   72,
+    accent:  '#02262b',
+  },
+  {
+    name:    'Khan Academy',
+    desc:    'Free education for anyone, anywhere — math, science…',
+    url:     'https://www.khanacademy.org',
+    logo:    khanLogo,
+    logoW:   40,
+    accent:  '#14bf96',
+  },
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -378,13 +418,34 @@ export default function Discover({ search }) {
         </p>
         <div className={styles.providersRow}>
           {PROVIDERS.map((p) => (
-            <Link key={p.name} to="/courses" className={styles.providerCard}>
-              <div className={styles.providerLogo} style={{ background: p.bg, color: p.color }}>
-                {p.initial}
+            <a
+              key={p.name}
+              href={p.url}
+              target="_blank"
+              rel="noreferrer"
+              className={styles.providerCard}
+            >
+              {/* Coloured top accent bar */}
+              <span className={styles.providerAccent} style={{ background: p.accent }} />
+
+              {/* Logo area */}
+              <div className={styles.providerLogoWrap}>
+                <img
+                  src={p.logo}
+                  alt={`${p.name} logo`}
+                  width={p.logoW}
+                  className={styles.providerLogoImg}
+                />
               </div>
+
               <div className={styles.providerName}>{p.name}</div>
               <div className={styles.providerDesc}>{p.desc}</div>
-            </Link>
+
+              {/* Explore button */}
+              <span className={styles.providerExplore}>
+                Explore&nbsp;&nbsp;→
+              </span>
+            </a>
           ))}
         </div>
       </section>
