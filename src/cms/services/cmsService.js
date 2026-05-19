@@ -132,46 +132,29 @@ async function createModule(payload) {
 }
 
 async function upsertModules(courseId, modules) {
-  if (!modules || modules.length === 0) {
-    // Only delete all if explicitly passing empty array
-    await supabaseAdmin.from('modules').delete().eq('course_id', courseId);
-    return [];
-  }
+  // Delete all existing modules for this course, then re-insert the full set.
+  // This avoids needing a unique constraint on (course_id, order) and is safe
+  // because modules have no external FK references that would break on re-insert.
+  await supabaseAdmin.from('modules').delete().eq('course_id', courseId);
 
-  // Fetch existing modules so we can update in-place (preserves IDs)
-  const { data: existing } = await supabaseAdmin
-    .from('modules')
-    .select('id, order')
-    .eq('course_id', courseId)
-    .order('order', { ascending: true });
+  if (!modules || modules.length === 0) return [];
 
-  const existingIds = (existing ?? []).map((m) => m.id);
+  const ts = new Date().toISOString();
   const rows = modules.map((m, i) => ({
-    course_id: courseId,
-    title:     m.title,
-    content:   m.content ?? '',
-    video_url: m.videoUrl ?? null,
-    order:     i,
-    updated_at: new Date().toISOString(),
+    course_id:  courseId,
+    title:      m.title,
+    content:    m.content ?? '',
+    video_url:  m.videoUrl ?? null,
+    order:      i,
+    created_at: ts,
+    updated_at: ts,
   }));
 
-  // Upsert: match on (course_id, order) to update existing slots in-place
   const { data, error } = await supabaseAdmin
     .from('modules')
-    .upsert(rows, { onConflict: 'course_id,order', ignoreDuplicates: false })
+    .insert(rows)
     .select();
   if (error) throw error;
-
-  // Remove any extra modules beyond the new count (e.g. admin removed last module)
-  if (existingIds.length > modules.length) {
-    const upsertedOrders = rows.map((r) => r.order);
-    const maxOrder = Math.max(...upsertedOrders);
-    await supabaseAdmin
-      .from('modules')
-      .delete()
-      .eq('course_id', courseId)
-      .gt('order', maxOrder);
-  }
 
   return data;
 }
