@@ -78,6 +78,15 @@ export default function Certificates() {
     { label: 'Hours Learned', value: `${totalHours}h`, diff: null, icon: 'clock',    from: '#0891b2', to: '#0284c7' },
   ];
 
+  async function handleDownload(certId) {
+    try {
+      const res = await apiClient.get(`/certificates/${certId}/download`);
+      window.open(res.data.url, '_blank');
+    } catch {
+      alert('Could not generate certificate PDF. Please try again.');
+    }
+  }
+
   return (
     <main className={styles.page}>
 
@@ -194,7 +203,7 @@ export default function Certificates() {
             >
               Share Certificate <FeatherIcon icon="external-link" size={14} />
             </button>
-            <button className={styles.btnDownload}>
+            <button className={styles.btnDownload} onClick={() => handleDownload(cert.id)}>
               Download Certificate <FeatherIcon icon="download" size={14} />
             </button>
           </div>

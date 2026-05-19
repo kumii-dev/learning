@@ -112,7 +112,7 @@ const PROVIDERS = [
   {
     name:    'Microsoft Learn',
     desc:    'Free, interactive training on Azure, Microsoft 365, and…',
-    url:     'https://learn.microsoft.com',
+    url:     'https://kumii.africa/learning/provider/microsoft',
     logo:    microsoftLogo,
     logoW:   40,
     accent:  '#00a4ef',   // MS blue top bar
@@ -120,7 +120,7 @@ const PROVIDERS = [
   {
     name:    'Coursera',
     desc:    'World-class courses from top universities and…',
-    url:     'https://www.coursera.org',
+    url:     'https://kumii.africa/learning/provider/coursera',
     logo:    courseraLogo,
     logoW:   40,
     accent:  '#0056d2',
@@ -128,7 +128,7 @@ const PROVIDERS = [
   {
     name:    'Udemy',
     desc:    'Affordable courses on business, tech, and creati…',
-    url:     'https://www.udemy.com',
+    url:     'https://kumii.africa/learning/provider/udemy',
     logo:    udemyLogo,
     logoW:   90,
     accent:  '#a435f0',
@@ -136,7 +136,7 @@ const PROVIDERS = [
   {
     name:    'edX',
     desc:    'University-level courses from Harvard, MIT, and…',
-    url:     'https://www.edx.org',
+    url:     'https://kumii.africa/learning/provider/edx',
     logo:    edxLogo,
     logoW:   72,
     accent:  '#02262b',
@@ -144,7 +144,7 @@ const PROVIDERS = [
   {
     name:    'Khan Academy',
     desc:    'Free education for anyone, anywhere — math, science…',
-    url:     'https://www.khanacademy.org',
+    url:     'https://kumii.africa/learning/provider/khan',
     logo:    khanLogo,
     logoW:   40,
     accent:  '#14bf96',

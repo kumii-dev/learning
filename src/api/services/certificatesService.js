@@ -10,6 +10,7 @@ const { v4: uuidv4 }    = require('uuid');
 const { supabaseAdmin } = require('../../integrations/supabase');
 const { emit, EVENTS }  = require('../../utils/eventEmitter');
 const logger            = require('../../utils/logger');
+const { generateCertificatePdf } = require('../../utils/certificateGenerator');
 
 /**
  * Issue a certificate for a user who has completed a course.
@@ -23,7 +24,7 @@ async function issueCertificate(userId, courseId) {
   // Check for existing certificate
   const { data: existing } = await supabaseAdmin
     .from('certificates')
-    .select('id')
+    .select('id, pdf_url')
     .eq('user_id', userId)
     .eq('course_id', courseId)
     .maybeSingle();
@@ -33,35 +34,77 @@ async function issueCertificate(userId, courseId) {
     return existing;
   }
 
-  // Fetch CMS certificate template for this course
-  const { data: template } = await supabaseAdmin
-    .from('certificate_templates')
-    .select('*')
-    .eq('course_id', courseId)
-    .maybeSingle();
-
+  // Fetch course details
   const { data: course } = await supabaseAdmin
     .from('courses')
-    .select('title')
+    .select('title, category, estimated_hours')
     .eq('id', courseId)
     .single();
 
+  // Fetch user profile
   const { data: user } = await supabaseAdmin
     .from('users')
     .select('email, full_name')
     .eq('id', userId)
     .single();
 
+  // Fetch CMS certificate template for this course (optional)
+  const { data: template } = await supabaseAdmin
+    .from('certificate_templates')
+    .select('*')
+    .eq('course_id', courseId)
+    .maybeSingle();
+
+  const certId      = uuidv4();
+  const issuedAt    = new Date().toISOString();
+  const learnerName = user?.full_name?.trim() || user?.email?.split('@')[0] || 'Learner';
+
+  // ── Generate PDF ─────────────────────────────────────────────────────
+  let pdfUrl = null;
+  try {
+    const pdfBuffer = await generateCertificatePdf({
+      learnerName,
+      courseTitle:     course?.title          ?? 'Course',
+      category:        course?.category       ?? '',
+      estimatedHours:  course?.estimated_hours ?? null,
+      issuedAt,
+      certificateId:   certId,
+    });
+
+    const filePath = `certificates/${certId}.pdf`;
+    const { error: uploadErr } = await supabaseAdmin.storage
+      .from('course-content')
+      .upload(filePath, pdfBuffer, {
+        contentType: 'application/pdf',
+        upsert: false,
+      });
+
+    if (!uploadErr) {
+      const { data: { publicUrl } } = supabaseAdmin.storage
+        .from('course-content')
+        .getPublicUrl(filePath);
+      pdfUrl = publicUrl;
+    } else {
+      logger.warn('Certificate PDF upload failed', { error: uploadErr.message });
+    }
+  } catch (genErr) {
+    logger.warn('Certificate PDF generation failed', { error: genErr.message });
+  }
+
+  // ── Save certificate record ────────────────────────────────────────
   const certData = {
-    id:           uuidv4(),
-    user_id:      userId,
-    course_id:    courseId,
-    issued_at:    new Date().toISOString(),
-    template_id:  template?.id ?? null,
+    id:          certId,
+    user_id:     userId,
+    course_id:   courseId,
+    issued_at:   issuedAt,
+    template_id: template?.id ?? null,
+    pdf_url:     pdfUrl,
     metadata: {
-      learner_name: user?.full_name ?? user?.email ?? 'Learner',
+      learner_name: learnerName,
       course_title: course?.title ?? 'Course',
-      issued_date:  new Date().toLocaleDateString('en-AU', { year: 'numeric', month: 'long', day: 'numeric' }),
+      issued_date:  new Date(issuedAt).toLocaleDateString('en-AU', {
+        year: 'numeric', month: 'long', day: 'numeric',
+      }),
     },
   };
 
@@ -121,4 +164,53 @@ async function getCertificateById(certificateId) {
   return data;
 }
 
-module.exports = { issueCertificate, getUserCertificates, getCertificateById };
+/**
+ * Re-generate (or generate for the first time) the PDF for an existing certificate.
+ * Returns the updated certificate row with pdf_url.
+ */
+async function regeneratePdf(certificateId, userId) {
+  const { data: cert, error } = await supabaseAdmin
+    .from('certificates')
+    .select('*, courses(title, category, estimated_hours), users(full_name, email)')
+    .eq('id', certificateId)
+    .single();
+
+  if (error || !cert) {
+    const e = new Error('Certificate not found'); e.status = 404; throw e;
+  }
+  // Only the owner can regenerate
+  if (cert.user_id !== userId) {
+    const e = new Error('Forbidden'); e.status = 403; throw e;
+  }
+
+  const learnerName = cert.users?.full_name?.trim() || cert.users?.email?.split('@')[0] || 'Learner';
+  const course      = cert.courses ?? {};
+
+  const pdfBuffer = await generateCertificatePdf({
+    learnerName,
+    courseTitle:    course.title           ?? 'Course',
+    category:       course.category        ?? '',
+    estimatedHours: course.estimated_hours ?? null,
+    issuedAt:       cert.issued_at,
+    certificateId,
+  });
+
+  const filePath = `certificates/${certificateId}.pdf`;
+  await supabaseAdmin.storage.from('course-content').upload(filePath, pdfBuffer, {
+    contentType: 'application/pdf', upsert: true,
+  });
+
+  const { data: { publicUrl } } = supabaseAdmin.storage
+    .from('course-content').getPublicUrl(filePath);
+
+  const { data: updated } = await supabaseAdmin
+    .from('certificates')
+    .update({ pdf_url: publicUrl })
+    .eq('id', certificateId)
+    .select()
+    .single();
+
+  return updated;
+}
+
+module.exports = { issueCertificate, getUserCertificates, getCertificateById, regeneratePdf };

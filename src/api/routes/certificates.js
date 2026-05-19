@@ -10,6 +10,7 @@ const ctrl             = require('../controllers/certificatesController');
 const router = Router();
 
 router.get('/',         authenticate, ctrl.listMine);
+router.get('/:id/download', authenticate, ctrl.downloadCertificate);
 router.get('/:id',      ctrl.verify);   // Public — no auth — for external verification links
 
 module.exports = router;
