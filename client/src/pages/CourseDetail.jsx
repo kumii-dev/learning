@@ -50,23 +50,35 @@ function InstructorCard({ course }) {
 export default function CourseDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [course,  setCourse]  = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error,   setError]   = useState(null);
+  const [course,     setCourse]     = useState(null);
+  const [enrolment,  setEnrolment]  = useState(null); // existing enrolment if any
+  const [loading,    setLoading]    = useState(true);
+  const [enrolling,  setEnrolling]  = useState(false);
+  const [error,      setError]      = useState(null);
 
   useEffect(() => {
-    apiClient.get(`/courses/${id}`)
-      .then((res) => setCourse(res.data.data))
+    Promise.all([
+      apiClient.get(`/courses/${id}`),
+      apiClient.get('/enrolments').catch(() => ({ data: { data: [] } })),
+    ])
+      .then(([cRes, eRes]) => {
+        setCourse(cRes.data.data);
+        const existing = (eRes.data.data ?? []).find((e) => e.course_id === id);
+        setEnrolment(existing ?? null);
+      })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
   }, [id]);
 
   const enrol = async () => {
+    setEnrolling(true);
     try {
       await apiClient.post('/enrolments', { courseId: id });
-      navigate('/my-learning');
+      navigate(`/courses/${id}/player`);
     } catch (err) {
       alert(err.message);
+    } finally {
+      setEnrolling(false);
     }
   };
 
@@ -102,7 +114,16 @@ export default function CourseDetail() {
             </div>
           )}
           <div className={styles.actions}>
-            <button className={styles.btn} onClick={enrol}>Enrol for free</button>
+            {enrolment ? (
+              <Link to={`/courses/${id}/player`} className={styles.btn}>
+                <FeatherIcon icon="play" size={16} />
+                {(enrolment.progress_pct ?? 0) > 0 ? 'Continue Learning' : 'Start Learning'}
+              </Link>
+            ) : (
+              <button className={styles.btn} onClick={enrol} disabled={enrolling}>
+                {enrolling ? 'Enrolling…' : 'Enrol for free'}
+              </button>
+            )}
           </div>
         </div>
       </div>

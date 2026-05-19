@@ -91,4 +91,32 @@ async function getUserEnrolments(userId) {
   return data;
 }
 
-module.exports = { enrolUser, getUserEnrolments };
+/**
+ * Update progress on an enrolment owned by the calling user.
+ * @param {string} enrolmentId
+ * @param {string} userId        – must own the enrolment
+ * @param {number} progressPct   – 0-100
+ * @returns {Promise<object>}
+ */
+async function updateProgress(enrolmentId, userId, progressPct) {
+  const pct = Math.min(100, Math.max(0, Number(progressPct) || 0));
+  const isComplete = pct >= 100;
+
+  const { data, error } = await supabaseAdmin
+    .from('enrolments')
+    .update({
+      progress_pct: pct,
+      status:      isComplete ? 'completed' : 'in_progress',
+      updated_at:  new Date().toISOString(),
+      ...(isComplete ? { completed_at: new Date().toISOString() } : {}),
+    })
+    .eq('id', enrolmentId)
+    .eq('user_id', userId)   // ensures the learner can only update their own row
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+module.exports = { enrolUser, getUserEnrolments, updateProgress };

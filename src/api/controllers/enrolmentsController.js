@@ -23,4 +23,13 @@ const listMine = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
-module.exports = { enrol, listMine };
+const updateProgress = async (req, res, next) => {
+  try {
+    const { progressPct } = req.body;
+    if (progressPct === undefined) return res.status(400).json({ error: 'progressPct is required' });
+    const enrolment = await enrolmentsService.updateProgress(req.params.id, req.user.id, progressPct);
+    res.json({ data: enrolment });
+  } catch (err) { next(err); }
+};
+
+module.exports = { enrol, listMine, updateProgress };

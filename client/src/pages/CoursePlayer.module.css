@@ -227,3 +227,120 @@
 }
 .nextBtn:hover:not(:disabled) { background: var(--color-surface); }
 .nextBtn:disabled { opacity: .4; cursor: default; }
+
+/* ── Sidebar progress bar ─────────────────────────────────────────────────── */
+.sideProgress {
+  height: 4px; background: var(--color-border);
+  border-radius: 999px; margin: .35rem 0 .2rem;
+}
+.sideProgressFill {
+  height: 100%; background: var(--color-primary);
+  border-radius: 999px; transition: width .4s ease;
+}
+.sideProgressLabel { font-size: .72rem; color: var(--color-muted); }
+
+/* ── Lesson done state ────────────────────────────────────────────────────── */
+.lessonDone { opacity: .75; }
+.lessonDone .lessonIcon { color: var(--color-primary); }
+
+/* ── Assessment entry in sidebar ─────────────────────────────────────────── */
+.assessmentEntry {
+  display: flex; align-items: center; gap: .5rem;
+  padding: .75rem 1rem;
+  border-top: 1px solid var(--color-border);
+  font-size: .82rem; color: var(--color-muted);
+  flex-wrap: wrap;
+}
+.assessmentLink {
+  margin-left: auto; font-size: .8rem; font-weight: 600;
+  color: var(--color-primary); text-decoration: none;
+}
+.assessmentLink:hover { text-decoration: underline; }
+.assessmentLocked {
+  margin-left: auto; display: flex; align-items: center; gap: .3rem;
+  font-size: .78rem; color: var(--color-muted);
+}
+
+/* ── Player breadcrumb ────────────────────────────────────────────────────── */
+.playerBreadcrumb {
+  display: flex; align-items: center; gap: .4rem; flex-wrap: wrap;
+  padding: .6rem 1.25rem; border-bottom: 1px solid var(--color-border);
+  font-size: .8rem; color: var(--color-muted); flex-shrink: 0;
+}
+.playerBreadcrumb a {
+  color: var(--color-primary); text-decoration: none;
+  display: flex; align-items: center; gap: .25rem;
+}
+.playerBreadcrumb a:hover { text-decoration: underline; }
+.savingBadge {
+  margin-left: auto; display: flex; align-items: center; gap: .25rem;
+  font-size: .75rem; color: var(--color-muted);
+}
+
+/* ── Lesson reading header (no video) ────────────────────────────────────── */
+.lessonHeader {
+  display: flex; align-items: center; gap: 1rem;
+  padding: 1.5rem 1.25rem 1rem;
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+.lessonHeaderIcon {
+  width: 52px; height: 52px; border-radius: 12px;
+  background: var(--color-surface); display: flex;
+  align-items: center; justify-content: center;
+  color: var(--color-primary); flex-shrink: 0;
+}
+.lessonHeaderMeta { font-size: .75rem; color: var(--color-muted); margin-bottom: .2rem; }
+.lessonHeaderTitle { font-size: 1.1rem; font-weight: 700; color: var(--color-text); margin: 0; }
+
+/* ── Lesson content (text body) ──────────────────────────────────────────── */
+.lessonContent { padding: 1.25rem; flex: 1; overflow-y: auto; }
+.lessonContentTitle {
+  font-size: 1.1rem; font-weight: 700; color: var(--color-text);
+  margin: 0 0 1rem;
+}
+.lessonBody { font-size: .9rem; line-height: 1.75; color: var(--color-text); }
+.lessonBody p { margin: 0 0 .9rem; }
+
+/* ── Footer right cluster ────────────────────────────────────────────────── */
+.footerRight { display: flex; align-items: center; gap: .5rem; }
+.prevBtn {
+  display: flex; align-items: center; gap: .35rem;
+  background: none; border: 1px solid var(--color-border);
+  border-radius: 8px; padding: .4rem .9rem;
+  font-size: .82rem; cursor: pointer; color: var(--color-muted);
+  transition: background .12s;
+}
+.prevBtn:hover { background: var(--color-surface); color: var(--color-text); }
+
+.nextBtn {
+  display: flex; align-items: center; gap: .35rem;
+  background: var(--color-primary); border: none;
+  border-radius: 8px; padding: .45rem 1.1rem;
+  font-size: .82rem; font-weight: 600; cursor: pointer;
+  color: #fff; transition: background .12s;
+}
+.nextBtn:hover:not(:disabled) { background: var(--color-primary-h); color: var(--color-text); }
+.nextBtn:disabled { opacity: .4; cursor: default; }
+
+/* ── Assessment CTA button ───────────────────────────────────────────────── */
+.assessmentBtn {
+  display: inline-flex; align-items: center; gap: .4rem;
+  background: var(--color-primary); color: #fff;
+  border-radius: 8px; padding: .45rem 1.1rem;
+  font-size: .82rem; font-weight: 600; text-decoration: none;
+  transition: background .12s;
+}
+.assessmentBtn:hover { background: var(--color-primary-h); color: var(--color-text); }
+
+/* ── Completion banner ───────────────────────────────────────────────────── */
+.completionBanner {
+  display: flex; flex-direction: column; align-items: center;
+  gap: .75rem; text-align: center;
+  padding: 2.5rem 1.5rem; margin: 1.5rem 1.25rem;
+  background: var(--color-surface); border-radius: 16px;
+  border: 1px solid var(--color-border);
+  color: var(--color-primary);
+}
+.completionBanner h3 { font-size: 1.3rem; font-weight: 700; color: var(--color-text); margin: 0; }
+.completionBanner p  { font-size: .9rem; color: var(--color-muted); margin: 0; }

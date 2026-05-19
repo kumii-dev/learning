@@ -9,7 +9,8 @@ const ctrl             = require('../controllers/enrolmentsController');
 
 const router = Router();
 
-router.post('/',  authenticate, ctrl.enrol);
-router.get('/',   authenticate, ctrl.listMine);
+router.post('/',        authenticate, ctrl.enrol);
+router.get('/',         authenticate, ctrl.listMine);
+router.patch('/:id',    authenticate, ctrl.updateProgress);
 
 module.exports = router;

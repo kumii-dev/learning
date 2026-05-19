@@ -59,12 +59,14 @@ function ProgressRing({ pct = 0, size = 90 }) {
 /* Course card ───────────────────────────────────────────────────────────── */
 function CourseCard({ course, enrolment }) {
   const level      = course.level ?? course.difficulty ?? 'beginner';
-  const duration   = course.duration_min ? `${course.duration_min} min` : null;
+  const duration   = course.estimated_hours ? `${course.estimated_hours}h` : course.duration_min ? `${course.duration_min} min` : null;
   const tags       = course.tags ?? course.skills ?? [];
   const type       = course.course_type ?? 'Module';
+  // Enrolled learners go straight to the player; unenrolled go to the detail/enrol page
+  const destination = enrolment ? `/courses/${course.id}/player` : `/courses/${course.id}`;
   return (
     <div className={styles.card}>
-      <Link to={`/courses/${course.id}`} className={styles.cardTitle}>
+      <Link to={destination} className={styles.cardTitle}>
         {course.title}
       </Link>
       <p className={styles.cardDesc}>{course.description ?? course.short_description ?? ''}</p>
@@ -80,15 +82,20 @@ function CourseCard({ course, enrolment }) {
       )}
       {enrolment
         ? (
-          <div className={styles.cardProgress}>
-            <div className={styles.progressBar}>
-              <div className={styles.progressFill} style={{ width: `${enrolment.progress_pct ?? 0}%` }} />
+          <>
+            <div className={styles.cardProgress}>
+              <div className={styles.progressBar}>
+                <div className={styles.progressFill} style={{ width: `${enrolment.progress_pct ?? 0}%` }} />
+              </div>
+              <span className={styles.pctLabel}>{enrolment.progress_pct ?? 0}%</span>
             </div>
-            <span className={styles.pctLabel}>{enrolment.progress_pct ?? 0}%</span>
-          </div>
+            <Link to={destination} className={styles.startBtn}>
+              {(enrolment.progress_pct ?? 0) > 0 ? 'Continue Learning' : 'Start Learning'} <FeatherIcon icon="play" size={14} />
+            </Link>
+          </>
         )
         : (
-          <Link to={`/courses/${course.id}`} className={styles.startBtn}>
+          <Link to={destination} className={styles.startBtn}>
             Start Learning <FeatherIcon icon="external-link" size={14} />
           </Link>
         )

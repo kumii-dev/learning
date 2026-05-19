@@ -1,100 +1,91 @@
 /**
  * client/src/pages/CoursePlayer.jsx
  *
- * Full course-player experience — matches the Coursera-style player screenshots.
- * Accessible via:
- *   /live-sessions          → auto-loads most recent in-progress enrolment
- *   /courses/:id/player     → loads specific course
+ * Full course-player experience.
+ * Route: /courses/:id/player
+ *
+ * Data shape (from GET /courses/:id):
+ *   course.modules[]    — each module is a lesson { id, title, content, video_url, order }
+ *   course.assessments[] — [{ id, title, type }]
  *
  * Layout:
- *   ┌──────────────────────────────────────────────────────┐
- *   │ Left sidebar  │  Video / content area                │
- *   │  module list  │  Transcript / Notes / Downloads tabs │
- *   └──────────────────────────────────────────────────────┘
+ *   ┌──────────────────┬──────────────────────────────┐
+ *   │  Sidebar         │  Lesson content / video       │
+ *   │  module list     │  Tabs: Content · Notes        │
+ *   └──────────────────┴──────────────────────────────┘
  */
 
-import { useEffect, useState, useRef } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
-import FeatherIcon from 'feather-icons-react';
-import apiClient from '../lib/apiClient';
-import { getProfile } from '../lib/authBridge';
+import { useEffect, useState, useCallback } from 'react';
+import { useParams, useNavigate, Link }     from 'react-router-dom';
+import FeatherIcon                          from 'feather-icons-react';
+import apiClient                            from '../lib/apiClient';
 import styles from './CoursePlayer.module.css';
 
-/* ── Helpers ──────────────────────────────────────────────────────────────── */
-function typeIcon(type = '') {
-  if (type.includes('video'))   return <FeatherIcon icon="play" size={14} />;
-  if (type.includes('reading')) return <FeatherIcon icon="file-text" size={14} />;
-  if (type.includes('quiz') || type.includes('assignment') || type.includes('practice')) return <FeatherIcon icon="edit" size={14} />;
-  if (type.includes('plugin'))  return <FeatherIcon icon="zap" size={14} />;
-  return <FeatherIcon icon="circle" size={14} />;
+/* ── helpers ─────────────────────────────────────────────────────────────── */
+function pct(done, total) {
+  return total === 0 ? 0 : Math.round((done / total) * 100);
 }
 
-function itemDuration(item) {
-  if (item.duration_min) return `${item.duration_min} min`;
-  if (item.duration)     return item.duration;
-  return null;
+/* ── Sidebar module row ──────────────────────────────────────────────────── */
+function ModuleRow({ mod, index, active, done, onClick }) {
+  return (
+    <button
+      className={`${styles.lessonItem} ${active ? styles.lessonActive : ''} ${done ? styles.lessonDone : ''}`}
+      onClick={onClick}
+    >
+      <span className={styles.lessonIcon}>
+        {done
+          ? <FeatherIcon icon="check-circle" size={14} />
+          : active
+            ? <FeatherIcon icon="play-circle" size={14} />
+            : <FeatherIcon icon="circle" size={14} />}
+      </span>
+      <div className={styles.lessonMeta}>
+        <span className={styles.lessonTitle}>{mod.title}</span>
+        <span className={styles.lessonType}>
+          {mod.video_url ? 'Video lesson' : 'Reading'} · Module {index + 1}
+        </span>
+      </div>
+    </button>
+  );
 }
 
-/* ── Sample transcript lines (shown when no real transcript available) ──── */
-const SAMPLE_TRANSCRIPT = [
-  { t: '0:47', text: "Together, we'll explore how e-commerce stores work and how to engage customers." },
-  { t: '0:53', text: "Hello, I'm Mike, and I'm a Global Performance Curriculum manager here at Google." },
-  { t: '1:10', text: "I'll be your instructor for the final course of the program." },
-  { t: '1:15', text: "There, we'll discuss how to build customer loyalty and other e-commerce topics." },
-  { t: '1:15', text: "I'll be guiding you on how to prepare for your upcoming job search and land a career in digital marketing and e-commerce." },
-  { t: '1:30', text: "This is such a great time to grow your career in digital marketing and e-commerce. Sound exciting? Let's get started." },
-];
-
+/* ── Main export ─────────────────────────────────────────────────────────── */
 export default function CoursePlayer() {
-  const { id: paramId } = useParams();
+  const { id }   = useParams();
   const navigate = useNavigate();
 
-  const [course,      setCourse]      = useState(null);
-  const [enrolment,   setEnrolment]   = useState(null);
-  const [activeItem,  setActiveItem]  = useState(null); // { module, item }
-  const [tab,         setTab]         = useState('transcript');
-  const [sideOpen,    setSideOpen]    = useState(true);
-  const [loading,     setLoading]     = useState(true);
-  const [error,       setError]       = useState(null);
-  const [theaterNote, setTheaterNote] = useState(true);
-  const videoRef = useRef(null);
+  const [course,    setCourse]    = useState(null);
+  const [enrolment, setEnrolment] = useState(null);
+  const [activeIdx, setActiveIdx] = useState(0);
+  const [completed, setCompleted] = useState(new Set()); // Set of module ids
+  const [tab,       setTab]       = useState('content');
+  const [sideOpen,  setSideOpen]  = useState(true);
+  const [loading,   setLoading]   = useState(true);
+  const [error,     setError]     = useState(null);
+  const [notes,     setNotes]     = useState('');
+  const [saving,    setSaving]    = useState(false);
 
+  /* ── Load course + enrolment ──────────────────────────────────────────── */
   useEffect(() => {
-    const loadPlayer = async () => {
+    const load = async () => {
       try {
-        let courseId = paramId;
-
-        /* If no specific ID, find the most recent in-progress enrolment */
-        if (!courseId) {
-          const mlRes = await apiClient.get('/my-learning');
-          const enrolments = mlRes.data.data?.enrolments ?? [];
-          const inProgress = enrolments.find((e) => e.status !== 'completed')
-                          ?? enrolments[0];
-          if (!inProgress) {
-            setError('no_course');
-            setLoading(false);
-            return;
-          }
-          setEnrolment(inProgress);
-          courseId = inProgress.courses?.id ?? inProgress.course_id;
-        }
-
-        if (!courseId) {
-          setError('no_course');
-          setLoading(false);
-          return;
-        }
-
-        const cRes = await apiClient.get(`/courses/${courseId}`);
+        const [cRes, eRes] = await Promise.all([
+          apiClient.get(`/courses/${id}`),
+          apiClient.get('/enrolments').catch(() => ({ data: { data: [] } })),
+        ]);
         const c = cRes.data.data;
+        c.modules = (c.modules ?? []).slice().sort((a, b) => a.order - b.order);
         setCourse(c);
 
-        /* Default to first item in first module */
-        const mods = (c.modules ?? []).slice().sort((a, b) => a.order - b.order);
-        if (mods[0]?.items?.length) {
-          setActiveItem({ module: mods[0], item: mods[0].items[0] });
-        } else if (mods[0]) {
-          setActiveItem({ module: mods[0], item: null });
+        const enrol = (eRes.data.data ?? []).find((e) => e.course_id === id);
+        if (enrol) {
+          setEnrolment(enrol);
+        } else {
+          // Auto-enrol when landing on the player
+          const newE = await apiClient.post('/enrolments', { courseId: id })
+            .then((r) => r.data.data).catch(() => null);
+          setEnrolment(newE);
         }
       } catch (err) {
         setError(err.message);
@@ -102,220 +93,237 @@ export default function CoursePlayer() {
         setLoading(false);
       }
     };
-    loadPlayer();
-  }, [paramId]);
+    load();
+  }, [id]);
 
-  /* ── Navigate to next item ────────────────────────────────────────── */
-  const goNext = () => {
-    if (!course) return;
-    const mods = (course.modules ?? []).slice().sort((a, b) => a.order - b.order);
-    let found = false;
-    for (const mod of mods) {
-      for (const item of (mod.items ?? [])) {
-        if (found) { setActiveItem({ module: mod, item }); return; }
-        if (activeItem?.item?.id === item.id) found = true;
-      }
+  /* ── Persist progress to server (best-effort) ────────────────────────── */
+  const saveProgress = useCallback(async (completedSet, currentEnrolment) => {
+    const e = currentEnrolment ?? enrolment;
+    if (!e?.id || !course) return;
+    const total = (course.modules ?? []).length;
+    if (total === 0) return;
+    const donePct = pct(completedSet.size, total);
+    setSaving(true);
+    try {
+      const res = await apiClient.patch(`/enrolments/${e.id}`, { progressPct: donePct });
+      setEnrolment(res.data.data);
+    } catch (_) { /* non-blocking */ } finally {
+      setSaving(false);
+    }
+  }, [enrolment, course]);
+
+  /* ── Mark current module done and advance ─────────────────────────────── */
+  const markDoneAndAdvance = async () => {
+    const modules = course?.modules ?? [];
+    const mod = modules[activeIdx];
+    if (!mod) return;
+    const next = new Set(completed);
+    next.add(mod.id);
+    setCompleted(next);
+    await saveProgress(next, enrolment);
+    if (activeIdx < modules.length - 1) {
+      setActiveIdx(activeIdx + 1);
+      setTab('content');
     }
   };
 
-  /* ── Flat list of all items for "N items" count ─────────────────── */
-  const allItems = (course?.modules ?? [])
-    .slice().sort((a, b) => a.order - b.order)
-    .flatMap((m) => (m.items ?? []).map((item) => ({ module: m, item })));
-
-  /* ── Active item index ──────────────────────────────────────────── */
-  const activeIdx = allItems.findIndex((x) => x.item?.id === activeItem?.item?.id);
-
+  /* ── Guards ─────────────────────────────────────────────────────────── */
   if (loading) return <p className={styles.state}>Loading course…</p>;
-
-  if (error === 'no_course') return (
+  if (error)   return <p className={styles.error}>{error}</p>;
+  if (!course) return (
     <div className={styles.noCourse}>
       <div className={styles.noCourseIcon}><FeatherIcon icon="book-open" size={48} /></div>
-      <h2>No course in progress</h2>
-      <p>Enrol in a course to start your learning journey here.</p>
+      <h2>Course not found</h2>
       <Link to="/courses" className={styles.browseBtn}>Browse Courses</Link>
     </div>
   );
 
-  if (error) return <p className={styles.error}>{error}</p>;
-
-  const modules = (course?.modules ?? []).slice().sort((a, b) => a.order - b.order);
-  const isVideo = !activeItem?.item?.type || activeItem.item.type.includes('video');
-  const isAssessment = activeItem?.item?.type?.includes('quiz')
-    || activeItem?.item?.type?.includes('assignment')
-    || activeItem?.item?.type?.includes('practice');
+  const modules     = course.modules ?? [];
+  const assessments = course.assessments ?? [];
+  const activeMod   = modules[activeIdx];
+  const allDone     = modules.length > 0 && modules.every((m) => completed.has(m.id));
+  const progressPct = pct(completed.size, modules.length);
 
   return (
     <div className={styles.playerShell}>
 
       {/* ── Sidebar ─────────────────────────────────────────────────── */}
       <aside className={`${styles.sidebar} ${sideOpen ? '' : styles.sidebarClosed}`}>
-        {/* Header */}
         <div className={styles.sideHeader}>
-          <p className={styles.courseTitle}>{course.title}</p>
-          <button className={styles.closeSide} onClick={() => setSideOpen(false)} title="Close"><FeatherIcon icon="x" size={18} /></button>
+          <div>
+            <p className={styles.courseTitle}>{course.title}</p>
+            <div className={styles.sideProgress}>
+              <div className={styles.sideProgressFill} style={{ width: `${progressPct}%` }} />
+            </div>
+            <p className={styles.sideProgressLabel}>{progressPct}% · {completed.size}/{modules.length} modules</p>
+          </div>
+          <button className={styles.closeSide} onClick={() => setSideOpen(false)} title="Close sidebar">
+            <FeatherIcon icon="x" size={18} />
+          </button>
         </div>
 
-        {/* Module + item list */}
         <div className={styles.moduleList}>
-          {modules.map((mod, mi) => (
-            <ModuleSection
+          {modules.length === 0 && <p className={styles.noItems}>No modules published yet.</p>}
+          {modules.map((mod, i) => (
+            <ModuleRow
               key={mod.id}
               mod={mod}
-              moduleIdx={mi}
-              activeItem={activeItem}
-              onSelect={(item) => setActiveItem({ module: mod, item })}
+              index={i}
+              active={i === activeIdx}
+              done={completed.has(mod.id)}
+              onClick={() => { setActiveIdx(i); setTab('content'); }}
             />
           ))}
+
+          {/* Assessment entry in sidebar */}
+          {assessments.length > 0 && (
+            <div className={styles.assessmentEntry}>
+              <FeatherIcon icon="edit" size={14} />
+              <span>Assessment</span>
+              {allDone
+                ? <Link to={`/assessments/${assessments[0].id}`} className={styles.assessmentLink}>Take now →</Link>
+                : <span className={styles.assessmentLocked}><FeatherIcon icon="lock" size={12} /> Complete modules first</span>
+              }
+            </div>
+          )}
         </div>
       </aside>
 
-      {/* ── Sidebar toggle when closed ───────────────────────────── */}
+      {/* Sidebar toggle */}
       {!sideOpen && (
-        <button className={styles.openSide} onClick={() => setSideOpen(true)} title="Open menu"><FeatherIcon icon="menu" size={20} /></button>
+        <button className={styles.openSide} onClick={() => setSideOpen(true)} title="Open menu">
+          <FeatherIcon icon="menu" size={20} />
+        </button>
       )}
 
       {/* ── Main content ────────────────────────────────────────────── */}
       <main className={styles.main}>
 
-        {/* Video area */}
-        <div className={styles.videoWrap}>
-          {course.thumbnail_url ? (
-            <video
-              ref={videoRef}
-              poster={course.thumbnail_url}
-              controls
-              className={styles.video}
-              src={activeItem?.item?.video_url ?? undefined}
-            />
-          ) : (
-            <div className={styles.videoPlaceholder}>
-              <div className={styles.videoPlaceholderInner}>
-                <div className={styles.instructorAvatar}>
-                  {(getProfile()?.first_name ?? 'I')[0]}
-                </div>
-                <p className={styles.instructorTitle}>
-                  {activeItem?.item?.title ?? course.title}
-                </p>
-              </div>
-              {/* Fake controls */}
-              <div className={styles.videoControls}>
-                <button className={styles.vcBtn}><FeatherIcon icon="play" size={16} /></button>
-                <button className={styles.vcBtn}><FeatherIcon icon="volume-x" size={16} /></button>
-                <span className={styles.vcTime}>0:10 / 7:38</span>
-                <div className={styles.vcProgress}>
-                  <div className={styles.vcProgressFill} style={{ width: '2%' }} />
-                </div>
-                <button className={styles.vcBtn}><FeatherIcon icon="rotate-cw" size={16} /></button>
-                <span className={styles.vcSpeed}>1x</span>
-                <button className={styles.vcBtn}><FeatherIcon icon="settings" size={16} /></button>
-                <button className={styles.vcBtn}><FeatherIcon icon="maximize" size={16} /></button>
-              </div>
-            </div>
-          )}
-
-          {/* Theater mode toast */}
-          {theaterNote && (
-            <div className={styles.theaterToast}>
-              <button className={styles.theaterClose} onClick={() => setTheaterNote(false)}><FeatherIcon icon="x" size={16} /></button>
-              <p className={styles.theaterTitle}>Theater mode available</p>
-              <p className={styles.theaterSub}>Enjoy an immersive video experience with dark mode and an auto-scrolling transcript.</p>
-            </div>
-          )}
+        {/* Breadcrumb */}
+        <div className={styles.playerBreadcrumb}>
+          <Link to="/my-learning"><FeatherIcon icon="arrow-left" size={14} /> My Learning</Link>
+          <FeatherIcon icon="chevron-right" size={14} />
+          <span>{course.title}</span>
+          {activeMod && <><FeatherIcon icon="chevron-right" size={14} /><span>{activeMod.title}</span></>}
+          {saving && <span className={styles.savingBadge}><FeatherIcon icon="loader" size={12} /> Saving…</span>}
         </div>
 
-        {/* Transcript / Notes / Downloads tabs */}
-        <div className={styles.tabBar}>
-          {['transcript','notes','downloads'].map((t) => (
-            <button
-              key={t}
-              className={`${styles.tabBtn} ${tab === t ? styles.tabActive : ''}`}
-              onClick={() => setTab(t)}
-            >
-              {t.charAt(0).toUpperCase() + t.slice(1)}
-            </button>
-          ))}
-        </div>
+        {modules.length === 0 ? (
+          <div className={styles.noCourse}>
+            <FeatherIcon icon="book-open" size={48} />
+            <h2>No modules yet</h2>
+            <p>This course's content hasn't been published yet. Check back soon.</p>
+            <Link to="/my-learning" className={styles.browseBtn}>← Back to My Learning</Link>
+          </div>
+        ) : activeMod ? (
+          <>
+            {/* Video (if video_url exists) */}
+            {activeMod.video_url && (
+              <div className={styles.videoWrap}>
+                <video key={activeMod.id} controls className={styles.video}
+                  src={activeMod.video_url} poster={course.thumbnail_url ?? undefined} />
+              </div>
+            )}
 
-        <div className={styles.tabContent}>
-          {tab === 'transcript' && (
-            <div className={styles.transcript}>
-              {(activeItem?.item?.transcript ?? SAMPLE_TRANSCRIPT).map((line, i) => (
-                <div key={i} className={styles.transcriptLine}>
-                  <span className={styles.timestamp}>{line.t}</span>
-                  <span>{line.text}</span>
+            {/* No video — decorative lesson header */}
+            {!activeMod.video_url && (
+              <div className={styles.lessonHeader}>
+                <div className={styles.lessonHeaderIcon}><FeatherIcon icon="book-open" size={28} /></div>
+                <div>
+                  <p className={styles.lessonHeaderMeta}>Module {activeIdx + 1} of {modules.length}</p>
+                  <h2 className={styles.lessonHeaderTitle}>{activeMod.title}</h2>
                 </div>
+              </div>
+            )}
+
+            {/* Tabs */}
+            <div className={styles.tabBar}>
+              {['content', 'notes'].map((t) => (
+                <button key={t}
+                  className={`${styles.tabBtn} ${tab === t ? styles.tabActive : ''}`}
+                  onClick={() => setTab(t)}>
+                  {t.charAt(0).toUpperCase() + t.slice(1)}
+                </button>
               ))}
             </div>
-          )}
-          {tab === 'notes' && (
-            <textarea className={styles.notes} placeholder="Add your notes here…" rows={8} />
-          )}
-          {tab === 'downloads' && (
-            <p className={styles.noDownloads}>No downloadable resources for this item.</p>
-          )}
-        </div>
 
-        {/* Footer actions */}
-        <div className={styles.footer}>
-          <div className={styles.footerLeft}>
-            <button className={styles.reactBtn}><FeatherIcon icon="thumbs-up" size={14} /> Like</button>
-            <button className={styles.reactBtn}><FeatherIcon icon="thumbs-down" size={14} /> Dislike</button>
-            <button className={styles.reactBtn}><FeatherIcon icon="flag" size={14} /> Report an issue</button>
-          </div>
-          <button className={styles.nextBtn} onClick={goNext} disabled={activeIdx >= allItems.length - 1}>
-            Go to next item <FeatherIcon icon="arrow-right" size={16} />
-          </button>
-        </div>
-      </main>
-    </div>
-  );
-}
-
-/* ── ModuleSection sub-component ─────────────────────────────────────────── */
-function ModuleSection({ mod, moduleIdx, activeItem, onSelect }) {
-  const [open, setOpen] = useState(moduleIdx === 0);
-  const items = mod.items ?? [];
-
-  return (
-    <div className={styles.modSection}>
-      <button
-        className={`${styles.modHeader} ${open ? styles.modHeaderOpen : ''}`}
-        onClick={() => setOpen((o) => !o)}
-      >
-        <div className={styles.modHeaderLeft}>
-          <span className={styles.modLabel}>Module {moduleIdx + 1}</span>
-          <span className={styles.modTitle}>{mod.title}</span>
-        </div>
-        <span className={styles.modChevron}>{open ? <FeatherIcon icon="chevron-up" size={16} /> : <FeatherIcon icon="chevron-down" size={16} />}</span>
-      </button>
-
-      {open && (
-        <div className={styles.itemList}>
-          {items.length === 0 && (
-            <p className={styles.noItems}>No lessons in this module yet.</p>
-          )}
-          {items.map((item) => {
-            const active = activeItem?.item?.id === item.id;
-            return (
-              <button
-                key={item.id}
-                className={`${styles.lessonItem} ${active ? styles.lessonActive : ''}`}
-                onClick={() => onSelect(item)}
-              >
-                <span className={styles.lessonIcon}>{typeIcon(item.type)}</span>
-                <div className={styles.lessonMeta}>
-                  <span className={styles.lessonTitle}>{item.title}</span>
-                  <span className={styles.lessonType}>
-                    {item.type ?? 'Video'}
-                    {itemDuration(item) ? ` · ${itemDuration(item)}` : ''}
-                  </span>
+            <div className={styles.tabContent}>
+              {tab === 'content' && (
+                <div className={styles.lessonContent}>
+                  {activeMod.video_url && <h2 className={styles.lessonContentTitle}>{activeMod.title}</h2>}
+                  <div className={styles.lessonBody}>
+                    {(activeMod.content ?? '').split('\n').map((para, i) =>
+                      para.trim() ? <p key={i}>{para}</p> : <br key={i} />
+                    )}
+                  </div>
                 </div>
-              </button>
-            );
-          })}
-        </div>
-      )}
+              )}
+              {tab === 'notes' && (
+                <textarea className={styles.notes}
+                  placeholder="Add your personal notes for this module…"
+                  rows={10} value={notes} onChange={(e) => setNotes(e.target.value)} />
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className={styles.footer}>
+              <div className={styles.footerLeft}>
+                {activeIdx > 0 && (
+                  <button className={styles.prevBtn}
+                    onClick={() => { setActiveIdx(activeIdx - 1); setTab('content'); }}>
+                    <FeatherIcon icon="arrow-left" size={14} /> Previous
+                  </button>
+                )}
+              </div>
+              <div className={styles.footerRight}>
+                {allDone && assessments.length > 0 && (
+                  <Link to={`/assessments/${assessments[0].id}`} className={styles.assessmentBtn}>
+                    <FeatherIcon icon="edit-3" size={14} /> Take Assessment
+                  </Link>
+                )}
+                {allDone && assessments.length === 0 && (
+                  <Link to="/my-learning" className={styles.nextBtn}>
+                    <FeatherIcon icon="check" size={14} /> Course Complete
+                  </Link>
+                )}
+                {!allDone && (
+                  <button className={styles.nextBtn} onClick={markDoneAndAdvance}>
+                    {completed.has(activeMod.id)
+                      ? activeIdx < modules.length - 1
+                        ? <>Next Module <FeatherIcon icon="arrow-right" size={14} /></>
+                        : <>Mark Complete <FeatherIcon icon="check" size={14} /></>
+                      : activeIdx < modules.length - 1
+                        ? <>Mark Done &amp; Continue <FeatherIcon icon="arrow-right" size={14} /></>
+                        : <>Mark as Complete <FeatherIcon icon="check" size={14} /></>
+                    }
+                  </button>
+                )}
+              </div>
+            </div>
+          </>
+        ) : null}
+
+        {/* All modules complete banner */}
+        {allDone && (
+          <div className={styles.completionBanner}>
+            <FeatherIcon icon="award" size={36} />
+            <h3>All modules complete!</h3>
+            {assessments.length > 0 ? (
+              <>
+                <p>You're ready to take the assessment and earn your certificate.</p>
+                <Link to={`/assessments/${assessments[0].id}`} className={styles.assessmentBtn}>
+                  <FeatherIcon icon="edit-3" size={14} /> Take Assessment →
+                </Link>
+              </>
+            ) : (
+              <>
+                <p>Great work finishing this course!</p>
+                <Link to="/my-learning" className={styles.browseBtn}>← My Learning</Link>
+              </>
+            )}
+          </div>
+        )}
+      </main>
     </div>
   );
 }
