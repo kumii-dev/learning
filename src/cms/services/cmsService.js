@@ -366,6 +366,79 @@ async function listLearners() {
 }
 
 /* ═══════════════════════════════════════════════════════════════════
+   ASSESSMENT RESULTS (admin view of all submissions)
+═══════════════════════════════════════════════════════════════════ */
+
+/**
+ * Return a flat list of assessment submissions for the admin view.
+ * Joins: submissions → assessments → courses, submissions → profiles
+ *
+ * @param {object}  [opts]
+ * @param {string}  [opts.courseId]  filter by course
+ * @param {string}  [opts.status]    filter by submission status (graded|pending)
+ * @param {number}  [opts.limit=200]
+ */
+async function listAssessmentResults({ courseId, status, limit = 200 } = {}) {
+  let query = supabaseAdmin
+    .from('submissions')
+    .select(`
+      id,
+      score,
+      status,
+      submitted_at,
+      ai_feedback,
+      assessments (
+        id, title, type, pass_mark,
+        courses ( id, title, category )
+      ),
+      profiles ( id, first_name, last_name, email )
+    `)
+    .order('submitted_at', { ascending: false })
+    .limit(limit);
+
+  if (status)   query = query.eq('status', status);
+
+  const { data, error } = await query;
+  if (error) throw error;
+
+  return (data ?? [])
+    .filter((s) => {
+      // Apply optional course filter (nested filter not supported via PostgREST `.eq`)
+      if (courseId && s.assessments?.courses?.id !== courseId) return false;
+      return true;
+    })
+    .map((s) => {
+      const passMark = s.assessments?.pass_mark ?? null;
+      const passed   = s.score !== null && passMark !== null ? s.score >= passMark : null;
+      return {
+        id:          s.id,
+        submittedAt: s.submitted_at,
+        score:       s.score,
+        status:      s.status,
+        aiFeedback:  s.ai_feedback,
+        passed,
+        assessment: s.assessments ? {
+          id:       s.assessments.id,
+          title:    s.assessments.title,
+          type:     s.assessments.type,
+          passMark: s.assessments.pass_mark,
+        } : null,
+        course: s.assessments?.courses ? {
+          id:       s.assessments.courses.id,
+          title:    s.assessments.courses.title,
+          category: s.assessments.courses.category,
+        } : null,
+        learner: s.profiles ? {
+          id:        s.profiles.id,
+          firstName: s.profiles.first_name,
+          lastName:  s.profiles.last_name,
+          email:     s.profiles.email,
+        } : null,
+      };
+    });
+}
+
+/* ═══════════════════════════════════════════════════════════════════
    COURSE DETAIL (admin — includes drafts)
 ═══════════════════════════════════════════════════════════════════ */
 
@@ -390,5 +463,6 @@ module.exports = {
   createAssessment, upsertAssessment,
   analyticsOverview, analyticsCourse,
   listLearners,
+  listAssessmentResults,
 };
 

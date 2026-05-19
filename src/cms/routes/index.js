@@ -42,4 +42,7 @@ router.get('/analytics/courses/:id',     ...adminOnly, ctrl.analyticsCourse);
 /* ── Learners ─────────────────────────────────────────────────────────────── */
 router.get('/learners',                  ...adminOnly, ctrl.listLearners);
 
+/* ── Assessment Results ──────────────────────────────────────────────────── */
+router.get('/assessment-results',        ...adminOnly, ctrl.listAssessmentResults);
+
 module.exports = router;

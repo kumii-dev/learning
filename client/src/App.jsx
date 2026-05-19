@@ -27,6 +27,7 @@ import AdminCourses      from './admin/pages/AdminCourses';
 import AdminCourseEditor from './admin/pages/AdminCourseEditor';
 import AdminAnalytics    from './admin/pages/AdminAnalytics';
 import AdminLearners     from './admin/pages/AdminLearners';
+import AdminAssessments  from './admin/pages/AdminAssessments';
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -49,6 +50,7 @@ export default function App() {
           <Route path="/admin/courses/:id/edit"   element={<AdminCourseEditor />} />
           <Route path="/admin/analytics"          element={<AdminAnalytics />} />
           <Route path="/admin/learners"           element={<AdminLearners />} />
+          <Route path="/admin/assessments"        element={<AdminAssessments />} />
         </Route>
 
         {/* ── Learner portal — wrapped in Layout ── */}

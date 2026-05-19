@@ -11,6 +11,7 @@ const { supabaseAdmin } = require('../../integrations/supabase');
 const { emit, EVENTS }  = require('../../utils/eventEmitter');
 const logger            = require('../../utils/logger');
 const { generateCertificatePdf } = require('../../utils/certificateGenerator');
+const { sendCertificateEmail }   = require('../../utils/emailService');
 
 /**
  * Issue a certificate for a user who has completed a course.
@@ -117,6 +118,16 @@ async function issueCertificate(userId, courseId) {
   if (error) throw error;
 
   emit(EVENTS.CERTIFICATE_ISSUED, { userId, courseId, certificateId: cert.id });
+
+  // Fire-and-forget — email failure must never break certificate issuance
+  sendCertificateEmail({
+    to:            user?.email,
+    learnerName,
+    courseTitle:   course?.title ?? 'Course',
+    pdfUrl,
+    certificateId: certId,
+    issuedAt,
+  }).catch(() => {}); // already logged inside sendCertificateEmail
 
   return cert;
 }

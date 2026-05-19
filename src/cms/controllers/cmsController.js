@@ -186,6 +186,20 @@ const listLearners = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
+/* ── Assessment Results ───────────────────────────────────────────────────── */
+
+const listAssessmentResults = async (req, res, next) => {
+  try {
+    const { courseId, status, limit } = req.query;
+    const results = await cmsService.listAssessmentResults({
+      courseId: courseId || undefined,
+      status:   status   || undefined,
+      limit:    limit ? parseInt(limit, 10) : 200,
+    });
+    res.json({ data: results });
+  } catch (err) { next(err); }
+};
+
 module.exports = {
   listCourses, getCourse, addCourse, updateCourse, deleteCourse, publishCourse, unpublishCourse,
   addModule, upsertModules,
@@ -193,5 +207,6 @@ module.exports = {
   publish,
   analyticsOverview, analyticsCourse,
   listLearners,
+  listAssessmentResults,
   uploadFile,
 };

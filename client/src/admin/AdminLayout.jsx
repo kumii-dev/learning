@@ -9,10 +9,11 @@ import { getProfile } from '../lib/authBridge';
 import styles from './AdminLayout.module.css';
 
 const NAV = [
-  { to: '/admin', end: true, label: 'Dashboard', icon: 'grid' },
-  { to: '/admin/courses',   label: 'Courses',    icon: 'book-open' },
-  { to: '/admin/analytics', label: 'Analytics',  icon: 'bar-chart-2' },
-  { to: '/admin/learners',  label: 'Learners',   icon: 'users' },
+  { to: '/admin',             end: true, label: 'Dashboard',   icon: 'grid' },
+  { to: '/admin/courses',                label: 'Courses',      icon: 'book-open' },
+  { to: '/admin/analytics',              label: 'Analytics',    icon: 'bar-chart-2' },
+  { to: '/admin/learners',               label: 'Learners',     icon: 'users' },
+  { to: '/admin/assessments',            label: 'Assessments',  icon: 'clipboard' },
 ];
 
 export default function AdminLayout() {
