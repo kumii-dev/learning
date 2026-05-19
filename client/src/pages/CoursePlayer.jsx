@@ -5,7 +5,7 @@
  * Route: /courses/:id/player
  *
  * Data shape (from GET /courses/:id):
- *   course.modules[]    — each module is a lesson { id, title, content, video_url, order }
+ *   course.modules[]    — each module is a lesson { id, title, content, content_type, video_url, pdf_url, order }
  *   course.assessments[] — [{ id, title, type }]
  *
  * Layout:
@@ -43,7 +43,9 @@ function ModuleRow({ mod, index, active, done, onClick }) {
       <div className={styles.lessonMeta}>
         <span className={styles.lessonTitle}>{mod.title}</span>
         <span className={styles.lessonType}>
-          {mod.video_url ? 'Video lesson' : 'Reading'} · Module {index + 1}
+          {mod.pdf_url
+            ? 'PDF' : mod.video_url
+            ? 'Video' : 'Reading'} · Module {index + 1}
         </span>
       </div>
     </button>
@@ -225,8 +227,27 @@ export default function CoursePlayer() {
               </div>
             )}
 
-            {/* No video — decorative lesson header */}
-            {!activeMod.video_url && (
+            {/* PDF viewer */}
+            {!activeMod.video_url && activeMod.pdf_url && (
+              <div className={styles.pdfWrap}>
+                <div className={styles.pdfHeader}>
+                  <FeatherIcon icon="file" size={16} />
+                  <span>{activeMod.title}</span>
+                  <a href={activeMod.pdf_url} target="_blank" rel="noreferrer" className={styles.pdfDownload}>
+                    <FeatherIcon icon="download" size={14} /> Download PDF
+                  </a>
+                </div>
+                <iframe
+                  key={activeMod.id}
+                  src={activeMod.pdf_url}
+                  title={activeMod.title}
+                  className={styles.pdfEmbed}
+                />
+              </div>
+            )}
+
+            {/* No video, no PDF — decorative lesson header */}
+            {!activeMod.video_url && !activeMod.pdf_url && (
               <div className={styles.lessonHeader}>
                 <div className={styles.lessonHeaderIcon}><FeatherIcon icon="book-open" size={28} /></div>
                 <div>
@@ -250,7 +271,7 @@ export default function CoursePlayer() {
             <div className={styles.tabContent}>
               {tab === 'content' && (
                 <div className={styles.lessonContent}>
-                  {activeMod.video_url && <h2 className={styles.lessonContentTitle}>{activeMod.title}</h2>}
+                  {(activeMod.video_url || activeMod.pdf_url) && <h2 className={styles.lessonContentTitle}>{activeMod.title}</h2>}
                   <div className={styles.lessonBody}>
                     {(activeMod.content ?? '').split('\n').map((para, i) =>
                       para.trim() ? <p key={i}>{para}</p> : <br key={i} />

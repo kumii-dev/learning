@@ -3,7 +3,7 @@
  * Multi-step wizard: Details → Modules → Assessment → Publish.
  * Handles both Create (/admin/courses/new) and Edit (/admin/courses/:id/edit).
  */
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import apiClient from '../../lib/apiClient';
 import styles from './AdminCourseEditor.module.css';
@@ -11,7 +11,14 @@ import FeatherIcon from 'feather-icons-react';
 
 const STEPS = ['Course Details', 'Modules', 'Assessment', 'Review & Publish'];
 
-const BLANK_MODULE  = () => ({ title: '', content: '', videoUrl: '' });
+const CONTENT_TYPES = [
+  { value: 'text',        label: 'Text',         icon: 'file-text' },
+  { value: 'video_url',   label: 'Video URL',    icon: 'link' },
+  { value: 'video_file',  label: 'Upload MP4',   icon: 'video' },
+  { value: 'pdf',         label: 'Upload PDF',   icon: 'file' },
+];
+
+const BLANK_MODULE   = () => ({ title: '', content: '', contentType: 'text', videoUrl: '', pdfUrl: '', _uploadPct: null, _uploadErr: null });
 const BLANK_QUESTION = () => ({ type: 'mcq', text: '', options: ['', '', '', ''], correct: 0, points: 1 });
 
 /* ── Step 1: Course details ─────────────────────────────────────────────── */
@@ -68,10 +75,38 @@ function DetailsStep({ form, onChange }) {
 
 /* ── Step 2: Modules ────────────────────────────────────────────────────── */
 function ModulesStep({ modules, setModules }) {
-  function add()    { setModules((m) => [...m, BLANK_MODULE()]); }
-  function remove(i){ setModules((m) => m.filter((_, j) => j !== i)); }
+  const fileRefs = useRef({});
+
+  function add()     { setModules((m) => [...m, BLANK_MODULE()]); }
+  function remove(i) { setModules((m) => m.filter((_, j) => j !== i)); }
   function upd(i, k, v) {
     setModules((m) => m.map((mod, j) => j === i ? { ...mod, [k]: v } : mod));
+  }
+
+  async function handleFileUpload(i, file, type) {
+    if (!file) return;
+    upd(i, '_uploadPct', 0);
+    upd(i, '_uploadErr', null);
+    try {
+      const form = new FormData();
+      form.append('file', file);
+      const { data } = await apiClient.post('/cms/upload', form, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        onUploadProgress: (e) => {
+          const pct = e.total ? Math.round((e.loaded / e.total) * 100) : 0;
+          setModules((m) => m.map((mod, j) => j === i ? { ...mod, _uploadPct: pct } : mod));
+        },
+      });
+      if (type === 'pdf') {
+        upd(i, 'pdfUrl', data.url);
+      } else {
+        upd(i, 'videoUrl', data.url);
+      }
+      upd(i, '_uploadPct', null);
+    } catch (e) {
+      upd(i, '_uploadPct', null);
+      upd(i, '_uploadErr', e?.response?.data?.error ?? e.message ?? 'Upload failed');
+    }
   }
 
   return (
@@ -80,23 +115,142 @@ function ModulesStep({ modules, setModules }) {
         <div key={i} className={styles.moduleCard}>
           <div className={styles.moduleHeader}>
             <span className={styles.moduleNum}>Module {i + 1}</span>
-            <button className={styles.removeBtn} onClick={() => remove(i)}><FeatherIcon icon="x" size={14} /> Remove</button>
+            <button className={styles.removeBtn} onClick={() => remove(i)}>
+              <FeatherIcon icon="x" size={14} /> Remove
+            </button>
           </div>
+
+          {/* Title */}
           <div className={styles.field}>
             <label className={styles.label}>Title *</label>
             <input className={styles.input} value={mod.title}
               onChange={(e) => upd(i, 'title', e.target.value)} placeholder="Module title" />
           </div>
+
+          {/* Content type selector */}
           <div className={styles.field}>
-            <label className={styles.label}>Content / Description</label>
-            <textarea className={styles.textarea} rows={3} value={mod.content}
-              onChange={(e) => upd(i, 'content', e.target.value)} placeholder="What this module covers…" />
+            <label className={styles.label}>Content Type</label>
+            <div className={styles.contentTypePicker}>
+              {CONTENT_TYPES.map(({ value, label, icon }) => (
+                <button
+                  key={value}
+                  type="button"
+                  className={`${styles.ctypeBtn} ${mod.contentType === value ? styles.ctypeActive : ''}`}
+                  onClick={() => upd(i, 'contentType', value)}
+                >
+                  <FeatherIcon icon={icon} size={14} /> {label}
+                </button>
+              ))}
+            </div>
           </div>
-          <div className={styles.field}>
-            <label className={styles.label}>Video URL <span className={styles.hint}>(optional)</span></label>
-            <input className={styles.input} value={mod.videoUrl}
-              onChange={(e) => upd(i, 'videoUrl', e.target.value)} placeholder="https://…" />
-          </div>
+
+          {/* Text */}
+          {mod.contentType === 'text' && (
+            <div className={styles.field}>
+              <label className={styles.label}>Content / Description</label>
+              <textarea className={styles.textarea} rows={4} value={mod.content}
+                onChange={(e) => upd(i, 'content', e.target.value)}
+                placeholder="What this module covers…" />
+            </div>
+          )}
+
+          {/* Video URL */}
+          {mod.contentType === 'video_url' && (
+            <>
+              <div className={styles.field}>
+                <label className={styles.label}>Video URL</label>
+                <input className={styles.input} value={mod.videoUrl}
+                  onChange={(e) => upd(i, 'videoUrl', e.target.value)}
+                  placeholder="https://youtube.com/… or https://vimeo.com/…" />
+              </div>
+              <div className={styles.field}>
+                <label className={styles.label}>Notes / Description <span className={styles.hint}>(optional)</span></label>
+                <textarea className={styles.textarea} rows={3} value={mod.content}
+                  onChange={(e) => upd(i, 'content', e.target.value)}
+                  placeholder="Supporting text for this lesson…" />
+              </div>
+            </>
+          )}
+
+          {/* Upload MP4 */}
+          {mod.contentType === 'video_file' && (
+            <>
+              <div className={styles.field}>
+                <label className={styles.label}>Video File <span className={styles.hint}>(MP4, WebM — max 500 MB)</span></label>
+                {mod.videoUrl ? (
+                  <div className={styles.uploadedFile}>
+                    <FeatherIcon icon="video" size={14} />
+                    <span className={styles.uploadedName}>Video uploaded</span>
+                    <a href={mod.videoUrl} target="_blank" rel="noreferrer" className={styles.uploadedLink}>Preview ↗</a>
+                    <button className={styles.removeUpload} onClick={() => upd(i, 'videoUrl', '')}>
+                      <FeatherIcon icon="x" size={12} />
+                    </button>
+                  </div>
+                ) : (
+                  <label className={styles.fileDropZone}>
+                    <FeatherIcon icon="upload" size={20} />
+                    <span>{mod._uploadPct !== null ? `Uploading… ${mod._uploadPct}%` : 'Click to choose or drag an MP4'}</span>
+                    <input ref={(el) => (fileRefs.current[`video-${i}`] = el)}
+                      type="file" accept="video/mp4,video/webm,video/ogg" className={styles.fileInput}
+                      onChange={(e) => handleFileUpload(i, e.target.files[0], 'video')}
+                      disabled={mod._uploadPct !== null} />
+                    {mod._uploadPct !== null && (
+                      <div className={styles.uploadBar}>
+                        <div className={styles.uploadBarFill} style={{ width: `${mod._uploadPct}%` }} />
+                      </div>
+                    )}
+                  </label>
+                )}
+                {mod._uploadErr && <p className={styles.uploadErr}>{mod._uploadErr}</p>}
+              </div>
+              <div className={styles.field}>
+                <label className={styles.label}>Notes / Description <span className={styles.hint}>(optional)</span></label>
+                <textarea className={styles.textarea} rows={3} value={mod.content}
+                  onChange={(e) => upd(i, 'content', e.target.value)}
+                  placeholder="Supporting text for this lesson…" />
+              </div>
+            </>
+          )}
+
+          {/* Upload PDF */}
+          {mod.contentType === 'pdf' && (
+            <>
+              <div className={styles.field}>
+                <label className={styles.label}>PDF File <span className={styles.hint}>(max 500 MB)</span></label>
+                {mod.pdfUrl ? (
+                  <div className={styles.uploadedFile}>
+                    <FeatherIcon icon="file" size={14} />
+                    <span className={styles.uploadedName}>PDF uploaded</span>
+                    <a href={mod.pdfUrl} target="_blank" rel="noreferrer" className={styles.uploadedLink}>Preview ↗</a>
+                    <button className={styles.removeUpload} onClick={() => upd(i, 'pdfUrl', '')}>
+                      <FeatherIcon icon="x" size={12} />
+                    </button>
+                  </div>
+                ) : (
+                  <label className={styles.fileDropZone}>
+                    <FeatherIcon icon="upload" size={20} />
+                    <span>{mod._uploadPct !== null ? `Uploading… ${mod._uploadPct}%` : 'Click to choose a PDF'}</span>
+                    <input ref={(el) => (fileRefs.current[`pdf-${i}`] = el)}
+                      type="file" accept="application/pdf" className={styles.fileInput}
+                      onChange={(e) => handleFileUpload(i, e.target.files[0], 'pdf')}
+                      disabled={mod._uploadPct !== null} />
+                    {mod._uploadPct !== null && (
+                      <div className={styles.uploadBar}>
+                        <div className={styles.uploadBarFill} style={{ width: `${mod._uploadPct}%` }} />
+                      </div>
+                    )}
+                  </label>
+                )}
+                {mod._uploadErr && <p className={styles.uploadErr}>{mod._uploadErr}</p>}
+              </div>
+              <div className={styles.field}>
+                <label className={styles.label}>Summary / Description <span className={styles.hint}>(optional)</span></label>
+                <textarea className={styles.textarea} rows={3} value={mod.content}
+                  onChange={(e) => upd(i, 'content', e.target.value)}
+                  placeholder="Brief description of this document…" />
+              </div>
+            </>
+          )}
         </div>
       ))}
       <button className={styles.addBtn} onClick={add}>+ Add Module</button>
@@ -296,7 +450,13 @@ export default function AdminCourseEditor() {
       });
       if (c.modules?.length) {
         setModules(c.modules.map((m) => ({
-          title: m.title, content: m.content ?? '', videoUrl: m.video_url ?? '',
+          title:       m.title,
+          content:     m.content ?? '',
+          contentType: m.content_type ?? 'text',
+          videoUrl:    m.video_url ?? '',
+          pdfUrl:      m.pdf_url   ?? '',
+          _uploadPct:  null,
+          _uploadErr:  null,
         })));
       }
       // assessments is an array — take the first one
@@ -338,7 +498,9 @@ export default function AdminCourseEditor() {
       // Save modules
       await apiClient.put('/cms/modules', {
         courseId,
-        modules: modules.filter((m) => m.title),
+        modules: modules
+          .filter((m) => m.title)
+          .map(({ _uploadPct: _p, _uploadErr: _e, ...m }) => m),
       });
 
       // Save assessment

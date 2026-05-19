@@ -21,6 +21,9 @@ router.delete('/courses/:id',            ...adminOnly, ctrl.deleteCourse);
 router.post('/courses/:id/publish',      ...adminOnly, ctrl.publishCourse);
 router.post('/courses/:id/unpublish',    ...adminOnly, ctrl.unpublishCourse);
 
+/* ── File upload ─────────────────────────────────────────────────────────── */
+router.post('/upload',                   ...adminOnly, ctrl.uploadFile);
+
 /* ── Modules ─────────────────────────────────────────────────────────────── */
 router.post('/modules',                  ...adminOnly, ctrl.addModule);
 router.put('/modules',                   ...adminOnly, ctrl.upsertModules);

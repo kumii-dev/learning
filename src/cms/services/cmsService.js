@@ -141,13 +141,15 @@ async function upsertModules(courseId, modules) {
 
   const ts = new Date().toISOString();
   const rows = modules.map((m, i) => ({
-    course_id:  courseId,
-    title:      m.title,
-    content:    m.content ?? '',
-    video_url:  m.videoUrl ?? null,
-    order:      i,
-    created_at: ts,
-    updated_at: ts,
+    course_id:    courseId,
+    title:        m.title,
+    content:      m.content ?? '',
+    content_type: m.contentType ?? 'text',
+    video_url:    m.videoUrl  || null,
+    pdf_url:      m.pdfUrl    || null,
+    order:        i,
+    created_at:   ts,
+    updated_at:   ts,
   }));
 
   const { data, error } = await supabaseAdmin

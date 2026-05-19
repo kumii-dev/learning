@@ -138,3 +138,53 @@
   transition: background .15s;
 }
 .nextBtn:hover { background: var(--color-primary-h); color: var(--color-text); }
+
+/* ── Content type picker ─────────────────────────────────────────────────── */
+.contentTypePicker {
+  display: flex; gap: .4rem; flex-wrap: wrap;
+}
+.ctypeBtn {
+  display: flex; align-items: center; gap: .35rem;
+  background: none; border: 1px solid var(--color-border);
+  border-radius: 8px; padding: .35rem .85rem;
+  font-size: .8rem; font-weight: 600; cursor: pointer;
+  color: var(--color-muted); transition: all .12s;
+}
+.ctypeBtn:hover { border-color: var(--color-primary); color: var(--color-primary); }
+.ctypeActive { border-color: var(--color-primary) !important; color: var(--color-primary) !important; background: var(--color-surface) !important; }
+
+/* ── File drop zone ──────────────────────────────────────────────────────── */
+.fileDropZone {
+  display: flex; flex-direction: column; align-items: center; gap: .5rem;
+  border: 2px dashed var(--color-border); border-radius: 10px;
+  padding: 1.5rem 1rem; cursor: pointer; color: var(--color-muted);
+  font-size: .85rem; text-align: center; transition: border-color .12s;
+  position: relative;
+}
+.fileDropZone:hover { border-color: var(--color-primary); color: var(--color-primary); }
+.fileInput {
+  position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+}
+.uploadBar {
+  width: 100%; height: 4px; background: var(--color-border);
+  border-radius: 999px; overflow: hidden; margin-top: .25rem;
+}
+.uploadBarFill {
+  height: 100%; background: var(--color-primary);
+  border-radius: 999px; transition: width .2s;
+}
+.uploadErr { font-size: .78rem; color: #b91c1c; margin: .25rem 0 0; }
+
+/* ── Uploaded file row ───────────────────────────────────────────────────── */
+.uploadedFile {
+  display: flex; align-items: center; gap: .5rem;
+  border: 1px solid var(--color-border); border-radius: 8px;
+  padding: .5rem .75rem; font-size: .85rem; color: var(--color-text);
+}
+.uploadedName { flex: 1; font-weight: 600; }
+.uploadedLink { color: var(--color-primary); font-size: .8rem; text-decoration: none; }
+.uploadedLink:hover { text-decoration: underline; }
+.removeUpload {
+  background: none; border: none; color: #b91c1c; cursor: pointer;
+  display: flex; align-items: center; padding: 0;
+}

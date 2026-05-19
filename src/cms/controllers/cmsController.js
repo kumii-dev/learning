@@ -3,13 +3,60 @@
  */
 'use strict';
 
-const cmsService = require('../services/cmsService');
+const path        = require('path');
+const { v4: uuid } = require('uuid');
+const multer      = require('multer');
+const cmsService  = require('../services/cmsService');
+const { supabaseAdmin } = require('../../integrations/supabase');
 const {
   validate,
   cmsCourseSchema,
   cmsModuleSchema,
   cmsAssessmentSchema,
 } = require('../../utils/validate');
+
+/* ── File upload (multer memory storage) ─────────────────────────────────── */
+const ALLOWED_MIME = new Set([
+  'video/mp4', 'video/webm', 'video/ogg',
+  'application/pdf',
+]);
+const MAX_SIZE = 500 * 1024 * 1024; // 500 MB
+
+const _upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: MAX_SIZE },
+  fileFilter: (_req, file, cb) => {
+    if (ALLOWED_MIME.has(file.mimetype)) return cb(null, true);
+    cb(new Error(`Unsupported file type: ${file.mimetype}`));
+  },
+}).single('file');
+
+const uploadFile = (req, res, next) => {
+  _upload(req, res, async (err) => {
+    if (err) return res.status(400).json({ error: err.message });
+    if (!req.file) return res.status(400).json({ error: 'No file provided' });
+
+    try {
+      const ext      = path.extname(req.file.originalname) || '';
+      const filePath = `modules/${uuid()}${ext}`;
+      const { error: upErr } = await supabaseAdmin.storage
+        .from('course-content')
+        .upload(filePath, req.file.buffer, {
+          contentType: req.file.mimetype,
+          upsert: false,
+        });
+      if (upErr) throw upErr;
+
+      const { data: { publicUrl } } = supabaseAdmin.storage
+        .from('course-content')
+        .getPublicUrl(filePath);
+
+      res.json({ url: publicUrl, path: filePath });
+    } catch (e) {
+      next(e);
+    }
+  });
+};
 
 /* ── Courses ──────────────────────────────────────────────────────────────── */
 
@@ -146,4 +193,5 @@ module.exports = {
   publish,
   analyticsOverview, analyticsCourse,
   listLearners,
+  uploadFile,
 };
