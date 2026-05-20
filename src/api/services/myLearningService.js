@@ -57,17 +57,20 @@ async function getMyLearning(userId) {
     },
   }));
 
-  // Non-blocking AI skill gap analysis
+  // Non-blocking AI skill gap analysis — race against a 6 s timeout so the
+  // response is always returned within Vercel's 10 s function limit.
+  // analyseSkillGap already uses safeAI (catches errors), but a slow/hanging
+  // OpenAI connection would previously block indefinitely and cause a Network Error.
   const assessmentResults = (submissions ?? []).map((s) => ({
     assessmentId: s.assessment_id,
     score: s.score,
     status: s.status,
   }));
 
-  const skillGap = await analyseSkillGap({
-    assessmentResults,
-    targetRole: 'learner',
-  });
+  const skillGap = await Promise.race([
+    analyseSkillGap({ assessmentResults, targetRole: 'learner' }),
+    new Promise((resolve) => setTimeout(() => resolve(null), 6_000)),
+  ]);
 
   return {
     enrolments: enriched,

@@ -10,14 +10,16 @@
 const OpenAI = require('openai');
 const logger = require('../utils/logger');
 
-// Lazy singleton — avoids throwing at module load when the key is not yet set
+// Lazy singleton — avoids throwing at module load when the key is not yet set.
+// timeout: 8 000 ms — keeps well inside Vercel's 10 s function limit so safeAI
+// can catch the AbortError and return null rather than the function being killed.
 let _client = null;
 function getClient() {
   if (!_client) {
     if (!process.env.OPENAI_API_KEY) {
       throw new Error('OPENAI_API_KEY env var is not set');
     }
-    _client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    _client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY, timeout: 8_000 });
   }
   return _client;
 }
