@@ -12,8 +12,17 @@
 const { Resend } = require('resend');
 const logger     = require('./logger');
 
-const resend = new Resend(process.env.Resend_API_Key ?? process.env.RESEND_API_KEY);
-const FROM   = process.env.FROM_EMAIL ?? 'Kumii Learning <onboarding@resend.dev>';
+// Lazy singleton — avoids Resend constructor throwing at module-load time
+// when the env key is undefined (Vercel cold-start crash pattern).
+let _resend = null;
+function getResend() {
+  if (!_resend) {
+    _resend = new Resend(process.env.Resend_API_Key ?? process.env.RESEND_API_KEY ?? 'missing');
+  }
+  return _resend;
+}
+
+const FROM = process.env.FROM_EMAIL ?? 'Kumii Learning <onboarding@resend.dev>';
 
 /* ── Certificate-issued email ──────────────────────────────────────────────── */
 
@@ -166,7 +175,7 @@ async function sendCertificateEmail({ to, learnerName, courseTitle, pdfUrl, cert
 </html>`;
 
   try {
-    const { data, error } = await resend.emails.send({
+    const { data, error } = await getResend().emails.send({
       from:    FROM,
       to:      [to],
       subject: `🎉 Your "${courseTitle}" certificate is ready — Kumii Learning`,
