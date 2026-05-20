@@ -5,8 +5,9 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import styles from './AdminLiveSessions.module.css';
+import apiClient from '../../lib/apiClient';
 
-const API = '/api/cms/live-sessions';
+const API = '/cms/live-sessions';
 
 /* ── helpers ─────────────────────────────────────────────────────── */
 function toLocalDatetimeInput(isoString) {
@@ -135,10 +136,8 @@ export default function AdminLiveSessions() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(API, { credentials: 'include' });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error ?? 'Failed to load sessions');
-      setSessions(json.data ?? []);
+      const res = await apiClient.get(API);
+      setSessions(res.data?.data ?? []);
     } catch (e) {
       setError(e.message);
     } finally {
@@ -153,15 +152,11 @@ export default function AdminLiveSessions() {
     try {
       const isEdit = !!modal?.id;
       const url    = isEdit ? `${API}/${modal.id}` : API;
-      const method = isEdit ? 'PATCH' : 'POST';
-      const res    = await fetch(url, {
-        method,
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
-      });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error ?? 'Save failed');
+      if (isEdit) {
+        await apiClient.patch(url, form);
+      } else {
+        await apiClient.post(url, form);
+      }
       setModal(null);
       fetchSessions();
     } catch (e) {
@@ -173,9 +168,12 @@ export default function AdminLiveSessions() {
 
   const handleDelete = async (id) => {
     if (!window.confirm('Delete this session? This cannot be undone.')) return;
-    const res = await fetch(`${API}/${id}`, { method: 'DELETE', credentials: 'include' });
-    if (res.ok) fetchSessions();
-    else alert('Delete failed');
+    try {
+      await apiClient.delete(`${API}/${id}`);
+      fetchSessions();
+    } catch {
+      alert('Delete failed');
+    }
   };
 
   const filtered = sessions.filter((s) =>
