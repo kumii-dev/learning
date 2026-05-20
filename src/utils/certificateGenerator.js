@@ -33,7 +33,16 @@ const OpenAI = require('openai');
 
 const LOGO_PATH = path.resolve(__dirname, '../../Kumii-logo.png');
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+// Lazy singleton — avoids crashing at module load when OPENAI_API_KEY is not set.
+// The OpenAI SDK v4 throws immediately in the constructor if the key is missing,
+// which would cause every Vercel serverless invocation to fail on startup.
+let _openai = null;
+function getOpenAI() {
+  if (!_openai) {
+    _openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY || 'missing' });
+  }
+  return _openai;
+}
 
 /* ── colour palette ─────────────────────────────────────────────────────── */
 const C = {
@@ -55,7 +64,7 @@ function fmtDate(iso) {
 
 async function getPersonalisedMessage(learnerName, courseTitle, category) {
   try {
-    const chat = await openai.chat.completions.create({
+    const chat = await getOpenAI().chat.completions.create({
       model: 'gpt-4o-mini',
       max_tokens: 60,
       messages: [
