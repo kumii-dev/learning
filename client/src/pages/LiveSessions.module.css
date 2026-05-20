@@ -156,3 +156,178 @@
 .calWrap :global(.fc-daygrid-day.fc-day-today) {
   background: var(--color-surface);
 }
+
+/* ── page heading ─────────────────────────────────────────────────── */
+.heading {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0 0 1.25rem;
+}
+
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.sidebarTitle {
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #6b7280;
+  margin: 0 0 0.75rem;
+}
+
+.infoText {
+  font-size: 0.875rem;
+  color: #9ca3af;
+  font-style: italic;
+}
+
+/* ── session card additions ───────────────────────────────────────── */
+.sessionTopRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.sessionTopic {
+  font-size: 0.78rem;
+  color: #6b7280;
+  display: block;
+  margin-bottom: 0.25rem;
+}
+
+.sessionMeta {
+  font-size: 0.8rem;
+  color: #6b7280;
+  margin: 0.35rem 0 0.25rem;
+  line-height: 1.5;
+}
+
+.sessionInstructor {
+  font-size: 0.8rem;
+  color: #374151;
+  margin: 0 0 0.5rem;
+}
+
+.sessionFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 0.5rem;
+}
+
+.cardActions {
+  display: flex;
+  gap: 0.4rem;
+}
+
+/* ── LIVE badge ───────────────────────────────────────────────────── */
+.liveBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  background: #dcfce7;
+  color: #166534;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  padding: 0.15rem 0.5rem;
+  border-radius: 99px;
+}
+
+.liveDot {
+  width: 7px;
+  height: 7px;
+  background: #22c55e;
+  border-radius: 50%;
+  animation: pulse 1.2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.5; transform: scale(1.4); }
+}
+
+/* ── RSVP button ──────────────────────────────────────────────────── */
+.rsvpBtn {
+  padding: 0.28rem 0.65rem;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  border: 1.5px solid #d1d5db;
+  background: #fff;
+  color: #374151;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.rsvpBtn:hover:not(:disabled) {
+  border-color: #4f46e5;
+  color: #4f46e5;
+}
+.rsvpBtn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.rsvpActive {
+  background: #ede9fe;
+  border-color: #4f46e5;
+  color: #4f46e5;
+}
+
+.rsvpCount {
+  font-size: 0.78rem;
+  color: #9ca3af;
+}
+
+/* ── Jitsi video overlay ──────────────────────────────────────────── */
+.videoOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  background: #000;
+  display: flex;
+  flex-direction: column;
+}
+
+.videoHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1.25rem;
+  height: 52px;
+  background: #111827;
+  flex-shrink: 0;
+}
+
+.videoTitle {
+  color: #f9fafb;
+  font-size: 0.95rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.leaveBtn {
+  background: #ef4444;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 0.35rem 0.85rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+.leaveBtn:hover { background: #dc2626; }
+
+.videoFrame {
+  width: 100%;
+  flex: 1;
+  border: none;
+}

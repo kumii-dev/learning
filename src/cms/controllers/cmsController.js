@@ -200,6 +200,39 @@ const listAssessmentResults = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
+/* ── Live Sessions ────────────────────────────────────────────────────────── */
+
+const listAdminSessions = async (req, res, next) => {
+  try {
+    const sessions = await cmsService.listAdminSessions();
+    res.json({ data: sessions });
+  } catch (err) { next(err); }
+};
+
+const createAdminSession = async (req, res, next) => {
+  try {
+    if (!req.body.title || !req.body.scheduledAt) {
+      return res.status(400).json({ error: 'title and scheduledAt are required' });
+    }
+    const session = await cmsService.createAdminSession(req.body);
+    res.status(201).json({ data: session });
+  } catch (err) { next(err); }
+};
+
+const updateAdminSession = async (req, res, next) => {
+  try {
+    const session = await cmsService.updateAdminSession(req.params.id, req.body);
+    res.json({ data: session });
+  } catch (err) { next(err); }
+};
+
+const deleteAdminSession = async (req, res, next) => {
+  try {
+    await cmsService.deleteAdminSession(req.params.id);
+    res.json({ success: true });
+  } catch (err) { next(err); }
+};
+
 module.exports = {
   listCourses, getCourse, addCourse, updateCourse, deleteCourse, publishCourse, unpublishCourse,
   addModule, upsertModules,
@@ -209,4 +242,5 @@ module.exports = {
   listLearners,
   listAssessmentResults,
   uploadFile,
+  listAdminSessions, createAdminSession, updateAdminSession, deleteAdminSession,
 };

@@ -1,15 +1,19 @@
 /**
  * src/api/routes/liveSessions.js
- * Live sessions are readable by any authenticated user.
  */
 'use strict';
 
-const { Router }      = require('express');
-const { authenticate } = require('../../middleware/auth');
-const ctrl             = require('../controllers/liveSessionsController');
+const { Router }                    = require('express');
+const { authenticate, requireRole } = require('../../middleware/auth');
+const ctrl                          = require('../controllers/liveSessionsController');
 
 const router = Router();
+const adminOnly = [authenticate, requireRole('admin')];
 
-router.get('/', authenticate, ctrl.listLiveSessions);
+router.get('/',           authenticate,   ctrl.listLiveSessions);
+router.post('/',          ...adminOnly,    ctrl.createLiveSession);
+router.patch('/:id',      ...adminOnly,    ctrl.updateLiveSession);
+router.delete('/:id',     ...adminOnly,    ctrl.deleteLiveSession);
+router.post('/:id/rsvp',  authenticate,   ctrl.rsvpLiveSession);
 
 module.exports = router;

@@ -457,6 +457,108 @@ async function getCourseById(courseId) {
   return course;
 }
 
+/* ═══════════════════════════════════════════════════════════════════
+   LIVE SESSIONS (admin CMS)
+═══════════════════════════════════════════════════════════════════ */
+
+const { v4: uuidv4 }       = require('uuid');
+const { createJitsiRoom }  = require('../../integrations/videoProvider');
+
+async function listAdminSessions() {
+  const { data: sessions, error } = await supabaseAdmin
+    .from('live_sessions')
+    .select('*')
+    .order('scheduled_at', { ascending: false });
+  if (error) throw error;
+
+  const ids = (sessions ?? []).map((s) => s.id);
+  if (ids.length === 0) return [];
+
+  const { data: rsvps } = await supabaseAdmin
+    .from('session_rsvps')
+    .select('session_id')
+    .in('session_id', ids);
+
+  const countMap = {};
+  for (const r of rsvps ?? []) {
+    countMap[r.session_id] = (countMap[r.session_id] ?? 0) + 1;
+  }
+
+  return sessions.map((s) => ({ ...s, rsvp_count: countMap[s.id] ?? 0 }));
+}
+
+async function createAdminSession(payload) {
+  const id = uuidv4();
+  const { roomName, joinUrl } = createJitsiRoom(id);
+  const now = new Date().toISOString();
+
+  const { data, error } = await supabaseAdmin
+    .from('live_sessions')
+    .insert({
+      id,
+      title:         payload.title,
+      topic:         payload.topic        ?? null,
+      description:   payload.description  ?? null,
+      instructor:    payload.instructor   ?? null,
+      scheduled_at:  payload.scheduledAt,
+      end_time:      payload.endTime      ?? null,
+      duration_min:  payload.durationMin  ?? 60,
+      course_id:     payload.courseId     ?? null,
+      max_attendees: payload.maxAttendees ?? null,
+      status:        'scheduled',
+      platform:      'jitsi',
+      jitsi_room:    roomName,
+      join_url:      joinUrl,
+      meeting_url:   joinUrl,
+      room_password: payload.roomPassword ?? null,
+      is_public:     payload.isPublic     ?? true,
+      created_at:    now,
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+async function updateAdminSession(id, payload) {
+  const updates = {};
+  const map = [
+    ['title',        'title'],
+    ['topic',        'topic'],
+    ['description',  'description'],
+    ['instructor',   'instructor'],
+    ['scheduledAt',  'scheduled_at'],
+    ['endTime',      'end_time'],
+    ['durationMin',  'duration_min'],
+    ['courseId',     'course_id'],
+    ['maxAttendees', 'max_attendees'],
+    ['status',       'status'],
+    ['roomPassword', 'room_password'],
+    ['isPublic',     'is_public'],
+    ['recordingUrl', 'recording_url'],
+  ];
+  for (const [src, dest] of map) {
+    if (payload[src] !== undefined) updates[dest] = payload[src];
+  }
+  updates.updated_at = new Date().toISOString();
+
+  const { data, error } = await supabaseAdmin
+    .from('live_sessions')
+    .update(updates)
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+async function deleteAdminSession(id) {
+  const { error } = await supabaseAdmin.from('live_sessions').delete().eq('id', id);
+  if (error) throw error;
+}
+
 module.exports = {
   createCourse, listCoursesAdmin, getCourseById, updateCourse, deleteCourse, publishCourse, unpublishCourse,
   createModule, upsertModules,
@@ -464,5 +566,6 @@ module.exports = {
   analyticsOverview, analyticsCourse,
   listLearners,
   listAssessmentResults,
+  listAdminSessions, createAdminSession, updateAdminSession, deleteAdminSession,
 };
 

@@ -45,4 +45,10 @@ router.get('/learners',                  ...adminOnly, ctrl.listLearners);
 /* ── Assessment Results ──────────────────────────────────────────────────── */
 router.get('/assessment-results',        ...adminOnly, ctrl.listAssessmentResults);
 
+/* ── Live Sessions ───────────────────────────────────────────────────────── */
+router.get('/live-sessions',             ...adminOnly, ctrl.listAdminSessions);
+router.post('/live-sessions',            ...adminOnly, ctrl.createAdminSession);
+router.patch('/live-sessions/:id',       ...adminOnly, ctrl.updateAdminSession);
+router.delete('/live-sessions/:id',      ...adminOnly, ctrl.deleteAdminSession);
+
 module.exports = router;
