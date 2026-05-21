@@ -7,7 +7,7 @@ import { useState, useEffect, useCallback } from 'react';
 import styles from './AdminLiveSessions.module.css';
 import apiClient from '../../lib/apiClient';
 
-const API = '/cms/live-sessions';
+const API = '/live-sessions';
 
 /* ── helpers ─────────────────────────────────────────────────────── */
 function toLocalDatetimeInput(isoString) {

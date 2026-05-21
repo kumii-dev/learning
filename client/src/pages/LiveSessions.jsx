@@ -9,6 +9,7 @@ import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import styles from './LiveSessions.module.css';
+import apiClient from '../lib/apiClient';
 
 const PALETTE = ['#4f46e5','#0ea5e9','#10b981','#f59e0b','#ef4444','#8b5cf6','#ec4899'];
 const colorFor = (i) => PALETTE[i % PALETTE.length];
@@ -151,9 +152,8 @@ export default function LiveSessions() {
 
   const fetchSessions = useCallback(async () => {
     try {
-      const res  = await fetch('/api/live-sessions', { credentials: 'include' });
-      const json = await res.json();
-      const data = json.data ?? [];
+      const res  = await apiClient.get('/live-sessions');
+      const data = res.data?.data ?? [];
       setSessions(data.length > 0 ? data : mockSessions());
     } catch {
       setSessions(mockSessions());
@@ -164,10 +164,9 @@ export default function LiveSessions() {
 
   useEffect(() => {
     fetchSessions();
-    fetch('/api/profile', { credentials: 'include' })
-      .then((r) => r.json())
-      .then((j) => {
-        const p = j.data ?? j;
+    apiClient.get('/profile')
+      .then((r) => {
+        const p = r.data?.data ?? r.data;
         if (p?.first_name) setDisplayName((p.first_name + ' ' + (p.last_name ?? '')).trim());
       })
       .catch(() => {});
@@ -178,24 +177,19 @@ export default function LiveSessions() {
   const handleRsvp = async (session) => {
     setRsvpLoading(session.id);
     try {
-      const res = await fetch('/api/live-sessions/' + session.id + '/rsvp', {
-        method: 'POST',
-        credentials: 'include',
-      });
-      if (res.ok) {
-        const { rsvped } = await res.json();
-        setSessions((prev) => prev.map((s) =>
-          s.id === session.id
-            ? {
-                ...s,
-                user_has_rsvp: rsvped,
-                rsvp_count: rsvped
-                  ? (s.rsvp_count ?? 0) + 1
-                  : Math.max(0, (s.rsvp_count ?? 1) - 1),
-              }
-            : s
-        ));
-      }
+      const res = await apiClient.post(`/live-sessions/${session.id}/rsvp`);
+      const { rsvped } = res.data;
+      setSessions((prev) => prev.map((s) =>
+        s.id === session.id
+          ? {
+              ...s,
+              user_has_rsvp: rsvped,
+              rsvp_count: rsvped
+                ? (s.rsvp_count ?? 0) + 1
+                : Math.max(0, (s.rsvp_count ?? 1) - 1),
+            }
+          : s
+      ));
     } catch { /* silent */ }
     setRsvpLoading(null);
   };
