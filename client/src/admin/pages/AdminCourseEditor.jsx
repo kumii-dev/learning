@@ -508,7 +508,16 @@ export default function AdminCourseEditor() {
         await apiClient.put('/cms/assessments', {
           courseId,
           ...assessment,
-          questions: assessment.questions.filter((q) => q.text),
+          questions: assessment.questions
+            .filter((q) => q.text)
+            .map((q, idx) => ({
+              id:       q.id ?? idx + 1,
+              type:     q.type === 'multi' ? 'multi_select' : q.type,
+              question: q.text,
+              options:  q.options,
+              correct:  q.correct,
+              points:   q.points ?? 1,
+            })),
         });
       }
 

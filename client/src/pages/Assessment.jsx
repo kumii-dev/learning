@@ -82,6 +82,17 @@ export default function Assessment() {
   const due       = fmtDue(assessment?.due_at);
   const courseId  = assessment?.course_id ?? '';
 
+  /** Normalise a question so the rest of the component uses one vocabulary */
+  function norm(q) {
+    return {
+      ...q,
+      // Admin CMS stores text in `q.text`; seed data uses `q.question`
+      question: q.question ?? q.text ?? '',
+      // Admin CMS saves 'multi'; seed uses 'checklist' or 'multi_select'
+      type: q.type === 'multi' ? 'multi_select' : (q.type ?? 'multiple_choice'),
+    };
+  }
+
   /* ════════════════════ RESULTS SCREEN ════════════════════════════════════ */
   if (screen === 'results') {
     const pct  = result?.score ?? 0;
@@ -113,7 +124,8 @@ export default function Assessment() {
 
         {/* Reviewed questions */}
         <div className={styles.reviewPage}>
-          {questions.map((q, idx) => {
+          {questions.map((raw, idx) => {
+            const q          = norm(raw);
             const userAns    = answers[q.id];
             const correctOpt = q.options?.[q.correct] ?? null;
             const isCorrect  = Array.isArray(correctOpt)
@@ -183,7 +195,9 @@ export default function Assessment() {
         </div>
 
         <div className={styles.takingBody}>
-          {questions.map((q, idx) => (
+          {questions.map((raw, idx) => {
+            const q = norm(raw);
+            return (
             <div key={idx} className={styles.question}>
               <div className={styles.questionRow}>
                 <span className={styles.qNum}>{idx + 1}.</span>
@@ -235,7 +249,8 @@ export default function Assessment() {
                 />
               )}
             </div>
-          ))}
+            );
+          })}
 
           {/* Honor code */}
           <div className={`${styles.honorBox} ${honor ? styles.honorChecked : ''}`}>

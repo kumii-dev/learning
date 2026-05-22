@@ -78,11 +78,26 @@ async function submitAssessment(assessmentId, userId, answers) {
     for (const { questionId, answer } of answers) {
       const q = questionMap[questionId];
       if (!q) continue;
-      const expected = q.options?.[q.correct] ?? q.answer ?? '';
-      const given    = Array.isArray(answer)   ? answer.sort().join(',')   : answer;
-      if (String(given).trim().toLowerCase() === String(expected).trim().toLowerCase()) {
-        correct++;
+
+      // q.correct may be an index (number), an array of indices (multi_select),
+      // or a legacy direct answer string (q.answer)
+      let isCorrect = false;
+      if (Array.isArray(q.correct)) {
+        // Multi-select: expected = sorted array of option strings
+        const expectedArr = q.correct.map((i) => q.options[i]).sort();
+        const givenArr    = (Array.isArray(answer) ? [...answer] : [answer]).sort();
+        isCorrect = JSON.stringify(expectedArr) === JSON.stringify(givenArr);
+      } else if (typeof q.correct === 'number') {
+        const expected = q.options?.[q.correct] ?? '';
+        const given    = Array.isArray(answer) ? answer[0] : answer;
+        isCorrect = String(given).trim().toLowerCase() === String(expected).trim().toLowerCase();
+      } else {
+        // Fallback: direct string comparison (legacy q.answer field)
+        const expected = q.answer ?? '';
+        const given    = Array.isArray(answer) ? answer.join(',') : answer;
+        isCorrect = String(given).trim().toLowerCase() === String(expected).trim().toLowerCase();
       }
+      if (isCorrect) correct++;
     }
 
     score  = Math.round((correct / assessment.questions.length) * 100);
@@ -94,9 +109,11 @@ async function submitAssessment(assessmentId, userId, answers) {
     const lastQ      = questionMap[lastAnswer?.questionId];
     if (lastQ) {
       aiFeedback = await generateAssessmentFeedback({
-        question:      lastQ.prompt,
+        question:      lastQ.question ?? lastQ.text ?? lastQ.prompt ?? '',
         userAnswer:    String(lastAnswer.answer),
-        correctAnswer: String(lastQ.answer),
+        correctAnswer: Array.isArray(lastQ.correct)
+          ? lastQ.correct.map((i) => lastQ.options[i]).join(', ')
+          : String(lastQ.options?.[lastQ.correct] ?? lastQ.answer ?? ''),
         score,
       });
     }
