@@ -42,9 +42,9 @@ async function issueCertificate(userId, courseId) {
     .eq('id', courseId)
     .single();
 
-  // Fetch user profile
+  // Fetch user profile — users are stored in profiles, not public.users
   const { data: user } = await supabaseAdmin
-    .from('users')
+    .from('profiles')
     .select('email, full_name')
     .eq('id', userId)
     .single();
@@ -163,7 +163,7 @@ async function getUserCertificates(userId) {
 async function getCertificateById(certificateId) {
   const { data, error } = await supabaseAdmin
     .from('certificates')
-    .select('*, courses(title), users(full_name, email)')
+    .select('*, courses(title), profiles(full_name, email)')
     .eq('id', certificateId)
     .single();
 
@@ -182,7 +182,7 @@ async function getCertificateById(certificateId) {
 async function regeneratePdf(certificateId, userId) {
   const { data: cert, error } = await supabaseAdmin
     .from('certificates')
-    .select('*, courses(title, category, estimated_hours), users(full_name, email)')
+    .select('*, courses(title, category, estimated_hours), profiles(full_name, email)')
     .eq('id', certificateId)
     .single();
 
@@ -194,7 +194,7 @@ async function regeneratePdf(certificateId, userId) {
     const e = new Error('Forbidden'); e.status = 403; throw e;
   }
 
-  const learnerName = cert.users?.full_name?.trim() || cert.users?.email?.split('@')[0] || 'Learner';
+  const learnerName = cert.profiles?.full_name?.trim() || cert.profiles?.email?.split('@')[0] || 'Learner';
   const course      = cert.courses ?? {};
 
   const pdfBuffer = await generateCertificatePdf({

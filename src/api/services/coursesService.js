@@ -66,15 +66,15 @@ async function getRecommendationsForUser(userId) {
   const skills = (enrolments ?? []).flatMap((e) => e.courses?.tags ?? []);
 
   const { data: userRow } = await supabaseAdmin
-    .from('users')
-    .select('persona')
+    .from('profiles')
+    .select('persona_type')
     .eq('id', userId)
     .single();
 
   const recommendations = await getCourseRecommendations({
     completedCourseIds,
     skills,
-    persona: userRow?.persona ?? 'learner',
+    persona: userRow?.persona_type ?? 'learner',
   });
 
   if (!recommendations || recommendations.length === 0) return [];
