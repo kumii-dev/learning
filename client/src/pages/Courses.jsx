@@ -7,15 +7,19 @@ import { Link, useNavigate } from 'react-router-dom';
 import FeatherIcon from 'feather-icons-react';
 import apiClient from '../lib/apiClient';
 import styles from './Courses.module.css';
+import ErrorMessage from '../components/ErrorMessage';
 
 export default function Courses() {
   const [courses,         setCourses]         = useState([]);
   const [recommendations, setRecommendations] = useState([]);
   const [loading,         setLoading]         = useState(true);
   const [error,           setError]           = useState(null);
+  const [enrolError,      setEnrolError]      = useState(null);
   const navigate = useNavigate();
 
-  useEffect(() => {
+  const load = () => {
+    setError(null);
+    setLoading(true);
     Promise.all([
       apiClient.get('/courses'),
       apiClient.get('/courses/recommendations'),
@@ -24,26 +28,33 @@ export default function Courses() {
         setCourses(cRes.data.data);
         setRecommendations(rRes.data.data ?? []);
       })
-      .catch((err) => setError(err.message))
+      .catch((err) => setError(err))
       .finally(() => setLoading(false));
-  }, []);
+  };
+
+  useEffect(() => { load(); }, []);
 
   const enrol = async (e, courseId) => {
     e.preventDefault();
+    setEnrolError(null);
     try {
       await apiClient.post('/enrolments', { courseId });
       navigate('/my-learning');
     } catch (err) {
-      alert(err.message);
+      setEnrolError(err);
     }
   };
 
   if (loading) return <p className={styles.state}>Loading courses…</p>;
-  if (error)   return <p className={styles.error}>{error}</p>;
+  if (error)   return <ErrorMessage error={error} onRetry={load} />;
 
   return (
     <main className={styles.page}>
       <h1 className={styles.heading}>Course Catalogue</h1>
+
+      {enrolError && (
+        <ErrorMessage error={enrolError} onRetry={() => setEnrolError(null)} compact />
+      )}
 
       {recommendations.length > 0 && (
         <section className={styles.recs}>

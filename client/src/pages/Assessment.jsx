@@ -14,6 +14,7 @@ import FeatherIcon from 'feather-icons-react';
 import apiClient from '../lib/apiClient';
 import { notify, getProfile } from '../lib/authBridge';
 import styles from './Assessment.module.css';
+import ErrorMessage from '../components/ErrorMessage';
 
 /* Format due date: e.g. "May 18, 11:59 PM SAST" */
 function fmtDue(iso) {
@@ -45,7 +46,7 @@ export default function Assessment() {
   useEffect(() => {
     apiClient.get(`/assessments/${id}`)
       .then((res) => setAssessment(res.data.data))
-      .catch((err) => setError(err.message))
+      .catch((err) => setError(err))
       .finally(() => setLoading(false));
   }, [id]);
 
@@ -63,14 +64,14 @@ export default function Assessment() {
       setScreen('results');
       if (data.passed) notify.courseCompleted(data.courseId ?? '');
     } catch (err) {
-      setError(err.message);
+      setError(err);
     } finally {
       setSubmitting(false);
     }
   };
 
   if (loading) return <p className={styles.state}>Loading assessment…</p>;
-  if (error)   return <p className={styles.error}>{error}</p>;
+  if (error)   return <ErrorMessage error={error} onRetry={() => { setError(null); setLoading(true); apiClient.get(`/assessments/${id}`).then((res) => setAssessment(res.data.data)).catch((e) => setError(e)).finally(() => setLoading(false)); }} />;
 
   const questions = assessment?.questions ?? [];
   const due       = fmtDue(assessment?.due_at);

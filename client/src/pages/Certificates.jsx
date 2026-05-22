@@ -9,6 +9,7 @@ import { getProfile, notify } from '../lib/authBridge';
 import styles from './Certificates.module.css';
 import LearnerStatCards from '../components/LearnerStatCards';
 import FeatherIcon from 'feather-icons-react';
+import ErrorMessage from '../components/ErrorMessage';
 
 /* ── helpers ─────────────────────────────────────────────── */
 function fmtDate(iso) {
@@ -37,12 +38,12 @@ export default function Certificates() {
         setCerts(res.data.data ?? []);
         setProfile(prof);
       })
-      .catch((err) => setError(err.message))
+      .catch((err) => setError(err))
       .finally(() => setLoading(false));
   }, []);
 
   if (loading) return <p className={styles.state}>Loading certificates…</p>;
-  if (error)   return <p className={styles.error}>{error}</p>;
+  if (error)   return <ErrorMessage error={error} onRetry={() => window.location.reload()} />;
   if (certs.length === 0) {
     return (
       <div className={styles.empty}>

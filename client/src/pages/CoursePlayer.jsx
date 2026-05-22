@@ -20,6 +20,7 @@ import { useParams, useNavigate, Link }     from 'react-router-dom';
 import FeatherIcon                          from 'feather-icons-react';
 import apiClient                            from '../lib/apiClient';
 import styles from './CoursePlayer.module.css';
+import ErrorMessage from '../components/ErrorMessage';
 
 /* ── helpers ─────────────────────────────────────────────────────────────── */
 function pct(done, total) {
@@ -90,7 +91,7 @@ export default function CoursePlayer() {
           setEnrolment(newE);
         }
       } catch (err) {
-        setError(err.message);
+        setError(err);
       } finally {
         setLoading(false);
       }
@@ -131,7 +132,7 @@ export default function CoursePlayer() {
 
   /* ── Guards ─────────────────────────────────────────────────────────── */
   if (loading) return <p className={styles.state}>Loading course…</p>;
-  if (error)   return <p className={styles.error}>{error}</p>;
+  if (error)   return <ErrorMessage error={error} onRetry={() => window.location.reload()} />;
   if (!course) return (
     <div className={styles.noCourse}>
       <div className={styles.noCourseIcon}><FeatherIcon icon="book-open" size={48} /></div>

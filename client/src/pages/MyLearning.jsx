@@ -11,6 +11,7 @@ import styles from './MyLearning.module.css';
 import LearnerStatCards from '../components/LearnerStatCards';
 import CompletionDonut from '../components/CompletionDonut';
 import WeeklyActivityChart from '../components/WeeklyActivityChart';
+import ErrorMessage from '../components/ErrorMessage';
 
 const QUOTES = [
   '"The expert in anything was once a beginner."',
@@ -126,7 +127,7 @@ export default function MyLearning() {
     ]).then(([mlRes, cRes]) => {
       setData(mlRes.data.data);
       setCourses(cRes.data.data ?? cRes.data ?? []);
-    }).catch((err) => setError(err.message))
+    }).catch((err) => setError(err))
       .finally(() => setLoading(false));
   }, []);
 
@@ -140,7 +141,7 @@ export default function MyLearning() {
   const quote     = QUOTES[new Date().getDate() % QUOTES.length];
 
   if (loading) return <p className={styles.state}>Loading your learning dashboard…</p>;
-  if (error)   return <p className={styles.error}>{error}</p>;
+  if (error)   return <ErrorMessage error={error} onRetry={() => { setError(null); setLoading(true); window.location.reload(); }} />;
 
   const { enrolments } = data;
   const inProgress = enrolments.filter((e) => e.status !== 'completed');

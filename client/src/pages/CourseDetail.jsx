@@ -7,6 +7,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import FeatherIcon from 'feather-icons-react';
 import apiClient from '../lib/apiClient';
 import styles from './CourseDetail.module.css';
+import ErrorMessage from '../components/ErrorMessage';
 
 /* ── Instructor bio card ─────────────────────────────────────────────────── */
 function InstructorCard({ course }) {
@@ -55,8 +56,11 @@ export default function CourseDetail() {
   const [loading,    setLoading]    = useState(true);
   const [enrolling,  setEnrolling]  = useState(false);
   const [error,      setError]      = useState(null);
+  const [enrolError, setEnrolError] = useState(null);
 
-  useEffect(() => {
+  const load = () => {
+    setError(null);
+    setLoading(true);
     Promise.all([
       apiClient.get(`/courses/${id}`),
       apiClient.get('/enrolments').catch(() => ({ data: { data: [] } })),
@@ -66,24 +70,27 @@ export default function CourseDetail() {
         const existing = (eRes.data.data ?? []).find((e) => e.course_id === id);
         setEnrolment(existing ?? null);
       })
-      .catch((err) => setError(err.message))
+      .catch((err) => setError(err))
       .finally(() => setLoading(false));
-  }, [id]);
+  };
+
+  useEffect(() => { load(); }, [id]);
 
   const enrol = async () => {
     setEnrolling(true);
+    setEnrolError(null);
     try {
       await apiClient.post('/enrolments', { courseId: id });
       navigate(`/courses/${id}/player`);
     } catch (err) {
-      alert(err.message);
+      setEnrolError(err);
     } finally {
       setEnrolling(false);
     }
   };
 
   if (loading) return <p className={styles.state}>Loading course…</p>;
-  if (error)   return <p className={styles.error}>{error}</p>;
+  if (error)   return <ErrorMessage error={error} onRetry={load} />;
 
   const modules = (course.modules ?? []).slice().sort((a, b) => a.order - b.order);
 
@@ -114,6 +121,9 @@ export default function CourseDetail() {
             </div>
           )}
           <div className={styles.actions}>
+            {enrolError && (
+              <ErrorMessage error={enrolError} onRetry={() => setEnrolError(null)} compact />
+            )}
             {enrolment ? (
               <Link to={`/courses/${id}/player`} className={styles.btn}>
                 <FeatherIcon icon="play" size={16} />

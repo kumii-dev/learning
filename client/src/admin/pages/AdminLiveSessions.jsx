@@ -6,6 +6,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import styles from './AdminLiveSessions.module.css';
 import apiClient from '../../lib/apiClient';
+import ErrorMessage from '../../components/ErrorMessage';
 
 const API = '/live-sessions';
 
@@ -125,12 +126,13 @@ function SessionModal({ initial, onSave, onClose, loading }) {
 
 /* ── main component ──────────────────────────────────────────────── */
 export default function AdminLiveSessions() {
-  const [sessions, setSessions] = useState([]);
-  const [loading,  setLoading]  = useState(true);
-  const [error,    setError]    = useState(null);
-  const [modal,    setModal]    = useState(null); // null | 'create' | session object
-  const [saving,   setSaving]   = useState(false);
-  const [search,   setSearch]   = useState('');
+  const [sessions,  setSessions]  = useState([]);
+  const [loading,   setLoading]   = useState(true);
+  const [error,     setError]     = useState(null);
+  const [saveError, setSaveError] = useState(null);
+  const [modal,     setModal]     = useState(null);
+  const [saving,    setSaving]    = useState(false);
+  const [search,    setSearch]    = useState('');
 
   const fetchSessions = useCallback(async () => {
     setLoading(true);
@@ -139,7 +141,7 @@ export default function AdminLiveSessions() {
       const res = await apiClient.get(API);
       setSessions(res.data?.data ?? []);
     } catch (e) {
-      setError(e.message);
+      setError(e);
     } finally {
       setLoading(false);
     }
@@ -149,6 +151,7 @@ export default function AdminLiveSessions() {
 
   const handleSave = async (form) => {
     setSaving(true);
+    setSaveError(null);
     try {
       const isEdit = !!modal?.id;
       const url    = isEdit ? `${API}/${modal.id}` : API;
@@ -160,7 +163,7 @@ export default function AdminLiveSessions() {
       setModal(null);
       fetchSessions();
     } catch (e) {
-      alert(e.message);
+      setSaveError(e);
     } finally {
       setSaving(false);
     }
@@ -171,8 +174,8 @@ export default function AdminLiveSessions() {
     try {
       await apiClient.delete(`${API}/${id}`);
       fetchSessions();
-    } catch {
-      alert('Delete failed');
+    } catch (e) {
+      setError(e);
     }
   };
 
@@ -223,7 +226,7 @@ export default function AdminLiveSessions() {
 
       {/* Table */}
       {loading && <p className={styles.info}>Loading…</p>}
-      {error   && <p className={styles.errorMsg}>{error}</p>}
+      {error && <ErrorMessage error={error} onRetry={fetchSessions} />}
       {!loading && !error && (
         <div className={styles.tableWrap}>
           <table className={styles.table}>
@@ -302,19 +305,24 @@ export default function AdminLiveSessions() {
 
       {/* Modal */}
       {modal && (
-        <SessionModal
-          initial={modal === 'create' ? {} : {
-            ...modal,
-            scheduledAt: modal.scheduled_at,
-            durationMin: modal.duration_min,
-            maxAttendees: modal.max_attendees ?? '',
-            roomPassword: modal.room_password ?? '',
-            isPublic:     modal.is_public ?? true,
-          }}
-          onSave={handleSave}
-          onClose={() => setModal(null)}
-          loading={saving}
-        />
+        <>
+          {saveError && (
+            <ErrorMessage error={saveError} onRetry={() => setSaveError(null)} compact />
+          )}
+          <SessionModal
+            initial={modal === 'create' ? {} : {
+              ...modal,
+              scheduledAt: modal.scheduled_at,
+              durationMin: modal.duration_min,
+              maxAttendees: modal.max_attendees ?? '',
+              roomPassword: modal.room_password ?? '',
+              isPublic:     modal.is_public ?? true,
+            }}
+            onSave={handleSave}
+            onClose={() => { setModal(null); setSaveError(null); }}
+            loading={saving}
+          />
+        </>
       )}
     </div>
   );

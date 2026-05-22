@@ -8,6 +8,7 @@ import ReactApexChart from 'react-apexcharts';
 import apiClient from '../../lib/apiClient';
 import styles from './AdminDashboard.module.css';
 import FeatherIcon from 'feather-icons-react';
+import ErrorMessage from '../../components/ErrorMessage';
 
 /* ── ApexCharts bar chart — 7-day enrolments ──────────────────────────────── */
 function EnrolmentBarChart({ data }) {
@@ -54,15 +55,19 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [error,   setError]   = useState(null);
 
-  useEffect(() => {
+  const load = () => {
+    setError(null);
+    setLoading(true);
     apiClient.get('/cms/analytics/overview')
       .then((r) => setData(r.data.data))
-      .catch((e) => setError(e.message))
+      .catch((e) => setError(e))
       .finally(() => setLoading(false));
-  }, []);
+  };
+
+  useEffect(() => { load(); }, []);
 
   if (loading) return <div className={styles.state}>Loading dashboard…</div>;
-  if (error)   return <div className={styles.error}>{error}</div>;
+  if (error)   return <ErrorMessage error={error} onRetry={load} />;
 
   const completionRate = data.totalEnrolled
     ? Math.round((data.completions / data.totalEnrolled) * 100)

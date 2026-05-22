@@ -7,6 +7,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import apiClient from '../../lib/apiClient';
 import styles from './AdminCourses.module.css';
 import FeatherIcon from 'feather-icons-react';
+import ErrorMessage from '../../components/ErrorMessage';
 
 function fmtDate(iso) {
   if (!iso) return '—';
@@ -29,7 +30,7 @@ export default function AdminCourses() {
     setLoading(true);
     apiClient.get('/cms/courses')
       .then((r) => setCourses(r.data.data ?? []))
-      .catch((e) => setError(e.message))
+      .catch((e) => setError(e))
       .finally(() => setLoading(false));
   }
   useEffect(load, []);
@@ -119,7 +120,7 @@ export default function AdminCourses() {
   }
 
   if (loading) return <div className={styles.state}>Loading courses…</div>;
-  if (error)   return <div className={styles.error}>{error}</div>;
+  if (error)   return <ErrorMessage error={error} onRetry={load} />;
 
   return (
     <div className={styles.page}>
