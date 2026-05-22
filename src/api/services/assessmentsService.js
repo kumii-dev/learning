@@ -21,7 +21,7 @@ const gradingService                 = require('./gradingService');
 async function getAssessmentById(assessmentId) {
   const { data, error } = await supabaseAdmin
     .from('assessments')
-    .select('id, title, type, pass_mark, courses(id, title), questions(*)')
+    .select('id, title, type, pass_mark, course_id, courses(id, title), questions')
     .eq('id', assessmentId)
     .single();
 
@@ -52,7 +52,7 @@ async function submitAssessment(assessmentId, userId, answers) {
   // 1. Fetch full assessment (with answers for auto-grading)
   const { data: assessment, error: aErr } = await supabaseAdmin
     .from('assessments')
-    .select('id, type, pass_mark, questions(*)')
+    .select('id, type, pass_mark, questions')
     .eq('id', assessmentId)
     .single();
 
