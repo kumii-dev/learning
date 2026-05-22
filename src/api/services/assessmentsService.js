@@ -71,12 +71,14 @@ async function submitAssessment(assessmentId, userId, answers) {
     // Auto-grade
     const questionMap = {};
     for (const q of assessment.questions ?? []) {
-      questionMap[q.id] = q;
+      // Coerce all keys to string so numeric IDs (seed) and
+      // UUID string IDs (admin-created) both resolve correctly
+      questionMap[String(q.id)] = q;
     }
 
     let correct = 0;
     for (const { questionId, answer } of answers) {
-      const q = questionMap[questionId];
+      const q = questionMap[String(questionId)];
       if (!q) continue;
 
       // q.correct may be an index (number), an array of indices (multi_select),

@@ -33,7 +33,8 @@ const enrolmentSchema = z.object({
 const assessmentSubmitSchema = z.object({
   answers: z.array(
     z.object({
-      questionId: z.string().uuid(),
+      // IDs may be numbers (seed data) or UUID strings (admin-created)
+      questionId: z.union([z.string(), z.number()]),
       answer:     z.union([z.string(), z.number(), z.array(z.string())]),
     })
   ).min(1),
@@ -65,11 +66,17 @@ const cmsAssessmentSchema = z.object({
   title:       z.string().min(1),
   passMark:    z.number().min(0).max(100),
   questions:   z.array(z.object({
-    id:       z.string().uuid(),
-    prompt:   z.string().min(1),
-    type:     z.enum(['mcq', 'short_answer', 'multi_select']),
+    // id may be numeric (seed) or UUID string (admin-created)
+    id:       z.union([z.string(), z.number()]).optional(),
+    // support both field names: 'question' (normalised) and legacy 'prompt'
+    question: z.string().min(1).optional(),
+    prompt:   z.string().min(1).optional(),
+    type:     z.enum(['multiple_choice', 'scenario', 'checklist', 'mcq', 'multi_select', 'short_answer']),
     options:  z.array(z.string()).optional(),
+    // correct may be an index (number) or array of indices, or legacy string
+    correct:  z.union([z.number(), z.array(z.number()), z.string()]).optional(),
     answer:   z.union([z.string(), z.array(z.string())]).optional(),
+    points:   z.number().optional(),
   })).optional(),
 });
 

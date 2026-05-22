@@ -64,24 +64,30 @@ function fmtDate(iso) {
 
 async function getPersonalisedMessage(learnerName, courseTitle, category) {
   try {
-    const chat = await getOpenAI().chat.completions.create({
-      model: 'gpt-4o-mini',
-      max_tokens: 60,
-      messages: [
-        {
-          role: 'system',
-          content:
-            'You write short, warm, professional congratulatory sentences for course completion certificates. ' +
-            'One sentence only. No quotes. No hashtags. No emojis.',
-        },
-        {
-          role: 'user',
-          content:
-            `Write a one-sentence congratulatory message for ${learnerName} who just completed ` +
-            `"${courseTitle}" in the ${category || 'professional development'} category.`,
-        },
-      ],
-    });
+    const timeout = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('OpenAI timeout')), 7_000)
+    );
+    const chat = await Promise.race([
+      getOpenAI().chat.completions.create({
+        model: 'gpt-4o-mini',
+        max_tokens: 60,
+        messages: [
+          {
+            role: 'system',
+            content:
+              'You write short, warm, professional congratulatory sentences for course completion certificates. ' +
+              'One sentence only. No quotes. No hashtags. No emojis.',
+          },
+          {
+            role: 'user',
+            content:
+              `Write a one-sentence congratulatory message for ${learnerName} who just completed ` +
+              `"${courseTitle}" in the ${category || 'professional development'} category.`,
+          },
+        ],
+      }),
+      timeout,
+    ]);
     return chat.choices[0]?.message?.content?.trim() ?? '';
   } catch (_) {
     return `Congratulations on completing ${courseTitle} — a significant achievement in your professional journey.`;
