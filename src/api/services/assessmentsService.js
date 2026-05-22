@@ -78,7 +78,7 @@ async function submitAssessment(assessmentId, userId, answers) {
     for (const { questionId, answer } of answers) {
       const q = questionMap[questionId];
       if (!q) continue;
-      const expected = Array.isArray(q.answer) ? q.answer.sort().join(',') : q.answer;
+      const expected = q.options?.[q.correct] ?? q.answer ?? '';
       const given    = Array.isArray(answer)   ? answer.sort().join(',')   : answer;
       if (String(given).trim().toLowerCase() === String(expected).trim().toLowerCase()) {
         correct++;

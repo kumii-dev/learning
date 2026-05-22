@@ -58,7 +58,12 @@ export default function Assessment() {
     if (!honor) return;
     setSubmitting(true);
     try {
-      const res  = await apiClient.post(`/assessments/${id}/submit`, { answers });
+      // Convert { [q.id]: value } map → [{ questionId, answer }] array expected by the API
+    const formatted = Object.entries(answers).map(([qId, answer]) => ({
+      questionId: Number(qId),
+      answer,
+    }));
+    const res  = await apiClient.post(`/assessments/${id}/submit`, { answers: formatted });
       const data = res.data.data;
       setResult(data);
       setScreen('results');
@@ -109,11 +114,11 @@ export default function Assessment() {
         {/* Reviewed questions */}
         <div className={styles.reviewPage}>
           {questions.map((q, idx) => {
-            const userAns    = answers[idx];
-            const correct    = q.correct_answer;
-            const isCorrect  = Array.isArray(correct)
-              ? JSON.stringify([...userAns].sort()) === JSON.stringify([...correct].sort())
-              : userAns === correct;
+            const userAns    = answers[q.id];
+            const correctOpt = q.options?.[q.correct] ?? null;
+            const isCorrect  = Array.isArray(correctOpt)
+              ? JSON.stringify([...(userAns ?? [])].sort()) === JSON.stringify([...correctOpt].sort())
+              : userAns === correctOpt;
             return (
               <div key={idx} className={styles.reviewQuestion}>
                 <div className={styles.questionRow}>
@@ -124,11 +129,22 @@ export default function Assessment() {
                   </div>
                 </div>
                 {q.options?.map((opt, oi) => {
-                  const sel = Array.isArray(userAns) ? userAns.includes(opt) : userAns === opt;
+                  const sel          = Array.isArray(userAns) ? userAns.includes(opt) : userAns === opt;
+                  const isCorrectOpt = opt === correctOpt;
+                  const inputType    = ['checklist', 'multi_select'].includes(q.type) ? 'checkbox' : 'radio';
                   return (
-                    <label key={oi} className={`${styles.reviewOption} ${sel ? styles.reviewSelected : ''}`}>
-                      <input type={q.type === 'multi_select' ? 'checkbox' : 'radio'} readOnly checked={sel} />
+                    <label
+                      key={oi}
+                      className={[
+                        styles.reviewOption,
+                        sel            ? styles.reviewSelected : '',
+                        isCorrectOpt   ? styles.reviewCorrect  : '',
+                        sel && !isCorrectOpt ? styles.reviewWrong : '',
+                      ].join(' ')}
+                    >
+                      <input type={inputType} readOnly checked={sel} />
                       {opt}
+                      {isCorrectOpt && <FeatherIcon icon="check-circle" size={13} className={styles.correctIcon} />}
                     </label>
                   );
                 })}
@@ -136,6 +152,12 @@ export default function Assessment() {
                   <div className={styles.niceWork}>
                     <span className={styles.niceIcon}><FeatherIcon icon="check-circle" size={14} /> Nice work</span>
                     <p>{result?.question_feedback?.[idx] ?? q.explanation ?? 'Correct!'}</p>
+                  </div>
+                )}
+                {!isCorrect && userAns !== undefined && userAns !== '' && (
+                  <div className={styles.wrongWork}>
+                    <span className={styles.wrongIcon}><FeatherIcon icon="x-circle" size={14} /> Incorrect</span>
+                    {correctOpt && <p>Correct answer: <strong>{correctOpt}</strong></p>}
                   </div>
                 )}
               </div>
@@ -171,29 +193,29 @@ export default function Assessment() {
                 </div>
               </div>
 
-              {/* MCQ */}
-              {(q.type === 'mcq' || !q.type) && q.options?.map((opt, oi) => (
+              {/* Radio options: multiple_choice / scenario / mcq */}
+              {(['multiple_choice', 'scenario', 'mcq'].includes(q.type) || !q.type) && q.options?.map((opt, oi) => (
                 <label key={oi} className={styles.option}>
                   <input
                     type="radio"
                     name={`q${idx}`}
                     value={opt}
-                    checked={answers[idx] === opt}
-                    onChange={() => setAnswer(idx, opt)}
+                    checked={answers[q.id] === opt}
+                    onChange={() => setAnswer(q.id, opt)}
                   />
                   {opt}
                 </label>
               ))}
 
-              {/* Multi-select */}
-              {q.type === 'multi_select' && q.options?.map((opt, oi) => (
+              {/* Checkbox options: checklist / multi_select */}
+              {['checklist', 'multi_select'].includes(q.type) && q.options?.map((opt, oi) => (
                 <label key={oi} className={styles.option}>
                   <input
                     type="checkbox"
-                    checked={(answers[idx] ?? []).includes(opt)}
+                    checked={(answers[q.id] ?? []).includes(opt)}
                     onChange={(e) => {
-                      const prev = answers[idx] ?? [];
-                      setAnswer(idx, e.target.checked
+                      const prev = answers[q.id] ?? [];
+                      setAnswer(q.id, e.target.checked
                         ? [...prev, opt]
                         : prev.filter((v) => v !== opt));
                     }}
@@ -207,8 +229,8 @@ export default function Assessment() {
                 <textarea
                   className={styles.textarea}
                   rows={4}
-                  value={answers[idx] ?? ''}
-                  onChange={(e) => setAnswer(idx, e.target.value)}
+                  value={answers[q.id] ?? ''}
+                  onChange={(e) => setAnswer(q.id, e.target.value)}
                   placeholder="Your answer…"
                 />
               )}

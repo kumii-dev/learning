@@ -165,13 +165,23 @@
 }
 .reviewOption input { accent-color: var(--color-primary); }
 .reviewSelected { color: var(--color-text); font-weight: 600; }
+.reviewCorrect  { color: #16a34a; font-weight: 600; }
+.reviewWrong    { color: #dc2626; text-decoration: line-through; }
+.correctIcon    { color: #16a34a; flex-shrink: 0; }
 
 .niceWork {
-  background: var(--color-surface); border: 1px solid var(--color-border);
+  background: #f0fdf4; border: 1px solid #bbf7d0;
   border-radius: 8px; padding: .75rem 1rem; margin-left: 1.4rem;
 }
-.niceIcon { font-size: .85rem; font-weight: 700; color: var(--color-primary); display: block; margin-bottom: .35rem; }
+.niceIcon { font-size: .85rem; font-weight: 700; color: #16a34a; display: block; margin-bottom: .35rem; }
 .niceWork p { font-size: .85rem; color: var(--color-text); margin: 0; line-height: 1.55; }
+
+.wrongWork {
+  background: #fef2f2; border: 1px solid #fecaca;
+  border-radius: 8px; padding: .75rem 1rem; margin-left: 1.4rem;
+}
+.wrongIcon { font-size: .85rem; font-weight: 700; color: #dc2626; display: block; margin-bottom: .35rem; }
+.wrongWork p { font-size: .85rem; color: var(--color-text); margin: 0; line-height: 1.55; }
 
 
 .form { display: flex; flex-direction: column; gap: 1.5rem; }
