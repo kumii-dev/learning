@@ -1,9 +1,10 @@
 /**
  * client/src/pages/LiveSessions.jsx
- * Learner live sessions page — FullCalendar + in-page Jitsi Meet video room.
+ * Learner live sessions page — FullCalendar + in-page Daily.co video room.
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { DailyProvider, useCallFrame } from '@daily-co/daily-react';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
@@ -34,17 +35,69 @@ function formatDate(iso) {
   });
 }
 
-/* ── VideoRoom — full-screen Jitsi iframe overlay ────────────────── */
-function VideoRoom({ session, displayName, onClose }) {
-  const room = session.jitsi_room || `kumii-${session.id}`;
-  let src = `https://meet.jit.si/${room}`;
+/* ── DailyFrame — internal: mounts the Daily call frame into the container ── */
+function DailyFrame({ joinUrl }) {
+  const containerRef = useRef(null);
 
-  const params = new URLSearchParams();
-  if (displayName) params.set('userInfo.displayName', displayName);
-  params.set('config.startWithAudioMuted', 'true');
-  if (session.room_password) params.set('config.password', session.room_password);
+  useCallFrame({
+    parentEl: containerRef.current,
+    url: joinUrl,
+    options: {
+      // ── Chrome / shell ────────────────────────────────────────────
+      showLeaveButton:          true,
+      showFullscreenButton:     true,
+      showLocalVideo:           true,
+      showParticipantsBar:      true,
 
-  src += '#' + params.toString();
+      // ── Toolbar features ──────────────────────────────────────────
+      showChat:                 true,
+      showScreenShare:          true,
+      showRecordingButton:      true,
+      showTranscriptionButton:  true,
+      showBreakoutRoomsButton:  true,
+      showHandRaiseButton:      true,
+      showEmojiReactions:       true,
+      showNetworkUI:            true,
+
+      // ── Device controls ───────────────────────────────────────────
+      showUserNameChangeUI:     true,
+      showNoiseCancellationButton: true,
+
+      // ── Pre-join lobby ────────────────────────────────────────────
+      showPrejoinUI:            true,
+
+      // ── iframe sizing ─────────────────────────────────────────────
+      iframeStyle: {
+        width:  '100%',
+        height: '100%',
+        border: 'none',
+      },
+    },
+  });
+
+  return <div ref={containerRef} className="daily-frame-container" style={{ width: '100%', height: '100%' }} />;
+}
+
+/* ── VideoRoom — full-screen Daily.co overlay ────────────────────── */
+function VideoRoom({ session, onClose }) {
+  // Prefer the stored join_url; fall back to constructing one from room_name
+  const joinUrl =
+    session.join_url ||
+    (session.room_name ? `https://kumii.daily.co/${session.room_name}` : null);
+
+  if (!joinUrl) {
+    return (
+      <div className={styles.videoOverlay}>
+        <div className={styles.videoHeader}>
+          <span className={styles.videoTitle}>{session.title}</span>
+          <button className={styles.leaveBtn} onClick={onClose}>✕ Leave</button>
+        </div>
+        <p style={{ color: '#fff', padding: '2rem' }}>
+          Room URL not available yet. Please try again shortly.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className={styles.videoOverlay}>
@@ -52,12 +105,9 @@ function VideoRoom({ session, displayName, onClose }) {
         <span className={styles.videoTitle}>{session.title}</span>
         <button className={styles.leaveBtn} onClick={onClose}>✕ Leave</button>
       </div>
-      <iframe
-        title={session.title}
-        src={src}
-        allow="camera; microphone; fullscreen; display-capture; autoplay"
-        className={styles.videoFrame}
-      />
+      <DailyProvider>
+        <DailyFrame joinUrl={joinUrl} />
+      </DailyProvider>
     </div>
   );
 }
@@ -121,7 +171,9 @@ function mockSessions() {
       scheduled_at: new Date(base.getTime() + 86400000).toISOString(),
       duration_min: 60,
       status: 'scheduled',
-      jitsi_room: 'kumii-mock-1',
+      platform: 'daily',
+      room_name: 'kumii-mock-1',
+      join_url: 'https://kumii.daily.co/kumii-mock-1',
       rsvp_count: 12,
       user_has_rsvp: false,
       is_public: true,
@@ -134,7 +186,9 @@ function mockSessions() {
       scheduled_at: new Date(base.getTime() + 3 * 86400000).toISOString(),
       duration_min: 90,
       status: 'scheduled',
-      jitsi_room: 'kumii-mock-2',
+      platform: 'daily',
+      room_name: 'kumii-mock-2',
+      join_url: 'https://kumii.daily.co/kumii-mock-2',
       rsvp_count: 7,
       user_has_rsvp: false,
       is_public: true,
@@ -211,7 +265,6 @@ export default function LiveSessions() {
       {activeSession && (
         <VideoRoom
           session={activeSession}
-          displayName={displayName}
           onClose={() => setActiveSession(null)}
         />
       )}

@@ -5,13 +5,13 @@
 
 'use strict';
 
-const { v4: uuid }         = require('uuid');
-const { supabaseAdmin }    = require('../../integrations/supabase');
-const { createJitsiRoom }  = require('../../integrations/videoProvider');
+const { v4: uuid }          = require('uuid');
+const { supabaseAdmin }     = require('../../integrations/supabase');
+const { createDailyRoom, deleteDailyRoom } = require('../../integrations/videoProvider');
 
 const SESSION_FIELDS =
   'id, title, topic, description, instructor, scheduled_at, end_time, ' +
-  'join_url, meeting_url, jitsi_room, room_password, platform, duration_min, ' +
+  'join_url, meeting_url, room_name, room_password, platform, duration_min, ' +
   'course_id, max_attendees, status, is_public, host_id';
 
 /**
@@ -25,7 +25,14 @@ async function getLiveSessions(userId = null) {
     .order('scheduled_at', { ascending: true });
 
   if (error) {
+    // Table doesn't exist yet
     if (error.code === '42P01' || error.message?.includes('does not exist')) return [];
+    // Column doesn't exist — DB schema is behind; return empty rather than 500
+    // Run migration 020 to fix: supabase/migrations/020_live_sessions_missing_columns.sql
+    if (error.code === '42703') {
+      console.error('[live-sessions] Column missing — run migration 020:', error.message);
+      return [];
+    }
     throw error;
   }
 
@@ -56,34 +63,34 @@ async function getLiveSessions(userId = null) {
 
 /**
  * Create a new live session.
- * Generates a Jitsi room deterministically from the new session UUID.
+ * Creates a Daily.co room via the REST API and stores the join URL.
  */
 async function createSession(payload) {
   const id = uuid();
-  const { roomName, joinUrl } = createJitsiRoom(id);
+  const { roomName, joinUrl } = await createDailyRoom(id, payload.scheduledAt, payload.maxAttendees ?? null);
   const now = new Date().toISOString();
 
   const { data, error } = await supabaseAdmin
     .from('live_sessions')
     .insert({
       id,
-      title:        payload.title,
-      topic:        payload.topic        ?? null,
-      description:  payload.description  ?? null,
-      instructor:   payload.instructor   ?? null,
-      scheduled_at: payload.scheduledAt,
-      end_time:     payload.endTime      ?? null,
-      duration_min: payload.durationMin  ?? 60,
-      course_id:    payload.courseId     ?? null,
-      max_attendees: payload.maxAttendees ?? null,
-      status:       'scheduled',
-      platform:     'jitsi',
-      jitsi_room:   roomName,
-      join_url:     joinUrl,
-      meeting_url:  joinUrl,
-      room_password: payload.roomPassword ?? null,
-      is_public:    payload.isPublic     ?? true,
-      created_at:   now,
+      title:         payload.title,
+      topic:         payload.topic         ?? null,
+      description:   payload.description   ?? null,
+      instructor:    payload.instructor    ?? null,
+      scheduled_at:  payload.scheduledAt,
+      end_time:      payload.endTime       ?? null,
+      duration_min:  payload.durationMin   ?? 60,
+      course_id:     payload.courseId      ?? null,
+      max_attendees: payload.maxAttendees  ?? null,
+      status:        'scheduled',
+      platform:      'daily',
+      room_name:     roomName,
+      join_url:      joinUrl,
+      meeting_url:   joinUrl,
+      room_password: payload.roomPassword  ?? null,
+      is_public:     payload.isPublic      ?? true,
+      created_at:    now,
     })
     .select()
     .single();
@@ -129,11 +136,21 @@ async function updateSession(id, payload) {
 }
 
 /**
- * Delete a live session.
+ * Delete a live session and its Daily.co room.
  */
 async function deleteSession(id) {
+  // Fetch room_name before deleting so we can clean up on Daily
+  const { data: session } = await supabaseAdmin
+    .from('live_sessions')
+    .select('room_name')
+    .eq('id', id)
+    .maybeSingle();
+
   const { error } = await supabaseAdmin.from('live_sessions').delete().eq('id', id);
   if (error) throw error;
+
+  // Best-effort Daily room cleanup (fire-and-forget)
+  if (session?.room_name) await deleteDailyRoom(session.room_name);
 }
 
 /**

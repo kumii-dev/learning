@@ -14,6 +14,8 @@
     "lint": "eslint ."
   },
   "dependencies": {
+    "@daily-co/daily-js": "^0.90.0",
+    "@daily-co/daily-react": "^0.25.2",
     "@fullcalendar/daygrid": "^6.1.20",
     "@fullcalendar/interaction": "^6.1.20",
     "@fullcalendar/react": "^6.1.20",
@@ -28,6 +30,7 @@
     "feather-icons-react": "^1.0.0",
     "helmet": "^7.1.0",
     "jose": "^6.2.3",
+    "jotai": "^2.20.0",
     "jsonwebtoken": "^9.0.3",
     "multer": "^2.1.1",
     "openai": "^4.47.1",

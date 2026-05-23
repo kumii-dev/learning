@@ -199,7 +199,7 @@ export default function AdminLiveSessions() {
       <div className={styles.pageHeader}>
         <div>
           <h1 className={styles.pageTitle}>Live Sessions</h1>
-          <p className={styles.pageSubtitle}>Schedule and manage Jitsi Meet sessions</p>
+          <p className={styles.pageSubtitle}>Schedule and manage Daily.co sessions</p>
         </div>
         <button className={styles.scheduleBtn} onClick={() => setModal('create')}>
           + Schedule Session
@@ -257,7 +257,7 @@ export default function AdminLiveSessions() {
                   <td>{s.duration_min ?? 60} min</td>
                   <td>
                     <span className={styles.platformBadge}>
-                      🎥 {s.platform ?? 'jitsi'}
+                      🎥 {s.platform ?? 'daily'}
                     </span>
                   </td>
                   <td>
@@ -276,7 +276,7 @@ export default function AdminLiveSessions() {
                         target="_blank"
                         rel="noreferrer"
                         className={styles.joinLink}
-                        title="Open Jitsi room"
+                        title="Open Daily.co room"
                       >
                         Join
                       </a>
