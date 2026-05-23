@@ -397,10 +397,14 @@ async function listLearners() {
  * @param {number}  [opts.limit=200]
  */
 async function listAssessmentResults({ courseId, status, limit = 200 } = {}) {
+  // Step 1 — fetch submissions with assessment + course (FK exists for these)
+  // NOTE: submissions.user_id has no FK to profiles in the schema cache,
+  //       so we do a two-step fetch and merge manually.
   let query = supabaseAdmin
     .from('submissions')
     .select(`
       id,
+      user_id,
       score,
       status,
       submitted_at,
@@ -408,52 +412,68 @@ async function listAssessmentResults({ courseId, status, limit = 200 } = {}) {
       assessments (
         id, title, type, pass_mark,
         courses ( id, title, category )
-      ),
-      users ( id, full_name, email )
+      )
     `)
     .order('submitted_at', { ascending: false })
     .limit(limit);
 
-  if (status)   query = query.eq('status', status);
+  if (status) query = query.eq('status', status);
 
-  const { data, error } = await query;
-  if (error) throw error;
+  const { data: rows, error: rowsErr } = await query;
+  if (rowsErr) throw rowsErr;
 
-  return (data ?? [])
-    .filter((s) => {
-      // Apply optional course filter (nested filter not supported via PostgREST `.eq`)
-      if (courseId && s.assessments?.courses?.id !== courseId) return false;
-      return true;
-    })
-    .map((s) => {
-      const passMark = s.assessments?.pass_mark ?? null;
-      const passed   = s.score !== null && passMark !== null ? s.score >= passMark : null;
-      return {
-        id:          s.id,
-        submittedAt: s.submitted_at,
-        score:       s.score,
-        status:      s.status,
-        aiFeedback:  s.ai_feedback,
-        passed,
-        assessment: s.assessments ? {
-          id:       s.assessments.id,
-          title:    s.assessments.title,
-          type:     s.assessments.type,
-          passMark: s.assessments.pass_mark,
-        } : null,
-        course: s.assessments?.courses ? {
-          id:       s.assessments.courses.id,
-          title:    s.assessments.courses.title,
-          category: s.assessments.courses.category,
-        } : null,
-        learner: s.users ? {
-          id:        s.users.id,
-          firstName: s.users.full_name ?? '',
-          lastName:  '',
-          email:     s.users.email,
-        } : null,
-      };
-    });
+  if (!rows || rows.length === 0) return [];
+
+  // Apply optional courseId filter before the profile lookup
+  const filtered = rows.filter((s) => {
+    if (courseId && s.assessments?.courses?.id !== courseId) return false;
+    return true;
+  });
+
+  // Step 2 — batch-fetch profiles for all unique user_ids
+  // submissions.user_id values match profiles.id (same UUID space)
+  const userIds = [...new Set(filtered.map((s) => s.user_id).filter(Boolean))];
+  let profileMap = {};
+  if (userIds.length > 0) {
+    const { data: profiles, error: profErr } = await supabaseAdmin
+      .from('profiles')
+      .select('id, full_name, email')
+      .in('id', userIds);
+    if (profErr) throw profErr;
+    for (const p of profiles ?? []) profileMap[p.id] = p;
+  }
+
+  // Step 3 — merge and shape response
+  return filtered.map((s) => {
+    const passMark = s.assessments?.pass_mark ?? null;
+    const passed   = s.score !== null && passMark !== null ? s.score >= passMark : null;
+    const profile  = profileMap[s.user_id] ?? null;
+    return {
+      id:          s.id,
+      submittedAt: s.submitted_at,
+      score:       s.score,
+      status:      s.status,
+      aiFeedback:  s.ai_feedback,
+      passed,
+      assessment: s.assessments ? {
+        id:       s.assessments.id,
+        title:    s.assessments.title,
+        type:     s.assessments.type,
+        passMark: s.assessments.pass_mark,
+      } : null,
+      course: s.assessments?.courses ? {
+        id:       s.assessments.courses.id,
+        title:    s.assessments.courses.title,
+        category: s.assessments.courses.category,
+      } : null,
+      learner: profile ? {
+        id:        profile.id,
+        firstName: profile.full_name ?? '',
+        lastName:  '',
+        email:     profile.email,
+      } : null,
+    };
+  });
 }
 
 /* ═══════════════════════════════════════════════════════════════════
