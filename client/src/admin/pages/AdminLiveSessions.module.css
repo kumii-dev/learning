@@ -302,6 +302,67 @@
   font-style: italic;
 }
 
+/* ── Email participants row ─────────────────────────────────────── */
+.recEmailRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  margin-top: 20px;
+  padding: 16px 18px;
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+  border-radius: 10px;
+}
+.recEmailInfo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.recEmailInfo strong {
+  font-size: 0.9rem;
+  color: #0c4a6e;
+}
+.recEmailInfo span {
+  font-size: 0.8rem;
+  color: #0369a1;
+  line-height: 1.5;
+}
+.emailBtn {
+  flex-shrink: 0;
+  padding: 9px 18px;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  background: #0ea5e9;
+  color: #fff;
+  transition: opacity 0.15s;
+  white-space: nowrap;
+}
+.emailBtn:hover:not(:disabled) { opacity: 0.85; }
+.emailBtn:disabled { opacity: 0.55; cursor: not-allowed; }
+
+/* ── Email result banner ────────────────────────────────────────── */
+.emailResultBanner {
+  margin-top: 12px;
+  padding: 11px 16px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+.emailResultBanner[data-ok="true"] {
+  background: #dcfce7;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+}
+.emailResultBanner[data-ok="false"] {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
 .empty {
   text-align: center;
   padding: 2rem;

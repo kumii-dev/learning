@@ -54,9 +54,12 @@ const EMPTY_FORM = {
 
 /* ── RecordingsPanel ─────────────────────────────────────────────── */
 function RecordingsPanel({ session, onClose }) {
-  const [recordings, setRecordings] = useState([]);
-  const [loading,    setLoading]    = useState(true);
-  const [error,      setError]      = useState(null);
+  const [recordings,  setRecordings]  = useState([]);
+  const [loading,     setLoading]     = useState(true);
+  const [error,       setError]       = useState(null);
+  const [emailing,    setEmailing]    = useState(false);
+  const [emailResult, setEmailResult] = useState(null); // { sent, failed, skipped }
+  const [emailError,  setEmailError]  = useState(null);
 
   useEffect(() => {
     apiClient.get(`${API}/${session.id}/recordings`)
@@ -65,9 +68,26 @@ function RecordingsPanel({ session, onClose }) {
       .finally(() => setLoading(false));
   }, [session.id]);
 
+  const handleEmailParticipants = async () => {
+    if (!window.confirm(
+      `Email all RSVP'd participants the recording download link for "${session.title}"?\n\nThis will send an email to every person who RSVPd.`
+    )) return;
+    setEmailing(true);
+    setEmailResult(null);
+    setEmailError(null);
+    try {
+      const res = await apiClient.post(`${API}/${session.id}/email-recording`);
+      setEmailResult(res.data);
+    } catch (e) {
+      setEmailError(e?.response?.data?.error ?? e?.message ?? 'Failed to send emails');
+    } finally {
+      setEmailing(false);
+    }
+  };
+
   return (
     <div className={styles.modalBackdrop} onClick={onClose}>
-      <div className={styles.modal} style={{ maxWidth: 680 }} onClick={(e) => e.stopPropagation()}>
+      <div className={styles.modal} style={{ maxWidth: 700 }} onClick={(e) => e.stopPropagation()}>
         <div className={styles.modalHeader}>
           <div>
             <h2>Recordings</h2>
@@ -132,6 +152,40 @@ function RecordingsPanel({ session, onClose }) {
                 ))}
               </tbody>
             </table>
+          )}
+
+          {/* ── Email participants ── */}
+          {!loading && !error && (
+            <div className={styles.recEmailRow}>
+              <div className={styles.recEmailInfo}>
+                <strong>📧 Notify participants</strong>
+                <span>
+                  Send the recording download link to all RSVP'd participants via email.
+                  {recordings.length === 0 && ' (No recordings yet — email will still be sent with a note.)'}
+                </span>
+              </div>
+              <button
+                className={styles.emailBtn}
+                onClick={handleEmailParticipants}
+                disabled={emailing}
+              >
+                {emailing ? 'Sending…' : '📧 Email Participants'}
+              </button>
+            </div>
+          )}
+
+          {/* Result banner */}
+          {emailResult && (
+            <div className={styles.emailResultBanner} data-ok="true">
+              ✅ Emails sent: <strong>{emailResult.sent}</strong>
+              {emailResult.failed  > 0 && <span> · Failed: <strong>{emailResult.failed}</strong></span>}
+              {emailResult.skipped > 0 && <span> · Skipped (no email): <strong>{emailResult.skipped}</strong></span>}
+            </div>
+          )}
+          {emailError && (
+            <div className={styles.emailResultBanner} data-ok="false">
+              ⚠ {emailError}
+            </div>
           )}
         </div>
       </div>

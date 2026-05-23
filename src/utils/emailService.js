@@ -9,6 +9,8 @@
 
 'use strict';
 
+const path   = require('path');
+const fs     = require('fs');
 const { Resend } = require('resend');
 const logger     = require('./logger');
 
@@ -23,6 +25,25 @@ function getResend() {
 }
 
 const FROM = process.env.FROM_EMAIL ?? 'Kumii Learning <onboarding@resend.dev>';
+
+/* ── Logo helper ───────────────────────────────────────────────────────────── */
+// Load Kumii logo once at module level as a base64 data-URI for email footers.
+// Falls back to an empty string if the file is missing in the deployment.
+function loadLogoDataUri() {
+  try {
+    const logoPath = path.resolve(__dirname, '../../Kumii-logo.png');
+    const data = fs.readFileSync(logoPath);
+    return `data:image/png;base64,${data.toString('base64')}`;
+  } catch {
+    return '';
+  }
+}
+const KUMII_LOGO_URI = loadLogoDataUri();
+
+const logoFooterHtml = KUMII_LOGO_URI
+  ? `<img src="${KUMII_LOGO_URI}" alt="Kumii Learning" width="120"
+         style="display:block;margin:0 auto 8px;opacity:0.85;">`
+  : `<span style="font-size:20px;font-weight:800;color:#15803d;">Kumii</span>`;
 
 /* ── Certificate-issued email ──────────────────────────────────────────────── */
 
@@ -192,4 +213,181 @@ async function sendCertificateEmail({ to, learnerName, courseTitle, pdfUrl, cert
   }
 }
 
-module.exports = { sendCertificateEmail };
+module.exports = { sendCertificateEmail, sendRecordingEmail };
+
+/* ── Recording available email ─────────────────────────────────────────────── */
+
+/**
+ * Send a "session recording is available" email to one participant.
+ *
+ * @param {object}   opts
+ * @param {string}   opts.to              — recipient email
+ * @param {string}   opts.recipientName   — first name / display name
+ * @param {string}   opts.sessionTitle    — e.g. "KUMii Access To Market"
+ * @param {string}   opts.sessionDate     — human-readable date string
+ * @param {string}   opts.instructor      — instructor name
+ * @param {Array}    opts.recordings      — Daily.co recording objects
+ */
+async function sendRecordingEmail({
+  to,
+  recipientName,
+  sessionTitle,
+  sessionDate,
+  instructor,
+  recordings = [],
+}) {
+  if (!to) {
+    logger.warn('[email] sendRecordingEmail: no recipient — skipping');
+    return;
+  }
+
+  /* ── Build recording rows ── */
+  const recRows = recordings
+    .map((r, i) => {
+      const startDate = r.start_ts
+        ? new Date(r.start_ts * 1000).toLocaleString('en-GB', {
+            day: '2-digit', month: 'short', year: 'numeric',
+            hour: '2-digit', minute: '2-digit',
+          })
+        : 'Recording';
+      const durationLabel = r.duration
+        ? `${Math.floor(r.duration / 60)}m ${r.duration % 60}s`
+        : '';
+      const dlBtn = r.download_link
+        ? `<a href="${r.download_link}"
+               style="display:inline-block;padding:9px 22px;
+                      background:#4f46e5;color:#ffffff;
+                      text-decoration:none;border-radius:7px;
+                      font-weight:700;font-size:13px;">
+             ⬇ Download Recording ${recordings.length > 1 ? i + 1 : ''}
+           </a>`
+        : `<span style="color:#9ca3af;font-size:12px;">Processing — check back soon</span>`;
+
+      return `
+        <tr>
+          <td style="padding:14px 20px;border-bottom:1px solid #e5e7eb;
+                     font-size:14px;color:#374151;">
+            ${startDate}${durationLabel ? ` &nbsp;·&nbsp; ${durationLabel}` : ''}
+          </td>
+          <td style="padding:14px 20px;border-bottom:1px solid #e5e7eb;text-align:right;">
+            ${dlBtn}
+          </td>
+        </tr>`;
+    })
+    .join('');
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Session Recording — ${sessionTitle}</title>
+</head>
+<body style="margin:0;padding:0;background:#f1f5f9;
+             font-family:'Segoe UI',Helvetica,Arial,sans-serif;">
+
+  <table width="100%" cellpadding="0" cellspacing="0" role="presentation"
+         style="background:#f1f5f9;padding:48px 16px;">
+    <tr><td align="center">
+
+      <!-- Card -->
+      <table width="580" cellpadding="0" cellspacing="0" role="presentation"
+             style="background:#ffffff;border-radius:18px;overflow:hidden;
+                    box-shadow:0 8px 32px rgba(0,0,0,0.10);">
+
+        <!-- Header -->
+        <tr>
+          <td style="background:linear-gradient(135deg,#4f46e5 0%,#7c3aed 100%);
+                     padding:36px 40px;text-align:center;">
+            <div style="font-size:30px;font-weight:800;color:#ffffff;
+                        letter-spacing:-0.5px;">Kumii</div>
+            <div style="font-size:11px;color:rgba(255,255,255,0.75);
+                        letter-spacing:2.5px;text-transform:uppercase;
+                        margin-top:6px;">Learning Hub</div>
+          </td>
+        </tr>
+
+        <!-- Banner -->
+        <tr>
+          <td style="background:#eef2ff;padding:24px 40px;text-align:center;
+                     border-bottom:2px solid #c7d2fe;">
+            <div style="font-size:44px;margin-bottom:10px;">🎬</div>
+            <h1 style="margin:0 0 6px;font-size:21px;font-weight:800;color:#3730a3;">
+              Your session recording is ready
+            </h1>
+            <p style="margin:0;font-size:14px;color:#4b5563;">
+              <strong>${sessionTitle}</strong>${sessionDate ? ` &nbsp;·&nbsp; ${sessionDate}` : ''}
+            </p>
+          </td>
+        </tr>
+
+        <!-- Body -->
+        <tr>
+          <td style="padding:32px 40px;">
+            <p style="margin:0 0 20px;font-size:15px;line-height:1.65;color:#374151;">
+              Hi ${recipientName ? `<strong>${recipientName}</strong>` : 'there'},
+            </p>
+            <p style="margin:0 0 24px;font-size:15px;line-height:1.65;color:#374151;">
+              The recording for
+              <strong>${sessionTitle}</strong>${instructor ? ` hosted by <strong>${instructor}</strong>` : ''}
+              is now available. Use the link${recordings.length > 1 ? 's' : ''} below to download
+              ${recordings.length > 1 ? 'your copies' : 'your copy'}.
+            </p>
+
+            <!-- Recordings table -->
+            <table cellpadding="0" cellspacing="0" width="100%"
+                   style="border:1px solid #e5e7eb;border-radius:10px;
+                          overflow:hidden;margin:0 0 28px;">
+              ${recRows || `
+              <tr>
+                <td colspan="2" style="padding:20px;text-align:center;
+                                        font-size:14px;color:#9ca3af;">
+                  Recording link will be available shortly.
+                </td>
+              </tr>`}
+            </table>
+
+            <p style="margin:0;font-size:13px;line-height:1.6;color:#6b7280;">
+              Download links expire after 6 hours. If you need a fresh link,
+              please contact your session administrator.
+            </p>
+          </td>
+        </tr>
+
+        <!-- Footer with Kumii logo -->
+        <tr>
+          <td style="background:#f9fafb;padding:28px 40px;text-align:center;
+                     border-top:1px solid #f1f5f9;">
+            ${logoFooterHtml}
+            <p style="margin:8px 0 0;font-size:12px;color:#9ca3af;line-height:1.6;">
+              Sent by <strong style="color:#6b7280;">Kumii Learning Hub</strong>.<br>
+              Keep learning. Keep growing.
+            </p>
+          </td>
+        </tr>
+
+      </table>
+    </td></tr>
+  </table>
+
+</body>
+</html>`;
+
+  try {
+    const { data, error } = await getResend().emails.send({
+      from:    FROM,
+      to:      [to],
+      subject: `🎬 Recording available: "${sessionTitle}" — Kumii Learning`,
+      html,
+    });
+
+    if (error) {
+      logger.warn('[email] sendRecordingEmail: Resend error', { to, error });
+    } else {
+      logger.info('[email] Recording email sent', { id: data?.id, to });
+    }
+  } catch (err) {
+    logger.warn('[email] sendRecordingEmail: failed', { to, message: err.message });
+    throw err;
+  }
+}

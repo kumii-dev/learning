@@ -8,6 +8,7 @@
 const { v4: uuid }          = require('uuid');
 const { supabaseAdmin }     = require('../../integrations/supabase');
 const { createDailyRoom, deleteDailyRoom, getRoomRecordings } = require('../../integrations/videoProvider');
+const { sendRecordingEmail } = require('../../utils/emailService');
 
 const SESSION_FIELDS =
   'id, title, topic, description, instructor, scheduled_at, end_time, ' +
@@ -210,4 +211,79 @@ async function getSessionRecordings(sessionId) {
   return recordings;
 }
 
-module.exports = { getLiveSessions, createSession, updateSession, deleteSession, toggleRsvp, getSessionRecordings };
+module.exports = { getLiveSessions, createSession, updateSession, deleteSession, toggleRsvp, getSessionRecordings, emailRecordingToParticipants };
+
+/**
+ * Bulk-email all RSVP'd participants the recording download links for a session.
+ *
+ * Flow:
+ *  1. Fetch session details + latest recordings from Daily.co
+ *  2. Fetch all RSVPs for the session
+ *  3. Look up email + full_name from profiles for each RSVP user
+ *  4. Send sendRecordingEmail() to each — collects sent/failed counts
+ *
+ * @param {string} sessionId
+ * @returns {{ sent: number, failed: number, skipped: number }}
+ */
+async function emailRecordingToParticipants(sessionId) {
+  // 1. Session + recordings
+  const { data: session, error: sessionErr } = await supabaseAdmin
+    .from('live_sessions')
+    .select('id, title, scheduled_at, instructor, room_name')
+    .eq('id', sessionId)
+    .maybeSingle();
+
+  if (sessionErr || !session) throw new Error('Session not found');
+
+  const recordings = session.room_name ? await getRoomRecordings(session.room_name) : [];
+
+  const sessionDate = session.scheduled_at
+    ? new Date(session.scheduled_at).toLocaleString('en-GB', {
+        day: '2-digit', month: 'short', year: 'numeric',
+        hour: '2-digit', minute: '2-digit',
+      })
+    : null;
+
+  // 2. RSVPs
+  const { data: rsvps, error: rsvpErr } = await supabaseAdmin
+    .from('session_rsvps')
+    .select('user_id')
+    .eq('session_id', sessionId);
+
+  if (rsvpErr) throw rsvpErr;
+  if (!rsvps || rsvps.length === 0) return { sent: 0, failed: 0, skipped: 0 };
+
+  const userIds = [...new Set(rsvps.map((r) => r.user_id))];
+
+  // 3. Profile emails
+  const { data: profiles, error: profileErr } = await supabaseAdmin
+    .from('profiles')
+    .select('id, email, full_name')
+    .in('id', userIds);
+
+  if (profileErr) throw profileErr;
+
+  // 4. Send emails
+  let sent = 0, failed = 0, skipped = 0;
+
+  await Promise.allSettled(
+    (profiles ?? []).map(async (p) => {
+      if (!p.email) { skipped++; return; }
+      try {
+        await sendRecordingEmail({
+          to:            p.email,
+          recipientName: p.full_name ?? '',
+          sessionTitle:  session.title,
+          sessionDate,
+          instructor:    session.instructor ?? '',
+          recordings,
+        });
+        sent++;
+      } catch {
+        failed++;
+      }
+    }),
+  );
+
+  return { sent, failed, skipped };
+}
