@@ -7,7 +7,7 @@
 
 const { v4: uuid }          = require('uuid');
 const { supabaseAdmin }     = require('../../integrations/supabase');
-const { createDailyRoom, deleteDailyRoom } = require('../../integrations/videoProvider');
+const { createDailyRoom, deleteDailyRoom, getRoomRecordings } = require('../../integrations/videoProvider');
 
 const SESSION_FIELDS =
   'id, title, topic, description, instructor, scheduled_at, end_time, ' +
@@ -179,4 +179,35 @@ async function toggleRsvp(sessionId, userId) {
   return { rsvped: true };
 }
 
-module.exports = { getLiveSessions, createSession, updateSession, deleteSession, toggleRsvp };
+/**
+ * Fetch cloud recordings for a session from Daily.co.
+ * Also syncs the recording_url of the latest recording back to the DB.
+ */
+async function getSessionRecordings(sessionId) {
+  // Look up the room_name for this session
+  const { data: session, error } = await supabaseAdmin
+    .from('live_sessions')
+    .select('room_name, recording_url')
+    .eq('id', sessionId)
+    .maybeSingle();
+
+  if (error || !session?.room_name) return [];
+
+  const recordings = await getRoomRecordings(session.room_name);
+
+  // Sync the most recent recording URL back to the DB row
+  if (recordings.length > 0) {
+    const latest = recordings[0];
+    const downloadUrl = latest.download_link ?? latest.s3_key ?? null;
+    if (downloadUrl && downloadUrl !== session.recording_url) {
+      await supabaseAdmin
+        .from('live_sessions')
+        .update({ recording_url: downloadUrl, status: 'ended', updated_at: new Date().toISOString() })
+        .eq('id', sessionId);
+    }
+  }
+
+  return recordings;
+}
+
+module.exports = { getLiveSessions, createSession, updateSession, deleteSession, toggleRsvp, getSessionRecordings };

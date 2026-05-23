@@ -43,10 +43,18 @@ const rsvpLiveSession = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
+const getSessionRecordings = async (req, res, next) => {
+  try {
+    const recordings = await svc.getSessionRecordings(req.params.id);
+    res.json({ data: recordings });
+  } catch (err) { next(err); }
+};
+
 module.exports = {
   listLiveSessions,
   createLiveSession,
   updateLiveSession,
   deleteLiveSession,
   rsvpLiveSession,
+  getSessionRecordings,
 };

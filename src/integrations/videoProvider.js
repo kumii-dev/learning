@@ -103,4 +103,27 @@ async function deleteDailyRoom(roomName) {
   }
 }
 
-module.exports = { createDailyRoom, deleteDailyRoom };
+/**
+ * Fetch all cloud recordings for a Daily.co room.
+ * Returns an array of recording objects with download/streaming URLs.
+ *
+ * @param {string} roomName
+ * @returns {Promise<Array>}
+ */
+async function getRoomRecordings(roomName) {
+  const apiKey = process.env.DAILY_API_KEY;
+  if (!apiKey || !roomName) return [];
+  try {
+    const { data } = await axios.get(`${DAILY_API_BASE}/recordings`, {
+      headers: { Authorization: `Bearer ${apiKey}` },
+      params:  { room_name: roomName },
+      timeout: 10_000,
+    });
+    return data?.data ?? [];
+  } catch (err) {
+    console.error('[Daily] getRoomRecordings error:', err.response?.data ?? err.message);
+    return [];
+  }
+}
+
+module.exports = { createDailyRoom, deleteDailyRoom, getRoomRecordings };

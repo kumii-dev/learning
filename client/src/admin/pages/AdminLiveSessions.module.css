@@ -196,6 +196,112 @@
 }
 .deleteBtn:hover { background: #fecaca; }
 
+/* ── Recordings button ─────────────────────────────────────── */
+.recBtn {
+  padding: 0.3rem 0.65rem;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  background: #fef3c7;
+  color: #92400e;
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.recBtn:hover { background: #fde68a; }
+
+/* ── Recordings modal body ──────────────────────────────────── */
+.recSubtitle {
+  font-size: 0.85rem;
+  color: #6b7280;
+  margin: 2px 0 0;
+}
+.recBody {
+  padding: 16px 0 4px;
+}
+.recInfo {
+  color: #6b7280;
+  font-size: 0.9rem;
+  padding: 12px 0;
+}
+.recError {
+  color: #ef4444;
+  font-size: 0.9rem;
+  padding: 12px 0;
+}
+.recEmpty {
+  text-align: center;
+  padding: 32px 16px;
+  color: #6b7280;
+}
+.recEmptyIcon {
+  font-size: 2.5rem;
+  display: block;
+  margin-bottom: 12px;
+}
+.recHint {
+  font-size: 0.8rem;
+  margin-top: 8px;
+  line-height: 1.6;
+}
+
+/* ── Recordings table ───────────────────────────────────────── */
+.recTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+.recTable th,
+.recTable td {
+  padding: 8px 10px;
+  text-align: left;
+  border-bottom: 1px solid #e5e7eb;
+}
+.recTable th {
+  font-weight: 600;
+  color: #374151;
+  background: #f9fafb;
+}
+.recTable tr:last-child td { border-bottom: none; }
+
+.recStatus {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: #d1fae5;
+  color: #065f46;
+  text-transform: capitalize;
+}
+.recStatus[data-status="processing"] {
+  background: #fef3c7;
+  color: #92400e;
+}
+.recStatus[data-status="failed"] {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.recDownloadBtn {
+  display: inline-block;
+  padding: 4px 12px;
+  background: #4f46e5;
+  color: #fff;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: opacity 0.15s;
+}
+.recDownloadBtn:hover { opacity: 0.85; }
+
+.recNA {
+  color: #9ca3af;
+  font-size: 0.8rem;
+  font-style: italic;
+}
+
 .empty {
   text-align: center;
   padding: 2rem;

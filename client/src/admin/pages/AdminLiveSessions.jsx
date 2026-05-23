@@ -1,6 +1,6 @@
 /**
  * client/src/admin/pages/AdminLiveSessions.jsx
- * Admin CMS page — schedule, edit, delete live sessions.
+ * Admin CMS page — schedule, edit, delete live sessions + recording downloads.
  */
 
 import { useState, useEffect, useCallback } from 'react';
@@ -26,6 +26,19 @@ function formatDate(iso) {
   });
 }
 
+function formatDuration(seconds) {
+  if (!seconds) return '—';
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${m}m ${s}s`;
+}
+
+function formatBytes(bytes) {
+  if (!bytes) return '—';
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
 const STATUS_COLOURS = {
   scheduled: '#3b82f6',
   live:      '#22c55e',
@@ -38,6 +51,93 @@ const EMPTY_FORM = {
   scheduledAt: '', durationMin: 60, courseId: '',
   maxAttendees: '', roomPassword: '', isPublic: true,
 };
+
+/* ── RecordingsPanel ─────────────────────────────────────────────── */
+function RecordingsPanel({ session, onClose }) {
+  const [recordings, setRecordings] = useState([]);
+  const [loading,    setLoading]    = useState(true);
+  const [error,      setError]      = useState(null);
+
+  useEffect(() => {
+    apiClient.get(`${API}/${session.id}/recordings`)
+      .then((r) => setRecordings(r.data?.data ?? []))
+      .catch((e) => setError(e?.message ?? 'Failed to load recordings'))
+      .finally(() => setLoading(false));
+  }, [session.id]);
+
+  return (
+    <div className={styles.modalBackdrop} onClick={onClose}>
+      <div className={styles.modal} style={{ maxWidth: 680 }} onClick={(e) => e.stopPropagation()}>
+        <div className={styles.modalHeader}>
+          <div>
+            <h2>Recordings</h2>
+            <p className={styles.recSubtitle}>{session.title}</p>
+          </div>
+          <button className={styles.closeBtn} onClick={onClose}>✕</button>
+        </div>
+
+        <div className={styles.recBody}>
+          {loading && <p className={styles.recInfo}>Loading recordings…</p>}
+          {error   && <p className={styles.recError}>⚠ {error}</p>}
+          {!loading && !error && recordings.length === 0 && (
+            <div className={styles.recEmpty}>
+              <span className={styles.recEmptyIcon}>🎬</span>
+              <p>No recordings found for this session.</p>
+              <p className={styles.recHint}>
+                Cloud recording must be started during the session.<br />
+                Recordings may take a few minutes to process after the call ends.
+              </p>
+            </div>
+          )}
+          {!loading && recordings.length > 0 && (
+            <table className={styles.recTable}>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Started</th>
+                  <th>Duration</th>
+                  <th>Size</th>
+                  <th>Status</th>
+                  <th>Download</th>
+                </tr>
+              </thead>
+              <tbody>
+                {recordings.map((r, i) => (
+                  <tr key={r.id ?? i}>
+                    <td>{i + 1}</td>
+                    <td>{r.start_ts ? formatDate(new Date(r.start_ts * 1000).toISOString()) : '—'}</td>
+                    <td>{formatDuration(r.duration)}</td>
+                    <td>{formatBytes(r.file_size_bytes ?? r.filesize)}</td>
+                    <td>
+                      <span className={styles.recStatus} data-status={r.status ?? 'finished'}>
+                        {r.status ?? 'finished'}
+                      </span>
+                    </td>
+                    <td>
+                      {r.download_link ? (
+                        <a
+                          href={r.download_link}
+                          download
+                          target="_blank"
+                          rel="noreferrer"
+                          className={styles.recDownloadBtn}
+                        >
+                          ⬇ Download
+                        </a>
+                      ) : (
+                        <span className={styles.recNA}>Processing…</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 /* ── subcomponents ───────────────────────────────────────────────── */
 function StatCard({ label, value, colour }) {
@@ -126,13 +226,14 @@ function SessionModal({ initial, onSave, onClose, loading }) {
 
 /* ── main component ──────────────────────────────────────────────── */
 export default function AdminLiveSessions() {
-  const [sessions,  setSessions]  = useState([]);
-  const [loading,   setLoading]   = useState(true);
-  const [error,     setError]     = useState(null);
-  const [saveError, setSaveError] = useState(null);
-  const [modal,     setModal]     = useState(null);
-  const [saving,    setSaving]    = useState(false);
-  const [search,    setSearch]    = useState('');
+  const [sessions,        setSessions]        = useState([]);
+  const [loading,         setLoading]         = useState(true);
+  const [error,           setError]           = useState(null);
+  const [saveError,       setSaveError]       = useState(null);
+  const [modal,           setModal]           = useState(null);
+  const [saving,          setSaving]          = useState(false);
+  const [search,          setSearch]          = useState('');
+  const [recordingSession, setRecordingSession] = useState(null);
 
   const fetchSessions = useCallback(async () => {
     setLoading(true);
@@ -281,6 +382,13 @@ export default function AdminLiveSessions() {
                         Join
                       </a>
                       <button
+                        className={styles.recBtn}
+                        onClick={() => setRecordingSession(s)}
+                        title="View & download recordings"
+                      >
+                        🎬 Recordings
+                      </button>
+                      <button
                         className={styles.editBtn}
                         onClick={() => setModal(s)}
                         title="Edit session"
@@ -303,7 +411,15 @@ export default function AdminLiveSessions() {
         </div>
       )}
 
-      {/* Modal */}
+      {/* Recordings panel */}
+      {recordingSession && (
+        <RecordingsPanel
+          session={recordingSession}
+          onClose={() => setRecordingSession(null)}
+        />
+      )}
+
+      {/* Schedule / Edit modal */}
       {modal && (
         <>
           {saveError && (
@@ -327,3 +443,4 @@ export default function AdminLiveSessions() {
     </div>
   );
 }
+
