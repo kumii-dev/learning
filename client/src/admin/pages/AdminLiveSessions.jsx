@@ -39,6 +39,55 @@ function formatBytes(bytes) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+/**
+ * Minimal Markdown → HTML converter for the AI summary panel.
+ * Handles: ## headings, **bold**, bullet lists, > blockquotes, blank-line paragraphs.
+ * No external dependency needed.
+ */
+function markdownToHtml(md) {
+  if (!md) return '';
+  const escape = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const inline = (s) => escape(s)
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g,     '<em>$1</em>')
+    .replace(/`(.+?)`/g,       '<code>$1</code>');
+
+  const lines  = md.split('\n');
+  const output = [];
+  let inList = false, inBlockquote = false;
+
+  const closeList = () => { if (inList) { output.push('</ul>'); inList = false; } };
+  const closeQuote = () => { if (inBlockquote) { output.push('</blockquote>'); inBlockquote = false; } };
+
+  for (const raw of lines) {
+    const line = raw.trimEnd();
+
+    if (/^## (.+)/.test(line)) {
+      closeList(); closeQuote();
+      output.push(`<h3>${inline(line.slice(3))}</h3>`);
+    } else if (/^# (.+)/.test(line)) {
+      closeList(); closeQuote();
+      output.push(`<h2>${inline(line.slice(2))}</h2>`);
+    } else if (/^> (.+)/.test(line)) {
+      closeList();
+      if (!inBlockquote) { output.push('<blockquote>'); inBlockquote = true; }
+      output.push(`<p>${inline(line.slice(2))}</p>`);
+    } else if (/^[-*] (.+)/.test(line)) {
+      closeQuote();
+      if (!inList) { output.push('<ul>'); inList = true; }
+      output.push(`<li>${inline(line.replace(/^[-*] /, ''))}</li>`);
+    } else if (line.trim() === '') {
+      closeList(); closeQuote();
+      output.push('<br>');
+    } else {
+      closeList(); closeQuote();
+      output.push(`<p>${inline(line)}</p>`);
+    }
+  }
+  closeList(); closeQuote();
+  return output.join('');
+}
+
 const STATUS_COLOURS = {
   scheduled: '#3b82f6',
   live:      '#22c55e',
@@ -54,12 +103,22 @@ const EMPTY_FORM = {
 
 /* ── RecordingsPanel ─────────────────────────────────────────────── */
 function RecordingsPanel({ session, onClose }) {
-  const [recordings,  setRecordings]  = useState([]);
-  const [loading,     setLoading]     = useState(true);
-  const [error,       setError]       = useState(null);
-  const [emailing,    setEmailing]    = useState(false);
-  const [emailResult, setEmailResult] = useState(null); // { sent, failed, skipped }
-  const [emailError,  setEmailError]  = useState(null);
+  const [recordings,   setRecordings]   = useState([]);
+  const [loading,      setLoading]      = useState(true);
+  const [error,        setError]        = useState(null);
+  const [emailing,     setEmailing]     = useState(false);
+  const [emailResult,  setEmailResult]  = useState(null);
+  const [emailError,   setEmailError]   = useState(null);
+
+  // Transcript / summary state — seeded from session row if already generated
+  const [txStatus,     setTxStatus]     = useState(session.transcript_status ?? 'none');
+  const [txText,       setTxText]       = useState(session.transcript_text   ?? null);
+  const [sumStatus,    setSumStatus]    = useState(session.summary_status    ?? 'none');
+  const [sumText,      setSumText]      = useState(session.summary_text      ?? null);
+  const [txGenerating, setTxGenerating] = useState(false);
+  const [txError,      setTxError]      = useState(null);
+  const [txExpanded,   setTxExpanded]   = useState(false);
+  const [sumExpanded,  setSumExpanded]  = useState(true);
 
   useEffect(() => {
     apiClient.get(`${API}/${session.id}/recordings`)
@@ -85,18 +144,44 @@ function RecordingsPanel({ session, onClose }) {
     }
   };
 
+  const handleGenerateTranscript = async () => {
+    if (txStatus === 'done' && !window.confirm(
+      'A transcript already exists. Re-generate and overwrite it?'
+    )) return;
+    setTxGenerating(true);
+    setTxError(null);
+    setTxStatus('processing');
+    setSumStatus('processing');
+    try {
+      const res = await apiClient.post(`${API}/${session.id}/transcript`);
+      setTxStatus(res.data.transcriptStatus);
+      setTxText(res.data.transcriptText ?? null);
+      setSumStatus(res.data.summaryStatus);
+      setSumText(res.data.summaryText ?? null);
+      if (res.data.transcriptStatus === 'done') setSumExpanded(true);
+    } catch (e) {
+      setTxError(e?.response?.data?.error ?? e?.message ?? 'Failed to generate transcript');
+      setTxStatus('failed');
+      setSumStatus('failed');
+    } finally {
+      setTxGenerating(false);
+    }
+  };
+
   return (
     <div className={styles.modalBackdrop} onClick={onClose}>
-      <div className={styles.modal} style={{ maxWidth: 700 }} onClick={(e) => e.stopPropagation()}>
+      <div className={styles.modal} style={{ maxWidth: 760 }} onClick={(e) => e.stopPropagation()}>
         <div className={styles.modalHeader}>
           <div>
-            <h2>Recordings</h2>
+            <h2>Recordings &amp; Transcript</h2>
             <p className={styles.recSubtitle}>{session.title}</p>
           </div>
           <button className={styles.closeBtn} onClick={onClose}>✕</button>
         </div>
 
         <div className={styles.recBody}>
+
+          {/* ── Recordings table ── */}
           {loading && <p className={styles.recInfo}>Loading recordings…</p>}
           {error   && <p className={styles.recError}>⚠ {error}</p>}
           {!loading && !error && recordings.length === 0 && (
@@ -135,15 +220,8 @@ function RecordingsPanel({ session, onClose }) {
                     </td>
                     <td>
                       {r.download_link ? (
-                        <a
-                          href={r.download_link}
-                          download
-                          target="_blank"
-                          rel="noreferrer"
-                          className={styles.recDownloadBtn}
-                        >
-                          ⬇ Download
-                        </a>
+                        <a href={r.download_link} download target="_blank" rel="noreferrer"
+                           className={styles.recDownloadBtn}>⬇ Download</a>
                       ) : (
                         <span className={styles.recNA}>Processing…</span>
                       )}
@@ -159,34 +237,103 @@ function RecordingsPanel({ session, onClose }) {
             <div className={styles.recEmailRow}>
               <div className={styles.recEmailInfo}>
                 <strong>📧 Notify participants</strong>
-                <span>
-                  Send the recording download link to all RSVP'd participants via email.
-                  {recordings.length === 0 && ' (No recordings yet — email will still be sent with a note.)'}
-                </span>
+                <span>Send the recording download link to all RSVP'd participants via email.</span>
               </div>
-              <button
-                className={styles.emailBtn}
-                onClick={handleEmailParticipants}
-                disabled={emailing}
-              >
+              <button className={styles.emailBtn} onClick={handleEmailParticipants} disabled={emailing}>
                 {emailing ? 'Sending…' : '📧 Email Participants'}
               </button>
             </div>
           )}
-
-          {/* Result banner */}
           {emailResult && (
             <div className={styles.emailResultBanner} data-ok="true">
               ✅ Emails sent: <strong>{emailResult.sent}</strong>
               {emailResult.failed  > 0 && <span> · Failed: <strong>{emailResult.failed}</strong></span>}
-              {emailResult.skipped > 0 && <span> · Skipped (no email): <strong>{emailResult.skipped}</strong></span>}
+              {emailResult.skipped > 0 && <span> · Skipped: <strong>{emailResult.skipped}</strong></span>}
             </div>
           )}
           {emailError && (
-            <div className={styles.emailResultBanner} data-ok="false">
-              ⚠ {emailError}
-            </div>
+            <div className={styles.emailResultBanner} data-ok="false">⚠ {emailError}</div>
           )}
+
+          {/* ── Transcript & Summary section ── */}
+          <div className={styles.txSection}>
+            <div className={styles.txSectionHeader}>
+              <div>
+                <span className={styles.txSectionTitle}>✨ AI Transcript &amp; Summary</span>
+                <span className={styles.txSectionHint}>
+                  Tries Daily.co built-in transcripts first, then falls back to OpenAI Whisper.
+                  GPT-4o generates the structured summary.
+                </span>
+              </div>
+              <button
+                className={styles.txGenerateBtn}
+                onClick={handleGenerateTranscript}
+                disabled={txGenerating}
+              >
+                {txGenerating
+                  ? '⏳ Generating…'
+                  : txStatus === 'done'
+                    ? '↺ Re-generate'
+                    : '✨ Generate'}
+              </button>
+            </div>
+
+            {txError && (
+              <div className={styles.emailResultBanner} data-ok="false">⚠ {txError}</div>
+            )}
+
+            {(txStatus === 'processing') && (
+              <div className={styles.txProcessing}>
+                <span className={styles.txSpinner} />
+                Transcribing audio and generating summary — this may take 1–3 minutes for long sessions…
+              </div>
+            )}
+
+            {/* AI Summary */}
+            {sumStatus === 'done' && sumText && (
+              <div className={styles.txCard}>
+                <button
+                  className={styles.txCardToggle}
+                  onClick={() => setSumExpanded((v) => !v)}
+                >
+                  <span>📊 AI Summary</span>
+                  <span className={styles.txChevron}>{sumExpanded ? '▲' : '▼'}</span>
+                </button>
+                {sumExpanded && (
+                  <div
+                    className={styles.txMarkdown}
+                    /* Render Markdown as formatted text. We convert basic Markdown
+                       to HTML via a lightweight regex approach — no external parser needed. */
+                    dangerouslySetInnerHTML={{ __html: markdownToHtml(sumText) }}
+                  />
+                )}
+              </div>
+            )}
+
+            {/* Raw Transcript */}
+            {txStatus === 'done' && txText && (
+              <div className={styles.txCard}>
+                <button
+                  className={styles.txCardToggle}
+                  onClick={() => setTxExpanded((v) => !v)}
+                >
+                  <span>📄 Full Transcript</span>
+                  <span className={styles.txChevron}>{txExpanded ? '▲' : '▼'}</span>
+                </button>
+                {txExpanded && (
+                  <pre className={styles.txPre}>{txText}</pre>
+                )}
+              </div>
+            )}
+
+            {txStatus === 'failed' && !txError && (
+              <p className={styles.recError}>
+                ⚠ Could not generate transcript. This session may not have a cloud recording yet,
+                or the recording is still processing. Try again in a few minutes.
+              </p>
+            )}
+          </div>
+
         </div>
       </div>
     </div>

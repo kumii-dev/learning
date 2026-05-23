@@ -7,8 +7,10 @@
 
 'use strict';
 
-const OpenAI = require('openai');
-const logger = require('../utils/logger');
+const OpenAI        = require('openai');
+const { toFile }    = require('openai/uploads');
+const axios         = require('axios');
+const logger        = require('../utils/logger');
 
 // Lazy singleton — avoids throwing at module load when the key is not yet set.
 // timeout: 8 000 ms — keeps well inside Vercel's 10 s function limit so safeAI
@@ -120,4 +122,115 @@ async function generateAssessmentFeedback(submission) {
   });
 }
 
-module.exports = { getCourseRecommendations, analyseSkillGap, generateAssessmentFeedback };
+module.exports = { getCourseRecommendations, analyseSkillGap, generateAssessmentFeedback, transcribeAudio, summariseTranscript };
+
+/* ── Audio Transcription (Whisper) ─────────────────────────────────────────── */
+
+/**
+ * Transcribe a session recording using OpenAI Whisper.
+ * Streams the file from the provided URL directly to the Whisper API —
+ * avoids writing to disk and keeps memory usage low for large recordings.
+ *
+ * Whisper has a 25 MB file size limit.  For longer recordings Daily.co
+ * transcripts should be used instead (see videoProvider.getSessionTranscripts).
+ *
+ * @param {string} downloadUrl  Pre-signed URL to the recording (mp4 / webm)
+ * @param {string} [filename]   Original filename hint for MIME detection
+ * @returns {Promise<string|null>}  Plain-text transcript, or null on failure
+ */
+async function transcribeAudio(downloadUrl, filename = 'recording.mp4') {
+  if (!downloadUrl) return null;
+
+  return safeAI(async (ai) => {
+    // 1. Stream the recording from the pre-signed URL
+    const response = await axios.get(downloadUrl, {
+      responseType: 'stream',
+      timeout:      120_000,   // 2 min — large files
+    });
+
+    // 2. Wrap the stream in an OpenAI-compatible File object
+    const fileObj = await toFile(response.data, filename, {
+      type: response.headers['content-type'] ?? 'video/mp4',
+    });
+
+    // 3. Send to Whisper
+    const transcription = await ai.audio.transcriptions.create({
+      file:            fileObj,
+      model:           'whisper-1',
+      response_format: 'text',
+      language:        'en',
+    });
+
+    return typeof transcription === 'string'
+      ? transcription.trim()
+      : (transcription?.text?.trim() ?? null);
+  });
+}
+
+/* ── Transcript Summary (GPT-4o) ───────────────────────────────────────────── */
+
+/**
+ * Generate a structured Markdown summary of a session transcript using GPT-4o.
+ *
+ * @param {object} opts
+ * @param {string}  opts.transcript   Full transcript text
+ * @param {string}  opts.sessionTitle Session / webinar title
+ * @param {string}  [opts.instructor] Instructor / host name
+ * @param {string}  [opts.topic]      Session topic / subject area
+ * @returns {Promise<string|null>}  Markdown summary, or null on failure
+ */
+async function summariseTranscript({ transcript, sessionTitle, instructor, topic }) {
+  if (!transcript?.trim()) return null;
+
+  // Truncate very long transcripts to stay within token limits (~30 000 chars ≈ 7 500 tokens)
+  const MAX_CHARS  = 28_000;
+  const truncated  = transcript.length > MAX_CHARS
+    ? transcript.slice(0, MAX_CHARS) + '\n\n[Transcript truncated for brevity]'
+    : transcript;
+
+  const contextLine = [
+    `Session: "${sessionTitle}"`,
+    instructor ? `Host: ${instructor}` : '',
+    topic      ? `Topic: ${topic}`     : '',
+  ].filter(Boolean).join(' | ');
+
+  return safeAI(async (ai) => {
+    const completion = await ai.chat.completions.create({
+      model: 'gpt-4o',
+      messages: [
+        {
+          role: 'system',
+          content: `You are an expert learning facilitator. Analyse the provided live-session transcript and produce a structured Markdown summary for the session administrator and learners. Use clear headings.
+
+Your summary MUST include the following sections (use ## for headings):
+## 🎯 Session Overview
+One paragraph describing the session purpose and key context.
+
+## 📋 Key Topics Covered
+Bulleted list of the main topics discussed.
+
+## 💡 Key Insights & Takeaways
+The most important learning points — concise bullet points.
+
+## ✅ Action Items
+Concrete next steps or tasks mentioned in the session. If none, say "No specific action items were identified."
+
+## ❓ Questions & Answers
+Summarise significant questions raised and answers given. If none, say "No notable Q&A captured."
+
+## 📝 Notable Quotes
+Up to 3 impactful or memorable direct quotes from the session (only if clearly present in the transcript). Wrap each in > blockquote.
+
+Keep the tone professional and accessible. Write for learners who were not in the session.`,
+        },
+        {
+          role: 'user',
+          content: `${contextLine}\n\n--- TRANSCRIPT ---\n${truncated}`,
+        },
+      ],
+      max_tokens: 1_800,
+    });
+
+    return completion.choices[0]?.message?.content?.trim() ?? null;
+  });
+}

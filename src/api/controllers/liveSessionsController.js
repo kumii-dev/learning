@@ -57,6 +57,13 @@ const emailRecordingParticipants = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
+const generateTranscript = async (req, res, next) => {
+  try {
+    const result = await svc.generateTranscriptAndSummary(req.params.id);
+    res.json(result);
+  } catch (err) { next(err); }
+};
+
 module.exports = {
   listLiveSessions,
   createLiveSession,
@@ -65,4 +72,5 @@ module.exports = {
   rsvpLiveSession,
   getSessionRecordings,
   emailRecordingParticipants,
+  generateTranscript,
 };

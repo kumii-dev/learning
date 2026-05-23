@@ -7,13 +7,16 @@
 
 const { v4: uuid }          = require('uuid');
 const { supabaseAdmin }     = require('../../integrations/supabase');
-const { createDailyRoom, deleteDailyRoom, getRoomRecordings } = require('../../integrations/videoProvider');
-const { sendRecordingEmail } = require('../../utils/emailService');
+const { createDailyRoom, deleteDailyRoom, getRoomRecordings,
+        getSessionTranscripts, getDailyTranscriptText } = require('../../integrations/videoProvider');
+const { sendRecordingEmail }  = require('../../utils/emailService');
+const { transcribeAudio, summariseTranscript } = require('../../integrations/openai');
 
 const SESSION_FIELDS =
   'id, title, topic, description, instructor, scheduled_at, end_time, ' +
   'join_url, meeting_url, room_name, room_password, platform, duration_min, ' +
-  'course_id, max_attendees, status, is_public, host_id';
+  'course_id, max_attendees, status, is_public, host_id, ' +
+  'transcript_text, transcript_status, summary_text, summary_status';
 
 /**
  * Fetch all live sessions, enriched with RSVP count + optional user RSVP flag.
@@ -211,7 +214,104 @@ async function getSessionRecordings(sessionId) {
   return recordings;
 }
 
-module.exports = { getLiveSessions, createSession, updateSession, deleteSession, toggleRsvp, getSessionRecordings, emailRecordingToParticipants };
+module.exports = { getLiveSessions, createSession, updateSession, deleteSession, toggleRsvp, getSessionRecordings, emailRecordingToParticipants, generateTranscriptAndSummary };
+
+/**
+ * Generate an AI transcript + structured summary for a live session.
+ *
+ * Strategy (in priority order):
+ *  1. Daily.co built-in transcripts API  (free on Business/Enterprise plans)
+ *  2. OpenAI Whisper on the first cloud recording (fallback)
+ *
+ * After obtaining the transcript, GPT-4o generates a structured Markdown summary.
+ * Both are persisted to live_sessions.transcript_text / summary_text.
+ *
+ * @param {string} sessionId
+ * @returns {{ transcriptStatus: string, summaryStatus: string, transcriptText: string|null, summaryText: string|null }}
+ */
+async function generateTranscriptAndSummary(sessionId) {
+  // 1. Fetch session details
+  const { data: session, error: sessErr } = await supabaseAdmin
+    .from('live_sessions')
+    .select('id, title, topic, instructor, room_name, transcript_text, transcript_status')
+    .eq('id', sessionId)
+    .maybeSingle();
+
+  if (sessErr || !session) throw new Error('Session not found');
+
+  // Mark both as processing immediately so the frontend can show a spinner
+  await supabaseAdmin
+    .from('live_sessions')
+    .update({ transcript_status: 'processing', summary_status: 'processing', updated_at: new Date().toISOString() })
+    .eq('id', sessionId);
+
+  let transcriptText = null;
+  let transcriptStatus = 'failed';
+  let summaryText  = null;
+  let summaryStatus = 'failed';
+
+  try {
+    // ── Step 1: Try Daily.co transcripts ──────────────────────────────────
+    if (session.room_name) {
+      const dailyTranscripts = await getSessionTranscripts(session.room_name);
+      if (dailyTranscripts.length > 0) {
+        // Pick the first completed transcript
+        const ready = dailyTranscripts.find((t) =>
+          t.status === 'finished' || t.status === 'completed' || !t.status
+        ) ?? dailyTranscripts[0];
+
+        const text = await getDailyTranscriptText(ready.id ?? ready.transcriptId);
+        if (text) {
+          transcriptText   = text;
+          transcriptStatus = 'done';
+        }
+      }
+    }
+
+    // ── Step 2: Fallback to Whisper ───────────────────────────────────────
+    if (!transcriptText && session.room_name) {
+      const recordings = await getRoomRecordings(session.room_name);
+      const rec = recordings.find((r) => r.download_link) ?? null;
+      if (rec?.download_link) {
+        const whisperText = await transcribeAudio(rec.download_link, `session-${sessionId}.mp4`);
+        if (whisperText) {
+          transcriptText   = whisperText;
+          transcriptStatus = 'done';
+        }
+      }
+    }
+
+    // ── Step 3: GPT-4o summary ────────────────────────────────────────────
+    if (transcriptText) {
+      const summary = await summariseTranscript({
+        transcript:    transcriptText,
+        sessionTitle:  session.title,
+        instructor:    session.instructor,
+        topic:         session.topic,
+      });
+      if (summary) {
+        summaryText   = summary;
+        summaryStatus = 'done';
+      }
+    }
+  } catch (err) {
+    console.error('[transcript] generateTranscriptAndSummary error:', err.message);
+  }
+
+  // Persist results
+  await supabaseAdmin
+    .from('live_sessions')
+    .update({
+      transcript_text:   transcriptText,
+      transcript_status: transcriptStatus,
+      summary_text:      summaryText,
+      summary_status:    summaryStatus,
+      updated_at:        new Date().toISOString(),
+    })
+    .eq('id', sessionId);
+
+  return { transcriptStatus, summaryStatus, transcriptText, summaryText };
+}
 
 /**
  * Bulk-email all RSVP'd participants the recording download links for a session.

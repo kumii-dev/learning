@@ -126,4 +126,68 @@ async function getRoomRecordings(roomName) {
   }
 }
 
-module.exports = { createDailyRoom, deleteDailyRoom, getRoomRecordings };
+module.exports = { createDailyRoom, deleteDailyRoom, getRoomRecordings, getSessionTranscripts, getDailyTranscriptText };
+
+/**
+ * Fetch Daily.co transcripts for a room.
+ * Returns an array of transcript objects.  Each has an `id` and (when ready)
+ * a `transcriptUrl` / `transcription_url` field pointing to a VTT/plain text file.
+ *
+ * Docs: https://docs.daily.co/reference/rest-api/transcripts
+ *
+ * @param {string} roomName
+ * @returns {Promise<Array>}
+ */
+async function getSessionTranscripts(roomName) {
+  const apiKey = process.env.DAILY_API_KEY;
+  if (!apiKey || !roomName) return [];
+  try {
+    const { data } = await axios.get(`${DAILY_API_BASE}/transcripts`, {
+      headers: { Authorization: `Bearer ${apiKey}` },
+      params:  { room_name: roomName },
+      timeout: 10_000,
+    });
+    return data?.data ?? [];
+  } catch (err) {
+    console.warn('[Daily] getSessionTranscripts error:', err.response?.data ?? err.message);
+    return [];
+  }
+}
+
+/**
+ * Fetch the plain text of a Daily.co transcript by transcript ID.
+ * Daily returns a VTT file at /transcripts/{id}/text — we strip the VTT
+ * cue headers so the result is clean prose for OpenAI to summarise.
+ *
+ * @param {string} transcriptId
+ * @returns {Promise<string|null>}
+ */
+async function getDailyTranscriptText(transcriptId) {
+  const apiKey = process.env.DAILY_API_KEY;
+  if (!apiKey || !transcriptId) return null;
+  try {
+    const { data } = await axios.get(`${DAILY_API_BASE}/transcripts/${transcriptId}/text`, {
+      headers: { Authorization: `Bearer ${apiKey}` },
+      timeout: 30_000,
+    });
+    // `data` may be a VTT string or plain text
+    if (typeof data !== 'string') return null;
+    // Strip WebVTT headers + cue timing lines → keep speaker text only
+    const lines = data.split('\n');
+    const text = lines
+      .filter((l) => {
+        if (!l.trim()) return false;
+        if (l.startsWith('WEBVTT')) return false;
+        if (/^\d{2}:\d{2}/.test(l)) return false;   // timecodes
+        if (/^NOTE/.test(l))        return false;
+        return true;
+      })
+      .join(' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+    return text || null;
+  } catch (err) {
+    console.warn('[Daily] getDailyTranscriptText error:', err.response?.data ?? err.message);
+    return null;
+  }
+}

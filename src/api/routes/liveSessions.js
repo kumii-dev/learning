@@ -10,12 +10,13 @@ const ctrl                          = require('../controllers/liveSessionsContro
 const router = Router();
 const adminOnly = [authenticate, requireRole('admin')];
 
-router.get('/',                 authenticate,   ctrl.listLiveSessions);
-router.post('/',                ...adminOnly,    ctrl.createLiveSession);
-router.patch('/:id',            ...adminOnly,    ctrl.updateLiveSession);
-router.delete('/:id',           ...adminOnly,    ctrl.deleteLiveSession);
-router.post('/:id/rsvp',        authenticate,   ctrl.rsvpLiveSession);
-router.get('/:id/recordings',   ...adminOnly,    ctrl.getSessionRecordings);
-router.post('/:id/email-recording', ...adminOnly, ctrl.emailRecordingParticipants);
+router.get('/',                      authenticate,   ctrl.listLiveSessions);
+router.post('/',                     ...adminOnly,    ctrl.createLiveSession);
+router.patch('/:id',                 ...adminOnly,    ctrl.updateLiveSession);
+router.delete('/:id',                ...adminOnly,    ctrl.deleteLiveSession);
+router.post('/:id/rsvp',             authenticate,   ctrl.rsvpLiveSession);
+router.get('/:id/recordings',        ...adminOnly,    ctrl.getSessionRecordings);
+router.post('/:id/email-recording',  ...adminOnly,    ctrl.emailRecordingParticipants);
+router.post('/:id/transcript',       ...adminOnly,    ctrl.generateTranscript);
 
 module.exports = router;
