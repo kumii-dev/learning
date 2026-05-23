@@ -4,6 +4,11 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
+import {
+  Video, Mail, Sparkles, RefreshCw, Loader2, ChevronUp, ChevronDown,
+  BarChart2, FileText, Download, AlertTriangle, CheckCircle, X,
+  Film, Clapperboard,
+} from 'lucide-react';
 import styles from './AdminLiveSessions.module.css';
 import apiClient from '../../lib/apiClient';
 import ErrorMessage from '../../components/ErrorMessage';
@@ -176,17 +181,17 @@ function RecordingsPanel({ session, onClose }) {
             <h2>Recordings &amp; Transcript</h2>
             <p className={styles.recSubtitle}>{session.title}</p>
           </div>
-          <button className={styles.closeBtn} onClick={onClose}>✕</button>
+          <button className={styles.closeBtn} onClick={onClose}><X size={16} /></button>
         </div>
 
         <div className={styles.recBody}>
 
           {/* ── Recordings table ── */}
           {loading && <p className={styles.recInfo}>Loading recordings…</p>}
-          {error   && <p className={styles.recError}>⚠ {error}</p>}
+          {error   && <p className={styles.recError}><AlertTriangle size={14} style={{verticalAlign:'middle',marginRight:4}}/>{error}</p>}
           {!loading && !error && recordings.length === 0 && (
             <div className={styles.recEmpty}>
-              <span className={styles.recEmptyIcon}>🎬</span>
+              <span className={styles.recEmptyIcon}><Clapperboard size={40} strokeWidth={1.4} /></span>
               <p>No recordings found for this session.</p>
               <p className={styles.recHint}>
                 Cloud recording must be started during the session.<br />
@@ -221,7 +226,9 @@ function RecordingsPanel({ session, onClose }) {
                     <td>
                       {r.download_link ? (
                         <a href={r.download_link} download target="_blank" rel="noreferrer"
-                           className={styles.recDownloadBtn}>⬇ Download</a>
+                           className={styles.recDownloadBtn}>
+                          <Download size={13} style={{marginRight:4,verticalAlign:'middle'}}/>Download
+                        </a>
                       ) : (
                         <span className={styles.recNA}>Processing…</span>
                       )}
@@ -236,30 +243,36 @@ function RecordingsPanel({ session, onClose }) {
           {!loading && !error && (
             <div className={styles.recEmailRow}>
               <div className={styles.recEmailInfo}>
-                <strong>📧 Notify participants</strong>
+                <strong><Mail size={14} style={{verticalAlign:'middle',marginRight:5}}/>Notify participants</strong>
                 <span>Send the recording download link to all RSVP'd participants via email.</span>
               </div>
               <button className={styles.emailBtn} onClick={handleEmailParticipants} disabled={emailing}>
-                {emailing ? 'Sending…' : '📧 Email Participants'}
+                <Mail size={14} style={{marginRight:5,verticalAlign:'middle'}}/>
+                {emailing ? 'Sending…' : 'Email Participants'}
               </button>
             </div>
           )}
           {emailResult && (
             <div className={styles.emailResultBanner} data-ok="true">
-              ✅ Emails sent: <strong>{emailResult.sent}</strong>
+              <CheckCircle size={14} style={{verticalAlign:'middle',marginRight:5}}/>
+              Emails sent: <strong>{emailResult.sent}</strong>
               {emailResult.failed  > 0 && <span> · Failed: <strong>{emailResult.failed}</strong></span>}
               {emailResult.skipped > 0 && <span> · Skipped: <strong>{emailResult.skipped}</strong></span>}
             </div>
           )}
           {emailError && (
-            <div className={styles.emailResultBanner} data-ok="false">⚠ {emailError}</div>
+            <div className={styles.emailResultBanner} data-ok="false">
+              <AlertTriangle size={14} style={{verticalAlign:'middle',marginRight:5}}/>{emailError}
+            </div>
           )}
 
           {/* ── Transcript & Summary section ── */}
           <div className={styles.txSection}>
             <div className={styles.txSectionHeader}>
               <div>
-                <span className={styles.txSectionTitle}>✨ AI Transcript &amp; Summary</span>
+                <span className={styles.txSectionTitle}>
+                  <Sparkles size={15} style={{verticalAlign:'middle',marginRight:5}}/>AI Transcript &amp; Summary
+                </span>
                 <span className={styles.txSectionHint}>
                   Tries Daily.co built-in transcripts first, then falls back to OpenAI Whisper.
                   GPT-4o generates the structured summary.
@@ -271,20 +284,22 @@ function RecordingsPanel({ session, onClose }) {
                 disabled={txGenerating}
               >
                 {txGenerating
-                  ? '⏳ Generating…'
+                  ? <><Loader2 size={14} className={styles.txSpinIcon} style={{marginRight:5}}/> Generating…</>
                   : txStatus === 'done'
-                    ? '↺ Re-generate'
-                    : '✨ Generate'}
+                    ? <><RefreshCw size={14} style={{marginRight:5}}/> Re-generate</>
+                    : <><Sparkles size={14} style={{marginRight:5}}/> Generate</>}
               </button>
             </div>
 
             {txError && (
-              <div className={styles.emailResultBanner} data-ok="false">⚠ {txError}</div>
+              <div className={styles.emailResultBanner} data-ok="false">
+                <AlertTriangle size={14} style={{verticalAlign:'middle',marginRight:5}}/>{txError}
+              </div>
             )}
 
             {(txStatus === 'processing') && (
               <div className={styles.txProcessing}>
-                <span className={styles.txSpinner} />
+                <Loader2 size={16} className={styles.txSpinIcon} style={{flexShrink:0}}/>
                 Transcribing audio and generating summary — this may take 1–3 minutes for long sessions…
               </div>
             )}
@@ -296,8 +311,8 @@ function RecordingsPanel({ session, onClose }) {
                   className={styles.txCardToggle}
                   onClick={() => setSumExpanded((v) => !v)}
                 >
-                  <span>📊 AI Summary</span>
-                  <span className={styles.txChevron}>{sumExpanded ? '▲' : '▼'}</span>
+                  <span><BarChart2 size={14} style={{verticalAlign:'middle',marginRight:5}}/>AI Summary</span>
+                  <span className={styles.txChevron}>{sumExpanded ? <ChevronUp size={14}/> : <ChevronDown size={14}/>}</span>
                 </button>
                 {sumExpanded && (
                   <div
@@ -317,8 +332,8 @@ function RecordingsPanel({ session, onClose }) {
                   className={styles.txCardToggle}
                   onClick={() => setTxExpanded((v) => !v)}
                 >
-                  <span>📄 Full Transcript</span>
-                  <span className={styles.txChevron}>{txExpanded ? '▲' : '▼'}</span>
+                  <span><FileText size={14} style={{verticalAlign:'middle',marginRight:5}}/>Full Transcript</span>
+                  <span className={styles.txChevron}>{txExpanded ? <ChevronUp size={14}/> : <ChevronDown size={14}/>}</span>
                 </button>
                 {txExpanded && (
                   <pre className={styles.txPre}>{txText}</pre>
@@ -328,7 +343,8 @@ function RecordingsPanel({ session, onClose }) {
 
             {txStatus === 'failed' && !txError && (
               <p className={styles.recError}>
-                ⚠ Could not generate transcript. This session may not have a cloud recording yet,
+                <AlertTriangle size={14} style={{verticalAlign:'middle',marginRight:5}}/>
+                Could not generate transcript. This session may not have a cloud recording yet,
                 or the recording is still processing. Try again in a few minutes.
               </p>
             )}
@@ -369,7 +385,7 @@ function SessionModal({ initial, onSave, onClose, loading }) {
       <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
         <div className={styles.modalHeader}>
           <h2>{initial?.id ? 'Edit Session' : 'Schedule Session'}</h2>
-          <button className={styles.closeBtn} onClick={onClose}>✕</button>
+          <button className={styles.closeBtn} onClick={onClose}><X size={16} /></button>
         </div>
         <form onSubmit={handleSubmit} className={styles.modalForm}>
           <label>Title *
@@ -559,7 +575,7 @@ export default function AdminLiveSessions() {
                   <td>{s.duration_min ?? 60} min</td>
                   <td>
                     <span className={styles.platformBadge}>
-                      🎥 {s.platform ?? 'daily'}
+                      <Video size={12} style={{verticalAlign:'middle',marginRight:4}}/>{s.platform ?? 'daily'}
                     </span>
                   </td>
                   <td>
@@ -587,7 +603,7 @@ export default function AdminLiveSessions() {
                         onClick={() => setRecordingSession(s)}
                         title="View & download recordings"
                       >
-                        🎬 Recordings
+                        <Film size={13} style={{marginRight:4,verticalAlign:'middle'}}/>Recordings
                       </button>
                       <button
                         className={styles.editBtn}
