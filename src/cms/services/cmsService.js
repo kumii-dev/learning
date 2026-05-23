@@ -200,6 +200,7 @@ async function upsertAssessment(courseId, payload) {
     updated_at: new Date().toISOString(),
   };
 
+  let assessment;
   if (existing) {
     // UPDATE in-place — preserves the assessment ID so existing submissions stay intact
     const { data, error } = await supabaseAdmin
@@ -209,17 +210,34 @@ async function upsertAssessment(courseId, payload) {
       .select()
       .single();
     if (error) throw error;
-    return data;
+    assessment = data;
+  } else {
+    // No existing assessment — safe to insert
+    const { data, error } = await supabaseAdmin
+      .from('assessments')
+      .insert({ ...fields, created_at: new Date().toISOString() })
+      .select()
+      .single();
+    if (error) throw error;
+    assessment = data;
   }
 
-  // No existing assessment — safe to insert
-  const { data, error } = await supabaseAdmin
-    .from('assessments')
-    .insert({ ...fields, created_at: new Date().toISOString() })
-    .select()
-    .single();
-  if (error) throw error;
-  return data;
+  // Upsert logo URLs into certificate_templates for this course
+  if (payload.logoLeftUrl !== undefined || payload.logoRightUrl !== undefined) {
+    const logoFields = {
+      course_id:      courseId,
+      name:           'default',
+      updated_at:     new Date().toISOString(),
+    };
+    if (payload.logoLeftUrl  !== undefined) logoFields.logo_left_url  = payload.logoLeftUrl  || null;
+    if (payload.logoRightUrl !== undefined) logoFields.logo_right_url = payload.logoRightUrl || null;
+
+    await supabaseAdmin
+      .from('certificate_templates')
+      .upsert(logoFields, { onConflict: 'course_id' });
+  }
+
+  return assessment;
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -391,7 +409,7 @@ async function listAssessmentResults({ courseId, status, limit = 200 } = {}) {
         id, title, type, pass_mark,
         courses ( id, title, category )
       ),
-      profiles ( id, first_name, last_name, email )
+      users ( id, full_name, email )
     `)
     .order('submitted_at', { ascending: false })
     .limit(limit);
@@ -428,11 +446,11 @@ async function listAssessmentResults({ courseId, status, limit = 200 } = {}) {
           title:    s.assessments.courses.title,
           category: s.assessments.courses.category,
         } : null,
-        learner: s.profiles ? {
-          id:        s.profiles.id,
-          firstName: s.profiles.first_name,
-          lastName:  s.profiles.last_name,
-          email:     s.profiles.email,
+        learner: s.users ? {
+          id:        s.users.id,
+          firstName: s.users.full_name ?? '',
+          lastName:  '',
+          email:     s.users.email,
         } : null,
       };
     });
@@ -445,7 +463,7 @@ async function listAssessmentResults({ courseId, status, limit = 200 } = {}) {
 async function getCourseById(courseId) {
   const { data: course, error } = await supabaseAdmin
     .from('courses')
-    .select('*, modules(*), assessments(*)')
+    .select('*, modules(*), assessments(*), certificate_templates(*)')
     .eq('id', courseId)
     .single();
 
@@ -462,7 +480,7 @@ async function getCourseById(courseId) {
 ═══════════════════════════════════════════════════════════════════ */
 
 const { v4: uuidv4 }       = require('uuid');
-const { createJitsiRoom }  = require('../../integrations/videoProvider');
+const { createDailyRoom }  = require('../../integrations/videoProvider');
 
 async function listAdminSessions() {
   const { data: sessions, error } = await supabaseAdmin
@@ -489,7 +507,7 @@ async function listAdminSessions() {
 
 async function createAdminSession(payload) {
   const id = uuidv4();
-  const { roomName, joinUrl } = createJitsiRoom(id);
+  const { roomName, joinUrl } = await createDailyRoom(id, payload.scheduledAt);
   const now = new Date().toISOString();
 
   const { data, error } = await supabaseAdmin
@@ -506,8 +524,8 @@ async function createAdminSession(payload) {
       course_id:     payload.courseId     ?? null,
       max_attendees: payload.maxAttendees ?? null,
       status:        'scheduled',
-      platform:      'jitsi',
-      jitsi_room:    roomName,
+      platform:      'daily',
+      room_name:     roomName,
       join_url:      joinUrl,
       meeting_url:   joinUrl,
       room_password: payload.roomPassword ?? null,
