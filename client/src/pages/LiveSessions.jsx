@@ -61,11 +61,13 @@ function VideoRoom({ session, onClose }) {
         <span className={styles.videoTitle}>{session.title}</span>
         <button className={styles.leaveBtn} onClick={onClose}>✕ Leave</button>
       </div>
-      {/* allow= delegates camera/mic/fullscreen permissions to the Daily.co origin */}
+      {/* allow= with wildcard (*) delegates permissions from this page's grant
+          to the Daily.co origin inside the iframe.  The Permissions-Policy
+          response header on the server further enforces this delegation. */}
       <iframe
         className={styles.videoFrame}
         src={joinUrl}
-        allow="camera; microphone; fullscreen; speaker; display-capture; autoplay"
+        allow="camera *; microphone *; fullscreen *; speaker-selection *; display-capture *; autoplay *"
         title={session.title}
       />
     </div>

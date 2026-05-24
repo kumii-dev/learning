@@ -55,6 +55,23 @@ app.use((_req, res, next) => {
   );
   // Remove X-Frame-Options entirely so it cannot conflict with CSP frame-ancestors.
   res.removeHeader('X-Frame-Options');
+
+  // Delegate camera/mic/screen-share permissions to the Daily.co iframe embedded
+  // in the learner live-sessions view.  Without this, Chrome will not propagate
+  // the top-level page's permission grant into the cross-origin iframe even when
+  // the <iframe allow="..."> attribute is set.
+  res.setHeader(
+    'Permissions-Policy',
+    [
+      'camera=(self "https://kumii.daily.co")',
+      'microphone=(self "https://kumii.daily.co")',
+      'display-capture=(self "https://kumii.daily.co")',
+      'speaker-selection=(self "https://kumii.daily.co")',
+      'autoplay=(self "https://kumii.daily.co")',
+      'fullscreen=(self "https://kumii.daily.co")',
+    ].join(', ')
+  );
+
   next();
 });
 
