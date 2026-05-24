@@ -23,6 +23,7 @@ const gradingRouter       = require('./src/api/routes/grading');
 const certificatesRouter  = require('./src/api/routes/certificates');
 const liveSessionsRouter  = require('./src/api/routes/liveSessions');
 const cmsRouter           = require('./src/cms/routes');
+const rbacRouter          = require('./src/api/routes/rbac');
 
 const app  = express();
 const PORT = process.env.PORT || 3001;
@@ -127,6 +128,7 @@ app.use('/api/grading',       gradingRouter);
 app.use('/api/certificates',  certificatesRouter);
 app.use('/api/live-sessions', liveSessionsRouter);
 app.use('/api/cms',           cmsRouter);
+app.use('/api/rbac',          rbacRouter);
 
 // ── 404 handler ──────────────────────────────────────────────────────────────
 app.use((_req, res) => res.status(404).json({ error: 'Route not found' }));
