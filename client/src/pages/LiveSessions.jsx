@@ -35,41 +35,26 @@ function formatDate(iso) {
 }
 
 /* ── VideoRoom — full-screen Daily.co overlay (iframe embed) ────── */
+/* ── VideoRoom — full-screen Daily.co overlay (iframe embed) ────── */
+// NOTE: kept as a named export so import references don't break, but the
+// main join flow now opens a new tab so this is only shown when join_url
+// is missing (error state).
 function VideoRoom({ session, onClose }) {
-  // Prefer the stored join_url; fall back to constructing from room_name
   const joinUrl =
     session.join_url ||
     (session.room_name ? `https://kumii.daily.co/${session.room_name}` : null);
-
-  if (!joinUrl) {
-    return (
-      <div className={styles.videoOverlay}>
-        <div className={styles.videoHeader}>
-          <span className={styles.videoTitle}>{session.title}</span>
-          <button className={styles.leaveBtn} onClick={onClose}>✕ Leave</button>
-        </div>
-        <p style={{ color: '#fff', padding: '2rem' }}>
-          Room URL not available yet. Please try again shortly.
-        </p>
-      </div>
-    );
-  }
 
   return (
     <div className={styles.videoOverlay}>
       <div className={styles.videoHeader}>
         <span className={styles.videoTitle}>{session.title}</span>
-        <button className={styles.leaveBtn} onClick={onClose}>✕ Leave</button>
+        <button className={styles.leaveBtn} onClick={onClose}>✕ Close</button>
       </div>
-      {/* allow= with wildcard (*) delegates permissions from this page's grant
-          to the Daily.co origin inside the iframe.  The Permissions-Policy
-          response header on the server further enforces this delegation. */}
-      <iframe
-        className={styles.videoFrame}
-        src={joinUrl}
-        allow="camera *; microphone *; fullscreen *; speaker-selection *; display-capture *; autoplay *"
-        title={session.title}
-      />
+      <p style={{ color: '#fff', padding: '2rem' }}>
+        {joinUrl
+          ? <>Room is opening in a new tab. <a href={joinUrl} target="_blank" rel="noreferrer" style={{ color: '#60a5fa' }}>Click here</a> if it didn't open.</>
+          : 'Room URL not available yet. Please try again shortly.'}
+      </p>
     </div>
   );
 }
@@ -188,7 +173,21 @@ export default function LiveSessions() {
       .catch(() => {});
   }, [fetchSessions]);
 
-  const handleJoin = (session) => setActiveSession(session);
+  const handleJoin = (session) => {
+    const joinUrl =
+      session.join_url ||
+      (session.room_name ? `https://kumii.daily.co/${session.room_name}` : null);
+
+    if (joinUrl) {
+      // Open in a new tab — this gives Daily.co its own origin context so the
+      // browser can grant camera/mic permissions to kumii.daily.co directly.
+      // (Cross-origin iframes cannot inherit permission grants from the parent.)
+      window.open(joinUrl, '_blank', 'noopener,noreferrer');
+    } else {
+      // No URL yet — show the fallback overlay with an error message.
+      setActiveSession(session);
+    }
+  };
 
   const handleRsvp = async (session) => {
     setRsvpLoading(session.id);
