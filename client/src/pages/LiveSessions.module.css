@@ -282,6 +282,130 @@
   color: #9ca3af;
 }
 
+/* ── Recording consent modal ─────────────────────────────────────── */
+.consentBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 400;
+  background: rgba(0, 0, 0, 0.65);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  backdrop-filter: blur(4px);
+}
+
+.consentModal {
+  background: #fff;
+  border-radius: 16px;
+  max-width: 480px;
+  width: 100%;
+  padding: 2rem 2rem 1.75rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.9rem;
+  box-shadow: 0 24px 60px rgba(0,0,0,0.25);
+}
+
+.consentIcon {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: #eff6ff;
+  color: #2563eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.consentTitle {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+  text-align: center;
+}
+
+.consentSession {
+  font-size: 0.85rem;
+  color: #6b7280;
+  margin: 0;
+  text-align: center;
+}
+
+.consentBody {
+  font-size: 0.9rem;
+  color: #374151;
+  margin: 0;
+  text-align: center;
+  line-height: 1.5;
+}
+
+.consentList {
+  width: 100%;
+  margin: 0;
+  padding-left: 1.4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+.consentList li {
+  font-size: 0.85rem;
+  color: #374151;
+  line-height: 1.45;
+}
+
+.consentNote {
+  font-size: 0.8rem;
+  color: #9ca3af;
+  margin: 0;
+  text-align: center;
+  line-height: 1.45;
+  border-top: 1px solid #f3f4f6;
+  padding-top: 0.75rem;
+  width: 100%;
+}
+
+.consentActions {
+  display: flex;
+  gap: 0.75rem;
+  width: 100%;
+  margin-top: 0.25rem;
+}
+
+.consentDecline {
+  flex: 1;
+  padding: 0.65rem 1rem;
+  border-radius: 8px;
+  border: 1.5px solid #e5e7eb;
+  background: #fff;
+  color: #6b7280;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+.consentDecline:hover {
+  border-color: #ef4444;
+  color: #ef4444;
+}
+
+.consentAccept {
+  flex: 2;
+  padding: 0.65rem 1rem;
+  border-radius: 8px;
+  border: none;
+  background: #2563eb;
+  color: #fff;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.consentAccept:hover { background: #1d4ed8; }
+
 /* ── Jitsi video overlay ──────────────────────────────────────────── */
 .videoOverlay {
   position: fixed;

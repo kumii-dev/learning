@@ -4,6 +4,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
@@ -55,6 +56,51 @@ function VideoRoom({ session, onClose }) {
           ? <>Room is opening in a new tab. <a href={joinUrl} target="_blank" rel="noreferrer" style={{ color: '#60a5fa' }}>Click here</a> if it didn't open.</>
           : 'Room URL not available yet. Please try again shortly.'}
       </p>
+    </div>
+  );
+}
+
+/* ── ConsentModal — recording consent gate before joining ─────────── */
+function ConsentModal({ session, onAccept, onDecline }) {
+  return (
+    <div className={styles.consentBackdrop}>
+      <div className={styles.consentModal}>
+        {/* Icon */}
+        <div className={styles.consentIcon}>
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          </svg>
+        </div>
+
+        <h2 className={styles.consentTitle}>Recording &amp; Privacy Notice</h2>
+        <p className={styles.consentSession}>{session.title}</p>
+
+        <p className={styles.consentBody}>
+          This live session <strong>may be recorded</strong> for training, quality
+          assurance, and future learner access. By joining you confirm that:
+        </p>
+
+        <ul className={styles.consentList}>
+          <li>You consent to being recorded (video, audio, and screen activity)</li>
+          <li>The recording may be shared with other enrolled learners</li>
+          <li>Recordings are stored securely and handled per our Privacy Policy</li>
+        </ul>
+
+        <p className={styles.consentNote}>
+          If you do not wish to be recorded, please decline — you will not be able
+          to join this session.
+        </p>
+
+        <div className={styles.consentActions}>
+          <button className={styles.consentDecline} onClick={onDecline}>
+            Decline &amp; Exit
+          </button>
+          <button className={styles.consentAccept} onClick={onAccept}>
+            I Agree — Join Session
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -145,11 +191,13 @@ function mockSessions() {
 
 /* ── main component ──────────────────────────────────────────────── */
 export default function LiveSessions() {
-  const [sessions,      setSessions]      = useState([]);
-  const [activeSession, setActiveSession] = useState(null);
-  const [rsvpLoading,   setRsvpLoading]   = useState(null);
-  const [loading,       setLoading]       = useState(true);
-  const [displayName,   setDisplayName]   = useState('');
+  const navigate = useNavigate();
+  const [sessions,       setSessions]       = useState([]);
+  const [activeSession,  setActiveSession]  = useState(null);
+  const [consentSession, setConsentSession] = useState(null); // session awaiting consent
+  const [rsvpLoading,    setRsvpLoading]    = useState(null);
+  const [loading,        setLoading]        = useState(true);
+  const [displayName,    setDisplayName]    = useState('');
 
   const fetchSessions = useCallback(async () => {
     try {
@@ -173,20 +221,27 @@ export default function LiveSessions() {
       .catch(() => {});
   }, [fetchSessions]);
 
-  const handleJoin = (session) => {
+  // Step 1: clicking Join opens the consent modal
+  const handleJoin = (session) => setConsentSession(session);
+
+  // Step 2a: learner accepted — open the room in a new tab
+  const handleConsentAccept = () => {
+    const session = consentSession;
+    setConsentSession(null);
     const joinUrl =
       session.join_url ||
       (session.room_name ? `https://kumii.daily.co/${session.room_name}` : null);
-
     if (joinUrl) {
-      // Open in a new tab — this gives Daily.co its own origin context so the
-      // browser can grant camera/mic permissions to kumii.daily.co directly.
-      // (Cross-origin iframes cannot inherit permission grants from the parent.)
       window.open(joinUrl, '_blank', 'noopener,noreferrer');
     } else {
-      // No URL yet — show the fallback overlay with an error message.
-      setActiveSession(session);
+      setActiveSession(session); // fallback: show "no URL" overlay
     }
+  };
+
+  // Step 2b: learner declined — redirect to Discover
+  const handleConsentDecline = () => {
+    setConsentSession(null);
+    navigate('/');
   };
 
   const handleRsvp = async (session) => {
@@ -223,6 +278,13 @@ export default function LiveSessions() {
 
   return (
     <>
+      {consentSession && (
+        <ConsentModal
+          session={consentSession}
+          onAccept={handleConsentAccept}
+          onDecline={handleConsentDecline}
+        />
+      )}
       {activeSession && (
         <VideoRoom
           session={activeSession}
