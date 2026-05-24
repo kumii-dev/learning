@@ -3,8 +3,7 @@
  * Learner live sessions page — FullCalendar + in-page Daily.co video room.
  */
 
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { DailyProvider, useCallFrame } from '@daily-co/daily-react';
+import { useState, useEffect, useCallback } from 'react';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
@@ -35,52 +34,9 @@ function formatDate(iso) {
   });
 }
 
-/* ── DailyFrame — internal: mounts the Daily call frame into the container ── */
-function DailyFrame({ joinUrl }) {
-  const containerRef = useRef(null);
-
-  useCallFrame({
-    parentElRef: containerRef,   // must be the ref object — NOT .current
-    url: joinUrl,
-    options: {
-      // ── Chrome / shell ────────────────────────────────────────────
-      showLeaveButton:          true,
-      showFullscreenButton:     true,
-      showLocalVideo:           true,
-      showParticipantsBar:      true,
-
-      // ── Toolbar features ──────────────────────────────────────────
-      showChat:                 true,
-      showScreenShare:          true,
-      showRecordingButton:      true,
-      showTranscriptionButton:  true,
-      showBreakoutRoomsButton:  true,
-      showHandRaiseButton:      true,
-      showEmojiReactions:       true,
-      showNetworkUI:            true,
-
-      // ── Device controls ───────────────────────────────────────────
-      showUserNameChangeUI:     true,
-      showNoiseCancellationButton: true,
-
-      // ── Pre-join lobby ────────────────────────────────────────────
-      showPrejoinUI:            true,
-
-      // ── iframe sizing ─────────────────────────────────────────────
-      iframeStyle: {
-        width:  '100%',
-        height: '100%',
-        border: 'none',
-      },
-    },
-  });
-
-  return <div ref={containerRef} className="daily-frame-container" style={{ width: '100%', height: '100%' }} />;
-}
-
-/* ── VideoRoom — full-screen Daily.co overlay ────────────────────── */
+/* ── VideoRoom — full-screen Daily.co overlay (iframe embed) ────── */
 function VideoRoom({ session, onClose }) {
-  // Prefer the stored join_url; fall back to constructing one from room_name
+  // Prefer the stored join_url; fall back to constructing from room_name
   const joinUrl =
     session.join_url ||
     (session.room_name ? `https://kumii.daily.co/${session.room_name}` : null);
@@ -105,9 +61,12 @@ function VideoRoom({ session, onClose }) {
         <span className={styles.videoTitle}>{session.title}</span>
         <button className={styles.leaveBtn} onClick={onClose}>✕ Leave</button>
       </div>
-      <DailyProvider>
-        <DailyFrame joinUrl={joinUrl} />
-      </DailyProvider>
+      <iframe
+        className={styles.videoFrame}
+        src={joinUrl}
+        allow="camera; microphone; fullscreen; speaker; display-capture; autoplay"
+        title={session.title}
+      />
     </div>
   );
 }
