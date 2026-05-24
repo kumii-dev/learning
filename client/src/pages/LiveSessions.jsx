@@ -40,7 +40,7 @@ function DailyFrame({ joinUrl }) {
   const containerRef = useRef(null);
 
   useCallFrame({
-    parentEl: containerRef.current,
+    parentElRef: containerRef,   // must be the ref object — NOT .current
     url: joinUrl,
     options: {
       // ── Chrome / shell ────────────────────────────────────────────
