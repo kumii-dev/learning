@@ -3,7 +3,7 @@
  * Learner live sessions page — FullCalendar + in-page Daily.co video room.
  */
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
@@ -34,40 +34,8 @@ function formatDate(iso) {
   });
 }
 
-/* ── useMediaPermissions — requests camera + mic on mount ────────── */
-function useMediaPermissions() {
-  // 'requesting' | 'granted' | 'denied' | 'unavailable'
-  const [permState, setPermState] = useState('requesting');
-  const streamRef = useRef(null);
-
-  useEffect(() => {
-    if (!navigator.mediaDevices?.getUserMedia) {
-      setPermState('unavailable');
-      return;
-    }
-    navigator.mediaDevices
-      .getUserMedia({ video: true, audio: true })
-      .then((stream) => {
-        // Stop tracks immediately — we only needed the permission grant.
-        // The Daily.co iframe will manage its own media devices.
-        stream.getTracks().forEach((t) => t.stop());
-        streamRef.current = null;
-        setPermState('granted');
-      })
-      .catch(() => {
-        // User denied or hardware unavailable — still show the room.
-        // Daily.co will show its own error UI inside the iframe.
-        setPermState('denied');
-      });
-  }, []);
-
-  return permState;
-}
-
 /* ── VideoRoom — full-screen Daily.co overlay (iframe embed) ────── */
 function VideoRoom({ session, onClose }) {
-  const permState = useMediaPermissions();
-
   // Prefer the stored join_url; fall back to constructing from room_name
   const joinUrl =
     session.join_url ||
@@ -93,32 +61,13 @@ function VideoRoom({ session, onClose }) {
         <span className={styles.videoTitle}>{session.title}</span>
         <button className={styles.leaveBtn} onClick={onClose}>✕ Leave</button>
       </div>
-
-      {/* Permission splash — shown only while the browser prompt is open */}
-      {permState === 'requesting' ? (
-        <div className={styles.permSplash}>
-          <div className={styles.permIcon}>🎥</div>
-          <p className={styles.permTitle}>Allow camera &amp; microphone</p>
-          <p className={styles.permSub}>
-            Please click <strong>Allow</strong> in the browser prompt to join the session.
-          </p>
-        </div>
-      ) : (
-        <>
-          {permState === 'denied' && (
-            <div className={styles.permBanner}>
-              ⚠️ Camera or microphone access was blocked. You can still join but others may not see or hear you.
-              Check your browser's address-bar permissions to unblock.
-            </div>
-          )}
-          <iframe
-            className={styles.videoFrame}
-            src={joinUrl}
-            allow="camera; microphone; fullscreen; speaker; display-capture; autoplay"
-            title={session.title}
-          />
-        </>
-      )}
+      {/* allow= delegates camera/mic/fullscreen permissions to the Daily.co origin */}
+      <iframe
+        className={styles.videoFrame}
+        src={joinUrl}
+        allow="camera; microphone; fullscreen; speaker; display-capture; autoplay"
+        title={session.title}
+      />
     </div>
   );
 }
