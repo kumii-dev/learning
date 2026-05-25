@@ -5,7 +5,7 @@
  * Columns: Learner | Course | Assessment | Type | Score | Pass/Fail | Status | Submitted
  * Filters: search (learner / course), status (all / graded / pending), pass/fail
  */
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import apiClient from '../../lib/apiClient';
 import FeatherIcon from 'feather-icons-react';
 import styles from './AdminAssessments.module.css';
@@ -25,6 +25,12 @@ function learnerLabel(l) {
   if (!l) return '—';
   const name = `${l.firstName ?? ''} ${l.lastName ?? ''}`.trim();
   return name || l.email || '—';
+}
+function initials(l) {
+  if (!l) return '?';
+  const name = `${l.firstName ?? ''} ${l.lastName ?? ''}`.trim();
+  if (name) return name.split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase();
+  return (l.email ?? '?')[0].toUpperCase();
 }
 
 /* ── sub-components ─────────────────────────────────────────────────── */
@@ -85,12 +91,136 @@ function FeedbackPopover({ text }) {
   );
 }
 
+/* ── DrillDownDrawer ─────────────────────────────────────────────────── */
+const DRILL_META = {
+  total:   { title: 'All Submissions',  icon: 'file-text'    },
+  graded:  { title: 'Graded',           icon: 'check-circle' },
+  pending: { title: 'Pending Review',   icon: 'clock'        },
+  pass:    { title: 'Passed',           icon: 'award'        },
+  scored:  { title: 'Scored Results',   icon: 'trending-up'  },
+};
+
+function DrillDownDrawer({ type, results, onClose }) {
+  const [q, setQ] = useState('');
+
+  useEffect(() => {
+    const handler = (e) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [onClose]);
+
+  const subset = useMemo(() => {
+    let base;
+    switch (type) {
+      case 'graded':  base = results.filter((r) => r.status === 'graded');                           break;
+      case 'pending': base = results.filter((r) => r.status === 'pending');                          break;
+      case 'pass':    base = results.filter((r) => r.passed === true);                               break;
+      case 'scored':  base = results.filter((r) => r.score !== null && r.score !== undefined);       break;
+      default:        base = results;
+    }
+    if (!q) return base;
+    const lq = q.toLowerCase();
+    return base.filter((r) => {
+      const text = [
+        learnerLabel(r.learner), r.learner?.email,
+        r.course?.title, r.assessment?.title,
+      ].filter(Boolean).join(' ').toLowerCase();
+      return text.includes(lq);
+    });
+  }, [type, results, q]);
+
+  const meta = DRILL_META[type] ?? DRILL_META.total;
+
+  return (
+    <>
+      <div className={styles.ddBackdrop} onClick={onClose} />
+      <aside className={styles.ddDrawer} role="dialog" aria-modal="true" aria-label={meta.title}>
+        <div className={styles.ddHeader}>
+          <div className={styles.ddTitleRow}>
+            <span className={styles.ddIcon}><FeatherIcon icon={meta.icon} size={20} /></span>
+            <span className={styles.ddTitle}>{meta.title}</span>
+            <button className={styles.ddClose} onClick={onClose} aria-label="Close">
+              <FeatherIcon icon="x" size={18} />
+            </button>
+          </div>
+          <div className={styles.ddSearch}>
+            <span className={styles.ddSearchIcon}><FeatherIcon icon="search" size={14} /></span>
+            <input
+              className={styles.ddSearchInput}
+              placeholder="Search learner, course, assessment…"
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              autoFocus
+            />
+          </div>
+          <div className={styles.ddCount}>{subset.length.toLocaleString()} result{subset.length !== 1 ? 's' : ''}</div>
+        </div>
+
+        <div className={styles.ddBody}>
+          {subset.length === 0 ? (
+            <div className={styles.ddState}>No results found.</div>
+          ) : (
+            <div className={styles.ddTableWrap}>
+              <table className={styles.ddTable}>
+                <thead>
+                  <tr>
+                    <th>Learner</th>
+                    <th>Course</th>
+                    <th>Assessment</th>
+                    <th>Type</th>
+                    <th>Score</th>
+                    <th>Pass/Fail</th>
+                    <th>Status</th>
+                    <th>Submitted</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {subset.map((r) => (
+                    <tr key={r.id}>
+                      <td>
+                        <div className={styles.ddUserCell}>
+                          <div className={styles.ddAvatar}>{initials(r.learner)}</div>
+                          <div>
+                            <div>{learnerLabel(r.learner)}</div>
+                            {r.learner?.email && <div className={styles.ddMuted}>{r.learner.email}</div>}
+                          </div>
+                        </div>
+                      </td>
+                      <td>{r.course?.title ?? '—'}</td>
+                      <td>{r.assessment?.title ?? '—'}</td>
+                      <td><TypeBadge type={r.assessment?.type} /></td>
+                      <td className={styles.ddNum}>
+                        <ScoreCell score={r.score} passed={r.passed} passMark={r.assessment?.passMark} />
+                      </td>
+                      <td>
+                        {r.passed === true  && <span className={styles.passLabel}><FeatherIcon icon="check" size={12} /> Pass</span>}
+                        {r.passed === false && <span className={styles.failLabel}><FeatherIcon icon="x"     size={12} /> Fail</span>}
+                        {r.passed === null  && <span className={styles.scoreDash}>—</span>}
+                      </td>
+                      <td><StatusBadge status={r.status} /></td>
+                      <td className={styles.ddMuted}>{fmtDate(r.submittedAt)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </aside>
+    </>
+  );
+}
+
 /* ══════════════════════════════════════════════════════════════════ */
 
 export default function AdminAssessments() {
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error,   setError]   = useState(null);
+
+  // Drill-down
+  const [drilldown, setDrilldown] = useState(null);
+  const closeDrill = useCallback(() => setDrilldown(null), []);
 
   // Filters
   const [q,          setQ]          = useState('');
@@ -165,6 +295,18 @@ export default function AdminAssessments() {
       : null;
   })();
 
+  const summaryCards = [
+    { key: 'total',   label: 'Total Submissions', value: results.length,  icon: 'file-text',    color: '#1d4ed8' },
+    { key: 'graded',  label: 'Graded',            value: totalGraded,     icon: 'check-circle', color: '#16a34a' },
+    { key: 'pending', label: 'Pending Review',    value: totalPending,    icon: 'clock',        color: '#d97706' },
+    { key: 'pass',    label: 'Pass Rate',
+      value: results.length ? `${Math.round(passCount / results.length * 100)}%` : '—',
+      icon: 'award', color: '#7c3aed' },
+    { key: 'scored',  label: 'Avg Score',
+      value: avgScore !== null ? `${avgScore}%` : '—',
+      icon: 'trending-up', color: '#0891b2' },
+  ];
+
   function SortIcon({ k }) {
     if (sortKey !== k) return <span className={styles.sortIcon}>↕</span>;
     return <span className={styles.sortIconActive}>{sortDir === 'asc' ? '↑' : '↓'}</span>;
@@ -176,6 +318,11 @@ export default function AdminAssessments() {
   return (
     <div className={styles.page}>
 
+      {/* ── Drill-down drawer ── */}
+      {drilldown && (
+        <DrillDownDrawer type={drilldown} results={results} onClose={closeDrill} />
+      )}
+
       {/* ── Header ── */}
       <div className={styles.pageHeader}>
         <div>
@@ -186,22 +333,19 @@ export default function AdminAssessments() {
 
       {/* ── Summary cards ── */}
       <div className={styles.summaryRow}>
-        {[
-          { label: 'Total Submissions', value: results.length,  icon: 'file-text',  color: '#1d4ed8' },
-          { label: 'Graded',            value: totalGraded,     icon: 'check-circle',color: '#16a34a' },
-          { label: 'Pending Review',    value: totalPending,    icon: 'clock',      color: '#d97706' },
-          { label: 'Pass Rate',         value: results.length ? `${Math.round(passCount / results.length * 100)}%` : '—', icon: 'award', color: '#7c3aed' },
-          { label: 'Avg Score',         value: avgScore !== null ? `${avgScore}%` : '—', icon: 'trending-up', color: '#0891b2' },
-        ].map((c) => (
-          <div key={c.label} className={styles.summaryCard}>
+        {summaryCards.map((c) => (
+          <button key={c.key} className={styles.summaryCard} onClick={() => setDrilldown(c.key)}>
             <div className={styles.summaryIcon} style={{ background: c.color + '18', color: c.color }}>
               <FeatherIcon icon={c.icon} size={18} />
             </div>
             <div>
               <div className={styles.summaryValue}>{c.value}</div>
-              <div className={styles.summaryLabel}>{c.label}</div>
+              <div className={styles.summaryLabelRow}>
+                <span className={styles.summaryLabel}>{c.label}</span>
+                <FeatherIcon icon="chevron-right" size={13} className={styles.summaryChevron} />
+              </div>
             </div>
-          </div>
+          </button>
         ))}
       </div>
 

@@ -43,7 +43,19 @@
   padding: 14px 18px;
   flex: 1 1 160px;
   box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  cursor: pointer;
+  text-align: left;
+  transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
 }
+.summaryCard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+  border-color: var(--color-primary, #6366f1);
+}
+.summaryCard:focus-visible { outline: 2px solid var(--color-primary, #6366f1); outline-offset: 2px; }
+.summaryLabelRow { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+.summaryChevron  { color: #9ca3af; transition: color 0.15s; flex-shrink: 0; }
+.summaryCard:hover .summaryChevron { color: var(--color-primary, #6366f1); }
 .summaryIcon {
   width: 38px;
   height: 38px;
@@ -312,3 +324,67 @@
 .empty p { font-size: 14px; margin: 0; }
 .state { padding: 60px; text-align: center; color: #6b7280; font-size: 14px; }
 .error { padding: 60px; text-align: center; color: #dc2626; font-size: 14px; }
+
+/* ── DRILL-DOWN DRAWER ─────────────────────────────────────────────────── */
+.ddBackdrop {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.35);
+  z-index: 900; animation: ddFadeA 0.18s ease;
+}
+@keyframes ddFadeA { from { opacity:0 } to { opacity:1 } }
+
+.ddDrawer {
+  position: fixed; top: 0; right: 0; height: 100%; width: 620px; max-width: 95vw;
+  background: #fff; box-shadow: -4px 0 32px rgba(0,0,0,0.14);
+  z-index: 901; display: flex; flex-direction: column;
+  animation: ddSlideA 0.22s cubic-bezier(.4,0,.2,1);
+}
+@keyframes ddSlideA { from { transform: translateX(100%) } to { transform: translateX(0) } }
+
+.ddHeader {
+  padding: 24px 24px 16px; border-bottom: 1px solid #e5e7eb; flex-shrink: 0;
+}
+.ddTitleRow { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+.ddIcon { color: var(--color-primary, #6366f1); flex-shrink: 0; }
+.ddTitle { font-size: 1.1rem; font-weight: 700; color: #111827; flex: 1; }
+.ddClose {
+  background: none; border: none; cursor: pointer; padding: 4px;
+  color: #6b7280; border-radius: 6px; display: flex; align-items: center;
+}
+.ddClose:hover { background: #f3f4f6; color: #111827; }
+
+.ddSearch { position: relative; display: flex; align-items: center; }
+.ddSearchIcon { position: absolute; left: 10px; color: #9ca3af; pointer-events: none; }
+.ddSearchInput {
+  width: 100%; padding: 8px 12px 8px 34px;
+  border: 1px solid #e5e7eb; border-radius: 8px;
+  font-size: 0.875rem; color: #111827; background: #f9fafb;
+  outline: none; transition: border-color 0.15s;
+}
+.ddSearchInput:focus { border-color: var(--color-primary, #6366f1); }
+
+.ddCount { font-size: 0.8rem; color: #6b7280; margin-top: 8px; }
+
+.ddBody { flex: 1; overflow-y: auto; padding: 16px 24px 24px; }
+
+.ddState { padding: 60px 0; text-align: center; color: #6b7280; font-size: 0.95rem; }
+
+.ddTableWrap { overflow-x: auto; border-radius: 10px; border: 1px solid #e5e7eb; }
+.ddTable { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+.ddTable thead tr { background: #f9fafb; }
+.ddTable th {
+  text-align: left; padding: 10px 14px; font-size: 0.72rem; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.05em; color: #6b7280; white-space: nowrap;
+}
+.ddTable tbody tr { border-top: 1px solid #f3f4f6; transition: background 0.1s; }
+.ddTable tbody tr:hover { background: #f9fafb; }
+.ddTable td { padding: 11px 14px; color: #111827; vertical-align: middle; }
+
+.ddNum { text-align: right; font-variant-numeric: tabular-nums; }
+.ddMuted { color: #6b7280; font-size: 0.82rem; }
+
+.ddUserCell { display: flex; align-items: center; gap: 8px; }
+.ddAvatar {
+  width: 28px; height: 28px; border-radius: 50%; background: #f3f4f6;
+  color: var(--color-primary, #6366f1); font-size: 0.7rem; font-weight: 700;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
