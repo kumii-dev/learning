@@ -119,7 +119,7 @@ export default function Assessment() {
           </div>
           <button
             className={styles.nextItemBtn}
-            onClick={() => pass ? navigate('/achievements') : navigate(-1)}
+            onClick={() => pass ? navigate('/certificates') : navigate(-1)}
           >
             {pass ? 'View Achievements' : 'Next Item'} <FeatherIcon icon="arrow-right" size={16} />
           </button>
