@@ -200,10 +200,10 @@ async function generateCertificatePdf({
     const LOGO_ZONE_BOTTOM = LOGO_ZONE_TOP + LOGO_ZONE_H;
     const CONTENT_TOP      = LOGO_ZONE_BOTTOM + 16; // first text starts here
 
-    // Meta strip is anchored from CONTENT bottom, not from page bottom,
-    // so it never collides with the Kumii logo / signature zone.
-    const META_H    = 72;   // height of the whole meta+signature block
-    const META_TOP  = H - M - 6 - META_H - 10;  // ≈ 469 — well above bottom band
+    // Meta strip sits at a fixed absolute position, leaving a generous gap
+    // before the Kumii logo / signature zone at the very bottom.
+    const META_TOP       = 415;                   // absolute Y — meta separator line
+    const BOTTOM_ZONE_Y  = H - M - 6 - 46;       // ≈ 511 — Kumii logo + sig baseline
 
     /* ── Background ────────────────────────────────────────────────── */
     doc.rect(0, 0, W, H).fill(C.white);
@@ -310,8 +310,7 @@ async function generateCertificatePdf({
          { align: 'center', width: W - msgInset * 2 });
 
     /* ══════════════════════════════════════════════════════════════════
-       META STRIP  — anchored at META_TOP, not from the raw page bottom,
-       so there is guaranteed clear space above the bottom gold band.
+       META STRIP  — fixed at y=415, well above the bottom logo zone
     ══════════════════════════════════════════════════════════════════ */
     doc.rect(M + 8, META_TOP, W - (M + 8) * 2, 1).fill(C.goldLight);
 
@@ -331,21 +330,29 @@ async function generateCertificatePdf({
          .text(value, cx, META_TOP + 20, { width: colW - 4, align: 'center' });
     });
 
-    /* ── Bottom signature line ──────────────────────────────────────── */
-    const sigY = META_TOP + META_H - 20;
-    doc.moveTo(PAD + 80, sigY).lineTo(PAD + 280, sigY)
-       .lineWidth(0.5).strokeColor(C.midGrey).stroke();
-    doc.font('Helvetica').fontSize(8).fillColor(C.midGrey)
-       .text('Kumii Learning  ·  Authorised Signature', PAD + 80, sigY + 3,
-         { width: 200, align: 'center' });
+    /* ══════════════════════════════════════════════════════════════════
+       BOTTOM ZONE  — Kumii logo (left) + authorised signature (right)
+       Both anchored at BOTTOM_ZONE_Y ≈ 511, ~60px below meta strip end
+    ══════════════════════════════════════════════════════════════════ */
 
-    /* ── Kumii logo (bottom-left, above signature line) ─────────────── */
+    /* ── Kumii logo — bottom left ───────────────────────────────────── */
     try {
-      doc.image(LOGO_PATH, PAD, sigY - 26, { height: 24, width: 90 });
+      doc.image(LOGO_PATH, PAD, BOTTOM_ZONE_Y, { height: 24, width: 90 });
     } catch (_) {
       doc.font('Helvetica-Bold').fontSize(11).fillColor(C.navy)
-         .text('KUMII', PAD, sigY - 18);
+         .text('KUMII', PAD, BOTTOM_ZONE_Y + 4);
     }
+
+    /* ── Authorised signature — bottom right ────────────────────────── */
+    const sigLineX1 = W - PAD - 210;
+    const sigLineX2 = W - PAD;
+    const sigLineY  = BOTTOM_ZONE_Y + 20;
+    doc.moveTo(sigLineX1, sigLineY).lineTo(sigLineX2, sigLineY)
+       .lineWidth(0.5).strokeColor(C.midGrey).stroke();
+    doc.font('Helvetica').fontSize(8).fillColor(C.midGrey)
+       .text('Kumii Learning  ·  Authorised Signature',
+         sigLineX1, sigLineY + 4,
+         { width: sigLineX2 - sigLineX1, align: 'right' });
 
     doc.end();
   });
