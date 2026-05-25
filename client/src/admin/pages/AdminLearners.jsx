@@ -1,9 +1,11 @@
 /**
  * client/src/admin/pages/AdminLearners.jsx
  * Learner table with search, enrollment and completion stats.
+ * Summary cards are clickable — each opens a drill-down drawer.
  */
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import apiClient from '../../lib/apiClient';
+import FeatherIcon from 'feather-icons-react';
 import styles from './AdminLearners.module.css';
 
 function fmtDate(iso) {
@@ -11,21 +13,132 @@ function fmtDate(iso) {
   return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
-function ScoreBadge({ score }) {
+function ScoreBadge({ score, cls }) {
   if (score === null || score === undefined) return <span className={styles.scoreDash}>—</span>;
-  const cls = score >= 70 ? styles.scorePass : styles.scoreFail;
-  return <span className={cls}>{score}%</span>;
+  const c = cls ?? (score >= 70 ? styles.scorePass : styles.scoreFail);
+  return <span className={c}>{score}%</span>;
+}
+
+/* ── Drill-down drawer ────────────────────────────────────────────── */
+function DrillDownDrawer({ type, learners, onClose }) {
+  const [q, setQ] = useState('');
+
+  const cfg = {
+    total:       { title: 'All Learners',              icon: 'users'         },
+    enrolled:    { title: 'Learners with Enrolments',  icon: 'book-open'     },
+    completions: { title: 'Learners with Completions', icon: 'check-circle'  },
+    avgcomp:     { title: 'Completion Breakdown',      icon: 'bar-chart-2'   },
+  }[type];
+
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  // Filter source rows by drill type
+  const source = {
+    total:       learners,
+    enrolled:    learners.filter((l) => l.enrolled > 0),
+    completions: learners.filter((l) => l.completed > 0),
+    avgcomp:     learners,
+  }[type] ?? learners;
+
+  const filtered = source.filter((l) => {
+    if (!q) return true;
+    return `${l.full_name ?? ''} ${l.email ?? ''}`.toLowerCase().includes(q.toLowerCase());
+  });
+
+  return (
+    <>
+      <div className={styles.ddBackdrop} onClick={onClose} />
+      <div className={styles.ddDrawer}>
+        {/* Header */}
+        <div className={styles.ddHeader}>
+          <div className={styles.ddTitleRow}>
+            <FeatherIcon icon={cfg.icon} size={17} className={styles.ddIcon} />
+            <h2 className={styles.ddTitle}>{cfg.title}</h2>
+          </div>
+          <button className={styles.ddClose} onClick={onClose} aria-label="Close">
+            <FeatherIcon icon="x" size={17} />
+          </button>
+        </div>
+
+        {/* Search */}
+        <div className={styles.ddSearch}>
+          <FeatherIcon icon="search" size={14} className={styles.ddSearchIcon} />
+          <input
+            className={styles.ddSearchInput}
+            type="search"
+            placeholder="Search by name or email…"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            autoFocus
+          />
+          <span className={styles.ddCount}>{filtered.length} learner{filtered.length !== 1 ? 's' : ''}</span>
+        </div>
+
+        {/* Table */}
+        <div className={styles.ddBody}>
+          {filtered.length === 0 ? (
+            <div className={styles.ddState}>No learners found.</div>
+          ) : (
+            <div className={styles.ddTableWrap}>
+              <table className={styles.ddTable}>
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th className={styles.ddNum}>Enrolled</th>
+                    <th className={styles.ddNum}>Completed</th>
+                    <th className={styles.ddNum}>Avg Score</th>
+                    <th>Joined</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.map((l) => {
+                    const name = l.full_name || '(no name)';
+                    const initials = name !== '(no name)' ? name.split(' ').map((w) => w[0]).slice(0,2).join('').toUpperCase() : '?';
+                    return (
+                      <tr key={l.id}>
+                        <td>
+                          <div className={styles.ddUserCell}>
+                            <div className={styles.ddAvatar}>{initials}</div>
+                            <span>{name}</span>
+                          </div>
+                        </td>
+                        <td className={styles.ddMuted}>{l.email ?? '—'}</td>
+                        <td className={styles.ddNum}>{l.enrolled}</td>
+                        <td className={styles.ddNum}>{l.completed}</td>
+                        <td className={styles.ddNum}>
+                          {l.avgScore != null
+                            ? <span className={l.avgScore >= 70 ? styles.scorePass : styles.scoreFail}>{l.avgScore}%</span>
+                            : <span className={styles.scoreDash}>—</span>}
+                        </td>
+                        <td className={styles.ddMuted}>{fmtDate(l.created_at)}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </div>
+    </>
+  );
 }
 
 export default function AdminLearners() {
-  const [learners, setLearners] = useState([]);
-  const [loading,  setLoading]  = useState(true);
-  const [error,    setError]    = useState(null);
-  const [q,        setQ]        = useState('');
+  const [learners,   setLearners]   = useState([]);
+  const [loading,    setLoading]    = useState(true);
+  const [error,      setError]      = useState(null);
+  const [q,          setQ]          = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
-  const [sortKey,  setSortKey]  = useState('created_at');
-  const [sortDir,  setSortDir]  = useState('desc');
-  const [page,     setPage]     = useState(1);
+  const [sortKey,    setSortKey]    = useState('created_at');
+  const [sortDir,    setSortDir]    = useState('desc');
+  const [page,       setPage]       = useState(1);
+  const [drilldown,  setDrilldown]  = useState(null); // 'total'|'enrolled'|'completions'|'avgcomp'
   const PAGE_SIZE = 20;
 
   useEffect(() => {
@@ -47,7 +160,7 @@ export default function AdminLearners() {
       const name = `${l.full_name ?? ''} ${l.email ?? ''}`.toLowerCase();
       return name.includes(q.toLowerCase());
     })
-      .sort((a, b) => {
+    .sort((a, b) => {
       let av = a[sortKey] ?? 0;
       let bv = b[sortKey] ?? 0;
       if (typeof av === 'string') av = av.toLowerCase();
@@ -58,13 +171,26 @@ export default function AdminLearners() {
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const safePage   = Math.min(page, totalPages);
-  const paged      = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);  function SortIcon({ k }) {
+  const paged      = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+
+  function SortIcon({ k }) {
     if (sortKey !== k) return <span className={styles.sortIcon}>↕</span>;
     return <span className={styles.sortIconActive}>{sortDir === 'asc' ? '↑' : '↓'}</span>;
   }
 
   if (loading) return <div className={styles.state}>Loading learners…</div>;
   if (error)   return <div className={styles.error}>{error}</div>;
+
+  const avgComp = learners.length
+    ? (learners.reduce((s, l) => s + l.completed, 0) / learners.length).toFixed(1)
+    : '—';
+
+  const summaryCards = [
+    { key: 'total',       label: 'Total Learners',    value: learners.length,                                  icon: 'users' },
+    { key: 'enrolled',    label: 'With Enrolments',   value: learners.filter((l) => l.enrolled > 0).length,   icon: 'book-open' },
+    { key: 'completions', label: 'Completions (any)', value: learners.filter((l) => l.completed > 0).length,  icon: 'check-circle' },
+    { key: 'avgcomp',     label: 'Avg Completions',   value: avgComp,                                          icon: 'bar-chart-2' },
+  ];
 
   return (
     <div className={styles.page}>
@@ -75,18 +201,21 @@ export default function AdminLearners() {
         </div>
       </div>
 
-      {/* Summary cards */}
+      {/* Summary cards — clickable */}
       <div className={styles.summaryRow}>
-        {[
-          { label: 'Total Learners',    value: learners.length },
-          { label: 'With Enrolments',   value: learners.filter((l) => l.enrolled > 0).length },
-          { label: 'Completions (any)', value: learners.filter((l) => l.completed > 0).length },
-          { label: 'Avg Completions',   value: learners.length ? (learners.reduce((s, l) => s + l.completed, 0) / learners.length).toFixed(1) : '—' },
-        ].map((s) => (
-          <div key={s.label} className={styles.summaryCard}>
+        {summaryCards.map((s) => (
+          <button
+            key={s.key}
+            className={styles.summaryCard}
+            onClick={() => setDrilldown(s.key)}
+            title={`View ${s.label} detail`}
+          >
             <div className={styles.summaryValue}>{s.value}</div>
-            <div className={styles.summaryLabel}>{s.label}</div>
-          </div>
+            <div className={styles.summaryLabelRow}>
+              <span className={styles.summaryLabel}>{s.label}</span>
+              <FeatherIcon icon="chevron-right" size={12} className={styles.summaryChevron} />
+            </div>
+          </button>
         ))}
       </div>
 
@@ -179,6 +308,15 @@ export default function AdminLearners() {
           </>
         )
       }
+
+      {/* Drill-down drawer */}
+      {drilldown && (
+        <DrillDownDrawer
+          type={drilldown}
+          learners={learners}
+          onClose={() => setDrilldown(null)}
+        />
+      )}
     </div>
   );
 }
