@@ -225,16 +225,18 @@ async function upsertAssessment(courseId, payload) {
   // Upsert logo URLs into certificate_templates for this course
   if (payload.logoLeftUrl !== undefined || payload.logoRightUrl !== undefined) {
     const logoFields = {
-      course_id:      courseId,
-      name:           'default',
-      updated_at:     new Date().toISOString(),
+      course_id:  courseId,
+      name:       'default',
+      updated_at: new Date().toISOString(),
     };
     if (payload.logoLeftUrl  !== undefined) logoFields.logo_left_url  = payload.logoLeftUrl  || null;
     if (payload.logoRightUrl !== undefined) logoFields.logo_right_url = payload.logoRightUrl || null;
 
-    await supabaseAdmin
+    const { error: logoErr } = await supabaseAdmin
       .from('certificate_templates')
       .upsert(logoFields, { onConflict: 'course_id' });
+
+    if (logoErr) throw new Error(`Failed to save certificate logos: ${logoErr.message}`);
   }
 
   return assessment;
