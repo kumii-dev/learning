@@ -121,15 +121,28 @@ async function generateCertificatePdf({
 }) {
   const message = await getPersonalisedMessage(learnerName, courseTitle, category);
 
-  // Pre-fetch partner logo buffers (they are remote URLs)
-  async function fetchLogoBuffer(url) {
+  // Pre-fetch partner logo buffers (they are remote URLs).
+  // Follows up to 5 redirects, validates HTTP 200, and returns null on any failure.
+  async function fetchLogoBuffer(url, _redirects = 0) {
     if (!url) return null;
+    if (_redirects > 5) return null;
     try {
       const https = require('https');
       const http  = require('http');
       return await new Promise((res, rej) => {
         const mod = url.startsWith('https') ? https : http;
         mod.get(url, (response) => {
+          // Follow redirects (301 / 302 / 307 / 308)
+          if ([301, 302, 307, 308].includes(response.statusCode) && response.headers.location) {
+            response.resume(); // drain to free the socket
+            fetchLogoBuffer(response.headers.location, _redirects + 1).then(res).catch(() => res(null));
+            return;
+          }
+          // Only accept a successful response
+          if (response.statusCode !== 200) {
+            response.resume();
+            return res(null);
+          }
           const chunks = [];
           response.on('data', (c) => chunks.push(c));
           response.on('end',  () => res(Buffer.concat(chunks)));

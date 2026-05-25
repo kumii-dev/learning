@@ -31,6 +31,19 @@ async function issueCertificate(userId, courseId) {
     .maybeSingle();
 
   if (existing) {
+    // If logos have since been added to the template, regenerate the PDF so they appear
+    const { data: tmpl } = await supabaseAdmin
+      .from('certificate_templates')
+      .select('logo_left_url, logo_right_url')
+      .eq('course_id', courseId)
+      .maybeSingle();
+
+    const hasLogos = tmpl?.logo_left_url || tmpl?.logo_right_url;
+    if (hasLogos) {
+      logger.info('Certificate exists but logos present — regenerating PDF', { userId, courseId });
+      try { return await regeneratePdf(existing.id, userId); } catch (_) { /* fall through */ }
+    }
+
     logger.info('Certificate already issued', { userId, courseId });
     return existing;
   }
