@@ -117,8 +117,11 @@ export default function Assessment() {
               Your latest: {pct}% · Your highest: {pct}% · To pass you need at least 75%. We keep your highest score.
             </span>
           </div>
-          <button className={styles.nextItemBtn} onClick={() => navigate(-1)}>
-            Next Item <FeatherIcon icon="arrow-right" size={16} />
+          <button
+            className={styles.nextItemBtn}
+            onClick={() => pass ? navigate('/achievements') : navigate(-1)}
+          >
+            {pass ? 'View Achievements' : 'Next Item'} <FeatherIcon icon="arrow-right" size={16} />
           </button>
         </div>
 
