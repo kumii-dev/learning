@@ -19,7 +19,10 @@ const {
 const ALLOWED_MIME = new Set([
   'video/mp4', 'video/webm', 'video/ogg',
   'application/pdf',
+  // certificate logos & general images
+  'image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/svg+xml',
 ]);
+const IMAGE_MIME = new Set(['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/svg+xml']);
 const MAX_SIZE = 500 * 1024 * 1024; // 500 MB
 
 const _upload = multer({
@@ -38,7 +41,9 @@ const uploadFile = (req, res, next) => {
 
     try {
       const ext      = path.extname(req.file.originalname) || '';
-      const filePath = `modules/${uuid()}${ext}`;
+      // Images (logos) go into logos/ folder; everything else into modules/
+      const folder   = IMAGE_MIME.has(req.file.mimetype) ? 'logos' : 'modules';
+      const filePath = `${folder}/${uuid()}${ext}`;
       const { error: upErr } = await supabaseAdmin.storage
         .from('course-content')
         .upload(filePath, req.file.buffer, {
