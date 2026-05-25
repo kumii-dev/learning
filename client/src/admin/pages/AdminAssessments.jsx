@@ -102,12 +102,13 @@ const DRILL_META = {
 
 function DrillDownDrawer({ type, results, onClose }) {
   const [q, setQ] = useState('');
+  const [transcript, setTranscript] = useState(null);
 
   useEffect(() => {
-    const handler = (e) => { if (e.key === 'Escape') onClose(); };
+    const handler = (e) => { if (e.key === 'Escape') { if (transcript) setTranscript(null); else onClose(); } };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [onClose]);
+  }, [onClose, transcript]);
 
   const subset = useMemo(() => {
     let base;
@@ -133,6 +134,7 @@ function DrillDownDrawer({ type, results, onClose }) {
 
   return (
     <>
+      {transcript && <TranscriptModal result={transcript} onClose={() => setTranscript(null)} />}
       <div className={styles.ddBackdrop} onClick={onClose} />
       <aside className={styles.ddDrawer} role="dialog" aria-modal="true" aria-label={meta.title}>
         <div className={styles.ddHeader}>
@@ -172,6 +174,7 @@ function DrillDownDrawer({ type, results, onClose }) {
                     <th>Pass/Fail</th>
                     <th>Status</th>
                     <th>Submitted</th>
+                    <th>Transcript</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -199,6 +202,16 @@ function DrillDownDrawer({ type, results, onClose }) {
                       </td>
                       <td><StatusBadge status={r.status} /></td>
                       <td className={styles.ddMuted}>{fmtDate(r.submittedAt)}</td>
+                      <td>
+                        <button
+                          className={styles.transcriptBtn}
+                          onClick={() => setTranscript(r)}
+                          title="View full transcript"
+                        >
+                          <FeatherIcon icon="file-text" size={13} />
+                          View
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -207,6 +220,175 @@ function DrillDownDrawer({ type, results, onClose }) {
           )}
         </div>
       </aside>
+    </>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════════ */
+/* ── TranscriptModal ─────────────────────────────────────────────── */
+
+function TranscriptModal({ result, onClose }) {
+  useEffect(() => {
+    const handler = (e) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [onClose]);
+
+  const { learner, course, assessment, score, passed, status,
+          submittedAt, gradedAt, feedback, aiFeedback, answers } = result;
+
+  const name = learnerLabel(learner);
+  const ini  = initials(learner);
+
+  const answerList = Array.isArray(answers) ? answers : [];
+
+  return (
+    <>
+      <div className={styles.tmBackdrop} onClick={onClose} />
+      <div className={styles.tmModal} role="dialog" aria-modal="true" aria-label="Assessment Transcript">
+
+        {/* Header */}
+        <div className={styles.tmHeader}>
+          <div className={styles.tmTitleRow}>
+            <FeatherIcon icon="file-text" size={20} className={styles.tmHeaderIcon} />
+            <div className={styles.tmHeaderText}>
+              <span className={styles.tmTitle}>Assessment Transcript</span>
+              <span className={styles.tmSubtitle}>Audit record · {fmtDate(submittedAt)}</span>
+            </div>
+            <button className={styles.tmClose} onClick={onClose} aria-label="Close">
+              <FeatherIcon icon="x" size={18} />
+            </button>
+          </div>
+        </div>
+
+        <div className={styles.tmBody}>
+
+          {/* Learner + meta strip */}
+          <div className={styles.tmMeta}>
+            <div className={styles.tmLearnerRow}>
+              <div className={styles.tmAvatar}>{ini}</div>
+              <div>
+                <div className={styles.tmLearnerName}>{name}</div>
+                {learner?.email && <div className={styles.tmLearnerEmail}>{learner.email}</div>}
+              </div>
+            </div>
+            <div className={styles.tmMetaGrid}>
+              <div className={styles.tmMetaItem}>
+                <span className={styles.tmMetaLabel}>Course</span>
+                <span className={styles.tmMetaValue}>{course?.title ?? '—'}</span>
+              </div>
+              <div className={styles.tmMetaItem}>
+                <span className={styles.tmMetaLabel}>Assessment</span>
+                <span className={styles.tmMetaValue}>{assessment?.title ?? '—'}</span>
+              </div>
+              <div className={styles.tmMetaItem}>
+                <span className={styles.tmMetaLabel}>Type</span>
+                <span className={styles.tmMetaValue}><TypeBadge type={assessment?.type} /></span>
+              </div>
+              <div className={styles.tmMetaItem}>
+                <span className={styles.tmMetaLabel}>Status</span>
+                <span className={styles.tmMetaValue}><StatusBadge status={status} /></span>
+              </div>
+              <div className={styles.tmMetaItem}>
+                <span className={styles.tmMetaLabel}>Score</span>
+                <span className={styles.tmMetaValue}>
+                  <ScoreCell score={score} passed={passed} passMark={assessment?.passMark} />
+                </span>
+              </div>
+              <div className={styles.tmMetaItem}>
+                <span className={styles.tmMetaLabel}>Result</span>
+                <span className={styles.tmMetaValue}>
+                  {passed === true  && <span className={styles.passLabel}><FeatherIcon icon="check" size={12} /> Pass</span>}
+                  {passed === false && <span className={styles.failLabel}><FeatherIcon icon="x"     size={12} /> Fail</span>}
+                  {passed === null  && <span className={styles.scoreDash}>Pending</span>}
+                </span>
+              </div>
+              <div className={styles.tmMetaItem}>
+                <span className={styles.tmMetaLabel}>Submitted</span>
+                <span className={styles.tmMetaValue}>{fmtDate(submittedAt)} {fmtTime(submittedAt)}</span>
+              </div>
+              {gradedAt && (
+                <div className={styles.tmMetaItem}>
+                  <span className={styles.tmMetaLabel}>Graded</span>
+                  <span className={styles.tmMetaValue}>{fmtDate(gradedAt)} {fmtTime(gradedAt)}</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Answers */}
+          <div className={styles.tmSection}>
+            <div className={styles.tmSectionTitle}>
+              <FeatherIcon icon="list" size={15} />
+              Learner Responses
+              <span className={styles.tmSectionCount}>{answerList.length} answer{answerList.length !== 1 ? 's' : ''}</span>
+            </div>
+            {answerList.length === 0 ? (
+              <div className={styles.tmEmpty}>No answer data recorded for this submission.</div>
+            ) : (
+              <div className={styles.tmAnswerList}>
+                {answerList.map((ans, i) => (
+                  <div key={i} className={styles.tmAnswer}>
+                    <div className={styles.tmAnswerNum}>Q{i + 1}</div>
+                    <div className={styles.tmAnswerBody}>
+                      {ans.question && (
+                        <div className={styles.tmQuestion}>{ans.question}</div>
+                      )}
+                      <div className={styles.tmResponse}>
+                        {typeof ans.answer === 'object'
+                          ? JSON.stringify(ans.answer)
+                          : String(ans.answer ?? ans.response ?? ans.value ?? '—')}
+                      </div>
+                      {ans.correct !== undefined && (
+                        <div className={ans.correct ? styles.tmCorrect : styles.tmIncorrect}>
+                          {ans.correct
+                            ? <><FeatherIcon icon="check-circle" size={12} /> Correct</>
+                            : <><FeatherIcon icon="x-circle" size={12} /> Incorrect
+                                {ans.correctAnswer != null && (
+                                  <span className={styles.tmCorrectAnswer}> — Correct answer: {String(ans.correctAnswer)}</span>
+                                )}
+                              </>}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Grader feedback */}
+          {feedback && (
+            <div className={styles.tmSection}>
+              <div className={styles.tmSectionTitle}>
+                <FeatherIcon icon="message-square" size={15} />
+                Grader Feedback
+              </div>
+              <div className={styles.tmFeedbackBox}>{feedback}</div>
+            </div>
+          )}
+
+          {/* AI feedback */}
+          {aiFeedback && (
+            <div className={styles.tmSection}>
+              <div className={styles.tmSectionTitle}>
+                <FeatherIcon icon="cpu" size={15} />
+                AI Feedback
+              </div>
+              <div className={styles.tmFeedbackBox + ' ' + styles.tmAiFeedback}>{aiFeedback}</div>
+            </div>
+          )}
+
+        </div>
+
+        {/* Footer */}
+        <div className={styles.tmFooter}>
+          <span className={styles.tmFooterNote}>
+            <FeatherIcon icon="shield" size={12} /> Audit record · submission ID: {result.id}
+          </span>
+          <button className={styles.tmCloseBtn} onClick={onClose}>Close</button>
+        </div>
+      </div>
     </>
   );
 }

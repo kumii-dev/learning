@@ -412,6 +412,9 @@ async function listAssessmentResults({ courseId, status, limit = 200 } = {}) {
       score,
       status,
       submitted_at,
+      answers,
+      feedback,
+      graded_at,
       ai_feedback,
       assessments (
         id, title, type, pass_mark,
@@ -458,6 +461,9 @@ async function listAssessmentResults({ courseId, status, limit = 200 } = {}) {
       score:       s.score,
       status:      s.status,
       aiFeedback:  s.ai_feedback,
+      feedback:    s.feedback ?? null,
+      gradedAt:    s.graded_at ?? null,
+      answers:     Array.isArray(s.answers) ? s.answers : (s.answers ?? []),
       passed,
       assessment: s.assessments ? {
         id:       s.assessments.id,
