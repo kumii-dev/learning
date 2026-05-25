@@ -260,6 +260,34 @@ function ModulesStep({ modules, setModules }) {
 
 /* ── Step 3: Assessment ─────────────────────────────────────────────────── */
 function AssessmentStep({ assessment, setAssessment }) {
+  const [logoUploading, setLogoUploading] = useState({ left: false, right: false });
+  const [logoUploadErr, setLogoUploadErr] = useState({ left: null, right: null });
+
+  async function handleLogoUpload(side, file) {
+    if (!file) return;
+    setLogoUploading((s) => ({ ...s, [side]: true }));
+    setLogoUploadErr((s) => ({ ...s, [side]: null }));
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const { data } = await apiClient.post('/cms/upload', fd, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      const url = data.data?.url ?? data.url;
+      const key = side === 'left' ? 'logoLeftUrl' : 'logoRightUrl';
+      setAssessment((a) => ({ ...a, [key]: url }));
+    } catch (e) {
+      setLogoUploadErr((s) => ({ ...s, [side]: e.message ?? 'Upload failed' }));
+    } finally {
+      setLogoUploading((s) => ({ ...s, [side]: false }));
+    }
+  }
+
+  function removeLogo(side) {
+    const key = side === 'left' ? 'logoLeftUrl' : 'logoRightUrl';
+    setAssessment((a) => ({ ...a, [key]: '' }));
+  }
+
   function addQ() { setAssessment((a) => ({ ...a, questions: [...a.questions, BLANK_QUESTION()] })); }
   function removeQ(i) { setAssessment((a) => ({ ...a, questions: a.questions.filter((_, j) => j !== i) })); }
   function updQ(i, k, v) {
@@ -294,6 +322,66 @@ function AssessmentStep({ assessment, setAssessment }) {
           <input className={styles.input} type="number" min="0" max="100" value={assessment.passMark}
             onChange={(e) => setAssessment((a) => ({ ...a, passMark: e.target.value }))} />
         </div>
+      </div>
+
+      {/* ── Certificate logos ───────────────────────────────────────── */}
+      <div className={styles.moduleCard}>
+        <div className={styles.moduleHeader}>
+          <span className={styles.moduleNum}>Certificate Logos</span>
+          <span className={styles.hint}>Displayed at the top of the issued certificate</span>
+        </div>
+        <div className={styles.fieldRow}>
+          {/* Logo Left */}
+          <div className={styles.field}>
+            <label className={styles.label}>Top-Left Logo <span className={styles.hint}>(partner / organisation)</span></label>
+            {assessment.logoLeftUrl ? (
+              <div className={styles.uploadedFile}>
+                <FeatherIcon icon="image" size={14} />
+                <img src={assessment.logoLeftUrl} alt="Left logo preview" style={{ height: 32, maxWidth: 120, objectFit: 'contain', marginLeft: 8 }} />
+                <button className={styles.removeUpload} onClick={() => removeLogo('left')}>
+                  <FeatherIcon icon="x" size={12} />
+                </button>
+              </div>
+            ) : (
+              <label className={styles.fileDropZone}>
+                <FeatherIcon icon="upload" size={18} />
+                <span>{logoUploading.left ? 'Uploading…' : 'Click to upload logo (PNG/JPG)'}</span>
+                <input type="file" accept="image/png,image/jpeg,image/svg+xml,image/webp"
+                  className={styles.fileInput}
+                  onChange={(e) => handleLogoUpload('left', e.target.files[0])}
+                  disabled={logoUploading.left} />
+              </label>
+            )}
+            {logoUploadErr.left && <p className={styles.uploadErr}>{logoUploadErr.left}</p>}
+          </div>
+
+          {/* Logo Right */}
+          <div className={styles.field}>
+            <label className={styles.label}>Top-Right Logo <span className={styles.hint}>(partner / accreditor)</span></label>
+            {assessment.logoRightUrl ? (
+              <div className={styles.uploadedFile}>
+                <FeatherIcon icon="image" size={14} />
+                <img src={assessment.logoRightUrl} alt="Right logo preview" style={{ height: 32, maxWidth: 120, objectFit: 'contain', marginLeft: 8 }} />
+                <button className={styles.removeUpload} onClick={() => removeLogo('right')}>
+                  <FeatherIcon icon="x" size={12} />
+                </button>
+              </div>
+            ) : (
+              <label className={styles.fileDropZone}>
+                <FeatherIcon icon="upload" size={18} />
+                <span>{logoUploading.right ? 'Uploading…' : 'Click to upload logo (PNG/JPG)'}</span>
+                <input type="file" accept="image/png,image/jpeg,image/svg+xml,image/webp"
+                  className={styles.fileInput}
+                  onChange={(e) => handleLogoUpload('right', e.target.files[0])}
+                  disabled={logoUploading.right} />
+              </label>
+            )}
+            {logoUploadErr.right && <p className={styles.uploadErr}>{logoUploadErr.right}</p>}
+          </div>
+        </div>
+        <p className={styles.hint} style={{ marginTop: 6 }}>
+          The Kumii logo will appear at the bottom-left of the certificate automatically.
+        </p>
       </div>
 
       {assessment.questions.map((q, i) => (
@@ -428,6 +516,7 @@ export default function AdminCourseEditor() {
   const [modules,    setModules]    = useState([BLANK_MODULE()]);
   const [assessment, setAssessment] = useState({
     title: 'Course Assessment', passMark: 70, questions: [BLANK_QUESTION()],
+    logoLeftUrl: '', logoRightUrl: '',
   });
 
   function patchForm(k, v) { setForm((f) => ({ ...f, [k]: v })); }
@@ -461,11 +550,15 @@ export default function AdminCourseEditor() {
       }
       // assessments is an array — take the first one
       const firstAssessment = c.assessments?.[0] ?? c.assessment ?? null;
+      // certificate_templates is an array — take the first one
+      const certTemplate = c.certificate_templates?.[0] ?? null;
       if (firstAssessment) {
         setAssessment({
-          title:     firstAssessment.title ?? 'Course Assessment',
-          passMark:  firstAssessment.pass_mark ?? 70,
-          questions: firstAssessment.questions ?? [BLANK_QUESTION()],
+          title:        firstAssessment.title ?? 'Course Assessment',
+          passMark:     firstAssessment.pass_mark ?? 70,
+          questions:    firstAssessment.questions ?? [BLANK_QUESTION()],
+          logoLeftUrl:  certTemplate?.logo_left_url  ?? '',
+          logoRightUrl: certTemplate?.logo_right_url ?? '',
         });
       }
     }).catch((e) => setError(e.message))
@@ -508,6 +601,8 @@ export default function AdminCourseEditor() {
         await apiClient.put('/cms/assessments', {
           courseId,
           ...assessment,
+          logoLeftUrl:  assessment.logoLeftUrl  || null,
+          logoRightUrl: assessment.logoRightUrl || null,
           questions: assessment.questions
             .filter((q) => q.text)
             .map((q, idx) => ({

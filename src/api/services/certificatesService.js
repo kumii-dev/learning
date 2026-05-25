@@ -70,6 +70,8 @@ async function issueCertificate(userId, courseId) {
       estimatedHours:  course?.estimated_hours ?? null,
       issuedAt,
       certificateId:   certId,
+      logoLeftUrl:     template?.logo_left_url  ?? null,
+      logoRightUrl:    template?.logo_right_url ?? null,
     });
 
     const filePath = `certificates/${certId}.pdf`;
@@ -197,6 +199,13 @@ async function regeneratePdf(certificateId, userId) {
   const learnerName = cert.profiles?.full_name?.trim() || cert.profiles?.email?.split('@')[0] || 'Learner';
   const course      = cert.courses ?? {};
 
+  // Fetch logo URLs from certificate_templates for this course
+  const { data: template } = await supabaseAdmin
+    .from('certificate_templates')
+    .select('logo_left_url, logo_right_url')
+    .eq('course_id', cert.course_id)
+    .maybeSingle();
+
   const pdfBuffer = await generateCertificatePdf({
     learnerName,
     courseTitle:    course.title           ?? 'Course',
@@ -204,6 +213,8 @@ async function regeneratePdf(certificateId, userId) {
     estimatedHours: course.estimated_hours ?? null,
     issuedAt:       cert.issued_at,
     certificateId,
+    logoLeftUrl:    template?.logo_left_url  ?? null,
+    logoRightUrl:   template?.logo_right_url ?? null,
   });
 
   const filePath = `certificates/${certificateId}.pdf`;

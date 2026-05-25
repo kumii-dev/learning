@@ -44,6 +44,7 @@ export default function AdminRBAC() {
   const [saving,   setSaving]   = useState(null);  // userId currently being saved
   const [loading,  setLoading]  = useState(true);
   const [toast,    setToast]    = useState(null);  // { type: 'success'|'error', msg }
+  const [q,        setQ]        = useState('');    // search query
 
   /* ── fetch ── */
   const fetchData = useCallback(async () => {
@@ -106,6 +107,12 @@ export default function AdminRBAC() {
   }
 
   /* ── render ── */
+  const filteredAdmins = admins.filter((a) => {
+    if (!q) return true;
+    const hay = `${a.full_name ?? ''} ${a.email ?? ''}`.toLowerCase();
+    return hay.includes(q.toLowerCase());
+  });
+
   return (
     <div className={styles.page}>
       {/* ── Toast ── */}
@@ -144,14 +151,28 @@ export default function AdminRBAC() {
         </span>
       </div>
 
+      {/* ── Search bar ── */}
+      <div className={styles.toolbar}>
+        <input
+          className={styles.searchInput}
+          type="search"
+          placeholder="Search admins by name or email…"
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+        />
+        {!loading && (
+          <span className={styles.count}>{filteredAdmins.length} admin{filteredAdmins.length !== 1 ? 's' : ''}</span>
+        )}
+      </div>
+
       {/* ── Matrix ── */}
       {loading ? (
         <div className={styles.loading}>
           <RefreshCw size={20} className={styles.spinning} />
           Loading admin accounts…
         </div>
-      ) : admins.length === 0 ? (
-        <div className={styles.empty}>No admin users found.</div>
+      ) : filteredAdmins.length === 0 ? (
+        <div className={styles.empty}>{admins.length === 0 ? 'No admin users found.' : 'No admins match your search.'}</div>
       ) : (
         <div className={styles.tableWrap}>
           <table className={styles.matrix}>
@@ -165,7 +186,7 @@ export default function AdminRBAC() {
               </tr>
             </thead>
             <tbody>
-              {admins.map((admin) => {
+              {filteredAdmins.map((admin) => {
                 const isMe    = admin.id === me?.id;
                 const hasDirt = Boolean(dirty[admin.id] && Object.keys(dirty[admin.id]).length > 0);
                 const isSaving = saving === admin.id;

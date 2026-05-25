@@ -7,7 +7,7 @@
  * Layout (A4 landscape):
  *   ┌─────────────────────────────────────────────────────────────┐
  *   │  [gold border frame]                                        │
- *   │  [Kumii logo top-left]               [award seal top-right] │
+ *   │  [partner logo left top-left]    [partner logo right top-right] │
  *   │                                                             │
  *   │         CERTIFICATE OF COMPLETION                          │
  *   │                                                             │
@@ -20,8 +20,8 @@
  *   │                                                             │
  *   │  Category: …   Est. Hours: …   Issued: …                   │
  *   │                                                             │
- *   │  ___________    ___________                                 │
- *   │  Kumii Learning  Date                                        │
+ *   │  [Kumii logo bottom-left]   ___________                     │
+ *   │                              Date                           │
  *   └─────────────────────────────────────────────────────────────┘
  */
 
@@ -105,6 +105,8 @@ async function getPersonalisedMessage(learnerName, courseTitle, category) {
  * @param {number} opts.estimatedHours   Estimated course hours
  * @param {string} opts.issuedAt         ISO date string
  * @param {string} opts.certificateId    UUID for the certificate
+ * @param {string|null} opts.logoLeftUrl  URL of partner logo for top-left (optional)
+ * @param {string|null} opts.logoRightUrl URL of partner logo for top-right (optional)
  * @returns {Promise<Buffer>}
  */
 async function generateCertificatePdf({
@@ -114,8 +116,35 @@ async function generateCertificatePdf({
   estimatedHours,
   issuedAt,
   certificateId,
+  logoLeftUrl  = null,
+  logoRightUrl = null,
 }) {
   const message = await getPersonalisedMessage(learnerName, courseTitle, category);
+
+  // Pre-fetch partner logo buffers (they are remote URLs)
+  async function fetchLogoBuffer(url) {
+    if (!url) return null;
+    try {
+      const https = require('https');
+      const http  = require('http');
+      return await new Promise((res, rej) => {
+        const mod = url.startsWith('https') ? https : http;
+        mod.get(url, (response) => {
+          const chunks = [];
+          response.on('data', (c) => chunks.push(c));
+          response.on('end',  () => res(Buffer.concat(chunks)));
+          response.on('error', rej);
+        }).on('error', rej);
+      });
+    } catch (_) {
+      return null;
+    }
+  }
+
+  const [logoLeftBuf, logoRightBuf] = await Promise.all([
+    fetchLogoBuffer(logoLeftUrl),
+    fetchLogoBuffer(logoRightUrl),
+  ]);
 
   return new Promise((resolve, reject) => {
     const buffers = [];
@@ -155,27 +184,30 @@ async function generateCertificatePdf({
     /* ── Bottom gold band ───────────────────────────────────────────── */
     doc.rect(M, H - M - 6, W - M * 2, 6).fill(C.gold);
 
-    /* ── Kumii logo (top-left) ──────────────────────────────────────── */
-    try {
-      doc.image(LOGO_PATH, innerM, innerM + 14, { height: 44, fit: [160, 44] });
-    } catch (_) {
-      // logo missing — fall back to text
-      doc.font('Helvetica-Bold').fontSize(18).fillColor(C.navy)
-         .text('KUMII', innerM, innerM + 20);
+    /* ── Partner logo left (top-left) ──────────────────────────────── */
+    if (logoLeftBuf) {
+      try {
+        doc.image(logoLeftBuf, innerM, innerM + 14, { height: 44, fit: [160, 44] });
+      } catch (_) { /* skip on decode error */ }
     }
 
-    /* ── Award icon (top-right, drawn as concentric circles + ribbon) ── */
-    const sx = W - innerM - 36;
-    const sy = innerM + 36;
-    doc.circle(sx, sy, 22).lineWidth(2).strokeColor(C.gold).stroke();
-    doc.circle(sx, sy, 16).lineWidth(1.5).strokeColor(C.goldLight).stroke();
-    // ribbon left
-    doc.moveTo(sx - 10, sy + 18).lineTo(sx - 14, sy + 36).lineTo(sx, sy + 28)
-       .lineTo(sx + 14, sy + 36).lineTo(sx + 10, sy + 18)
-       .lineWidth(0).fillColor(C.gold).fill();
-    // star in centre
-    doc.font('Helvetica-Bold').fontSize(16).fillColor(C.gold)
-       .text('★', sx - 8, sy - 10, { width: 16 });
+    /* ── Partner logo right (top-right) ────────────────────────────── */
+    if (logoRightBuf) {
+      try {
+        doc.image(logoRightBuf, W - innerM - 160, innerM + 14, { height: 44, fit: [160, 44] });
+      } catch (_) { /* skip on decode error */ }
+    } else {
+      // Fallback: award seal drawn programmatically
+      const sx = W - innerM - 36;
+      const sy = innerM + 36;
+      doc.circle(sx, sy, 22).lineWidth(2).strokeColor(C.gold).stroke();
+      doc.circle(sx, sy, 16).lineWidth(1.5).strokeColor(C.goldLight).stroke();
+      doc.moveTo(sx - 10, sy + 18).lineTo(sx - 14, sy + 36).lineTo(sx, sy + 28)
+         .lineTo(sx + 14, sy + 36).lineTo(sx + 10, sy + 18)
+         .lineWidth(0).fillColor(C.gold).fill();
+      doc.font('Helvetica-Bold').fontSize(16).fillColor(C.gold)
+         .text('★', sx - 8, sy - 10, { width: 16 });
+    }
 
     /* ── Main headline ──────────────────────────────────────────────── */
     doc.font('Helvetica-Bold').fontSize(11)
@@ -252,6 +284,14 @@ async function generateCertificatePdf({
     doc.font('Helvetica').fontSize(8).fillColor(C.midGrey)
        .text('Kumii Learning  ·  Authorised Signature', innerM + 80, sigY + 3,
          { width: 200, align: 'center' });
+
+    /* ── Kumii logo (bottom-left) ───────────────────────────────────── */
+    try {
+      doc.image(LOGO_PATH, innerM, sigY - 38, { height: 32, fit: [120, 32] });
+    } catch (_) {
+      doc.font('Helvetica-Bold').fontSize(12).fillColor(C.navy)
+         .text('KUMII', innerM, sigY - 22);
+    }
 
     doc.end();
   });

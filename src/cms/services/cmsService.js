@@ -361,9 +361,10 @@ async function listLearners() {
   ] = await Promise.all([
     supabaseAdmin
       .from('profiles')
-      .select('id, first_name, last_name, email, created_at')
+      .select('id, full_name, first_name, last_name, email, role, created_at')
+      .neq('role', 'platform_admin')
       .order('created_at', { ascending: false })
-      .limit(200),
+      .limit(500),
     supabaseAdmin.from('enrolments').select('user_id, course_id, status, enrolled_at'),
     supabaseAdmin.from('grades').select('user_id, score'),
   ]);
@@ -374,8 +375,11 @@ async function listLearners() {
     const avg = ug.length
       ? Math.round(ug.reduce((s, g) => s + (g.score ?? 0), 0) / ug.length)
       : null;
+    // full_name is set by auth/sync; fall back to first_name + last_name for legacy rows
+    const full_name = p.full_name || `${p.first_name ?? ''} ${p.last_name ?? ''}`.trim() || null;
     return {
       ...p,
+      full_name,
       enrolled:  ue.length,
       completed: ue.filter((e) => e.status === 'completed').length,
       avgScore:  avg,

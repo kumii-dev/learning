@@ -36,26 +36,19 @@ function buildPrivilegeMap(rows, userId) {
  */
 async function listAdminPrivileges(req, res) {
   try {
-    // 1. Fetch all profiles that have role = 'admin' via user_roles
-    const { data: roles, error: rolesErr } = await supabaseAdmin
-      .from('user_roles')
-      .select('user_id')
-      .eq('role', 'admin');
-
-    if (rolesErr) throw rolesErr;
-
-    const adminIds = roles.map((r) => r.user_id);
-    if (adminIds.length === 0) return res.json({ data: [] });
-
-    // 2. Fetch matching profiles
+    // 1. Fetch all profiles where role = 'platform_admin' (set by auth/sync from Lovable)
     const { data: profiles, error: profErr } = await supabaseAdmin
       .from('profiles')
       .select('id, email, full_name')
-      .in('id', adminIds);
+      .eq('role', 'platform_admin')
+      .order('full_name', { ascending: true });
 
     if (profErr) throw profErr;
+    if (!profiles || profiles.length === 0) return res.json({ data: [] });
 
-    // 3. Fetch all privilege rows for these admins
+    const adminIds = profiles.map((p) => p.id);
+
+    // 2. Fetch all privilege rows for these admins
     const { data: privRows, error: privErr } = await supabaseAdmin
       .from('admin_privileges')
       .select('user_id, tab, granted')

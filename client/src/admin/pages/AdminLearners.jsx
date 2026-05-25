@@ -22,6 +22,7 @@ export default function AdminLearners() {
   const [loading,  setLoading]  = useState(true);
   const [error,    setError]    = useState(null);
   const [q,        setQ]        = useState('');
+  const [roleFilter, setRoleFilter] = useState('all');
   const [sortKey,  setSortKey]  = useState('created_at');
   const [sortDir,  setSortDir]  = useState('desc');
   const [page,     setPage]     = useState(1);
@@ -41,8 +42,9 @@ export default function AdminLearners() {
 
   const filtered = learners
     .filter((l) => {
+      if (roleFilter !== 'all' && (l.role ?? 'user') !== roleFilter) return false;
       if (!q) return true;
-      const name = `${l.first_name ?? ''} ${l.last_name ?? ''} ${l.email ?? ''}`.toLowerCase();
+      const name = `${l.full_name ?? ''} ${l.email ?? ''}`.toLowerCase();
       return name.includes(q.toLowerCase());
     })
       .sort((a, b) => {
@@ -88,7 +90,7 @@ export default function AdminLearners() {
         ))}
       </div>
 
-      {/* Search */}
+      {/* Search + Filter toolbar */}
       <div className={styles.toolbar}>
         <input
           className={styles.search}
@@ -97,6 +99,15 @@ export default function AdminLearners() {
           value={q}
           onChange={(e) => { setQ(e.target.value); setPage(1); }}
         />
+        <select
+          className={styles.filterSelect}
+          value={roleFilter}
+          onChange={(e) => { setRoleFilter(e.target.value); setPage(1); }}
+        >
+          <option value="all">All roles</option>
+          <option value="user">Learner</option>
+          <option value="instructor">Instructor</option>
+        </select>
         <span className={styles.count}>{filtered.length} learner{filtered.length !== 1 ? 's' : ''}</span>
       </div>
 
@@ -108,8 +119,8 @@ export default function AdminLearners() {
               <table className={styles.table}>
                 <thead>
                   <tr>
-                    <th onClick={() => toggleSort('last_name')} className={styles.sortable}>
-                      Name <SortIcon k="last_name" />
+                    <th onClick={() => toggleSort('full_name')} className={styles.sortable}>
+                      Name <SortIcon k="full_name" />
                     </th>
                     <th onClick={() => toggleSort('email')} className={styles.sortable}>
                       Email <SortIcon k="email" />
@@ -130,8 +141,10 @@ export default function AdminLearners() {
                 </thead>
                 <tbody>
                   {paged.map((l) => {
-                    const name = `${l.first_name ?? ''} ${l.last_name ?? ''}`.trim() || '(no name)';
-                    const initials = `${l.first_name?.[0] ?? ''}${l.last_name?.[0] ?? ''}`.toUpperCase() || '?';
+                    const name     = l.full_name || '(no name)';
+                    const initials = name !== '(no name)'
+                      ? name.split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase()
+                      : '?';
                     return (
                       <tr key={l.id}>
                         <td>

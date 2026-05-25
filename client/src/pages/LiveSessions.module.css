@@ -313,7 +313,7 @@
   height: 64px;
   border-radius: 50%;
   background: #eff6ff;
-  color: #2563eb;
+  color: #587054;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -323,21 +323,21 @@
 .consentTitle {
   font-size: 1.2rem;
   font-weight: 700;
-  color: #111827;
+  color: #091107;
   margin: 0;
   text-align: center;
 }
 
 .consentSession {
   font-size: 0.85rem;
-  color: #6b7280;
+  color: #707b70;
   margin: 0;
   text-align: center;
 }
 
 .consentBody {
   font-size: 0.9rem;
-  color: #374151;
+  color: #273525;
   margin: 0;
   text-align: center;
   line-height: 1.5;
@@ -353,7 +353,7 @@
 }
 .consentList li {
   font-size: 0.85rem;
-  color: #374151;
+  color: #273126;
   line-height: 1.45;
 }
 
@@ -363,7 +363,7 @@
   margin: 0;
   text-align: center;
   line-height: 1.45;
-  border-top: 1px solid #f3f4f6;
+  border-top: 1px solid #f4f6f3;
   padding-top: 0.75rem;
   width: 100%;
 }
@@ -397,14 +397,14 @@
   padding: 0.65rem 1rem;
   border-radius: 8px;
   border: none;
-  background: #2563eb;
+  background: #7a8567;
   color: #fff;
   font-size: 0.875rem;
   font-weight: 600;
   cursor: pointer;
   transition: background 0.15s;
 }
-.consentAccept:hover { background: #1d4ed8; }
+.consentAccept:hover { background: #a5b38b; }
 
 /* ── Jitsi video overlay ──────────────────────────────────────────── */
 .videoOverlay {

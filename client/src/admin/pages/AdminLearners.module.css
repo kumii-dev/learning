@@ -77,6 +77,19 @@
 .search::placeholder { color: var(--color-muted); }
 .search:focus { border-color: var(--color-primary); }
 
+.filterSelect {
+  background: var(--color-surface-white);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 9px 12px;
+  font-size: 0.9rem;
+  color: var(--color-text);
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+.filterSelect:focus { border-color: var(--color-primary); }
+
 .count {
   font-size: 0.85rem;
   color: #64748b;
