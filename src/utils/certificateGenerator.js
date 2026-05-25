@@ -185,20 +185,25 @@ async function generateCertificatePdf({
        ─────────────────────────────────────────────────────────────────
        y=32            outer border top / top gold band
        y=38 – 118      LOGO ZONE  (80px tall, vertically centred logos)
-       y=118           thin separator rule
-       y=130 – 158     "KUMII LEARNING" + "CERTIFICATE OF COMPLETION"
-       y=174           decorative centre rule
-       y=188 – 310     learner name / course / message block
-       y=370           meta strip separator
-       y=380 – 430     meta columns
+       y=122           thin separator rule
+       y=134 – 192     "KUMII LEARNING" + "CERTIFICATE OF COMPLETION"
+       y=196           decorative centre rule
+       y=210 – 370     learner name / course / message block
+       y=380           meta strip separator  ← pushed up from bottom
+       y=390 – 430     meta columns
        y=440 – 470     signature + Kumii logo
-       y=H-32          bottom gold band / outer border bottom
+       y=H-38          bottom gold band / outer border bottom
     ───────────────────────────────────────────────────────────────── */
 
     const LOGO_ZONE_TOP    = M + 6;   // just below top gold band
     const LOGO_ZONE_H      = 80;      // height reserved exclusively for logos
     const LOGO_ZONE_BOTTOM = LOGO_ZONE_TOP + LOGO_ZONE_H;
     const CONTENT_TOP      = LOGO_ZONE_BOTTOM + 16; // first text starts here
+
+    // Meta strip is anchored from CONTENT bottom, not from page bottom,
+    // so it never collides with the Kumii logo / signature zone.
+    const META_H    = 72;   // height of the whole meta+signature block
+    const META_TOP  = H - M - 6 - META_H - 10;  // ≈ 469 — well above bottom band
 
     /* ── Background ────────────────────────────────────────────────── */
     doc.rect(0, 0, W, H).fill(C.white);
@@ -218,24 +223,25 @@ async function generateCertificatePdf({
     doc.rect(M, H - M - 6, W - M * 2, 6).fill(C.gold);
 
     /* ══════════════════════════════════════════════════════════════════
-       LOGO ZONE  — 80px tall strip, logos vertically centred at y=50%
+       LOGO ZONE  — 80px tall strip, logos vertically centred
+       Uses `cover` via explicit width constraint to avoid PDFKit's
+       double-render bug with certain PNG ICC profiles when using `fit`.
     ══════════════════════════════════════════════════════════════════ */
-    const logoH   = 48;                                 // max logo height
-    const logoW   = 180;                                // max logo width
-    const logoY   = LOGO_ZONE_TOP + (LOGO_ZONE_H - logoH) / 2; // vertically centred
+    const logoMaxH = 48;
+    const logoMaxW = 180;
+    const logoY    = LOGO_ZONE_TOP + (LOGO_ZONE_H - logoMaxH) / 2;
 
     /* Partner logo — left */
     if (logoLeftBuf) {
       try {
-        doc.image(logoLeftBuf, PAD, logoY, { height: logoH, fit: [logoW, logoH] });
+        doc.image(logoLeftBuf, PAD, logoY, { width: logoMaxW, height: logoMaxH });
       } catch (_) { /* skip on decode error */ }
     }
 
     /* Partner logo — right  /  fallback award seal */
     if (logoRightBuf) {
       try {
-        // Right-align: place so the right edge sits at (W - PAD)
-        doc.image(logoRightBuf, W - PAD - logoW, logoY, { height: logoH, fit: [logoW, logoH] });
+        doc.image(logoRightBuf, W - PAD - logoMaxW, logoY, { width: logoMaxW, height: logoMaxH });
       } catch (_) { /* skip on decode error */ }
     } else {
       /* Programmatic award seal (only when no right logo supplied) */
@@ -300,14 +306,14 @@ async function generateCertificatePdf({
     /* ── Personalised message ───────────────────────────────────────── */
     const msgInset = PAD + 60;
     doc.font('Helvetica-Oblique').fontSize(9.5).fillColor(C.midGrey)
-       .text(`"${message}"`, msgInset, nameRuleY + 52,
+       .text(`"${message}"`, msgInset, nameRuleY + 50,
          { align: 'center', width: W - msgInset * 2 });
 
     /* ══════════════════════════════════════════════════════════════════
-       META STRIP  — fixed to the bottom of the content area
+       META STRIP  — anchored at META_TOP, not from the raw page bottom,
+       so there is guaranteed clear space above the bottom gold band.
     ══════════════════════════════════════════════════════════════════ */
-    const metaY = H - M - 6 - 78;   // 78px above bottom gold band
-    doc.rect(M + 8, metaY, W - (M + 8) * 2, 1).fill(C.goldLight);
+    doc.rect(M + 8, META_TOP, W - (M + 8) * 2, 1).fill(C.goldLight);
 
     const metaItems = [
       { label: 'Category',        value: category || '—' },
@@ -320,14 +326,14 @@ async function generateCertificatePdf({
     metaItems.forEach(({ label, value }, i) => {
       const cx = PAD + i * colW;
       doc.font('Helvetica').fontSize(7.5).fillColor(C.midGrey)
-         .text(label.toUpperCase(), cx, metaY + 10, { width: colW - 4, align: 'center' });
+         .text(label.toUpperCase(), cx, META_TOP + 8, { width: colW - 4, align: 'center' });
       doc.font('Helvetica-Bold').fontSize(10).fillColor(C.darkText)
-         .text(value, cx, metaY + 22, { width: colW - 4, align: 'center' });
+         .text(value, cx, META_TOP + 20, { width: colW - 4, align: 'center' });
     });
 
     /* ── Bottom signature line ──────────────────────────────────────── */
-    const sigY = H - M - 6 - 22;
-    doc.moveTo(PAD + 80, sigY).lineTo(PAD + 240, sigY)
+    const sigY = META_TOP + META_H - 20;
+    doc.moveTo(PAD + 80, sigY).lineTo(PAD + 280, sigY)
        .lineWidth(0.5).strokeColor(C.midGrey).stroke();
     doc.font('Helvetica').fontSize(8).fillColor(C.midGrey)
        .text('Kumii Learning  ·  Authorised Signature', PAD + 80, sigY + 3,
@@ -335,10 +341,10 @@ async function generateCertificatePdf({
 
     /* ── Kumii logo (bottom-left, above signature line) ─────────────── */
     try {
-      doc.image(LOGO_PATH, PAD, sigY - 32, { height: 28, fit: [110, 28] });
+      doc.image(LOGO_PATH, PAD, sigY - 26, { height: 24, width: 90 });
     } catch (_) {
       doc.font('Helvetica-Bold').fontSize(11).fillColor(C.navy)
-         .text('KUMII', PAD, sigY - 20);
+         .text('KUMII', PAD, sigY - 18);
     }
 
     doc.end();
