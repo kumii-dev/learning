@@ -20,6 +20,49 @@
 .subMeta       { font-size: .75rem; color: var(--color-muted); }
 .dueLabel      { font-size: .8rem; color: var(--color-muted); white-space: nowrap; margin-left: auto; }
 
+/* ── Countdown timer ─────────────────────────────────────────────────────── */
+@keyframes timerPulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: .5; }
+}
+.timer {
+  display: flex; align-items: center; gap: .35rem;
+  margin-left: auto;
+  font-size: .875rem; font-weight: 700;
+  color: var(--color-muted);
+  white-space: nowrap;
+  padding: .25rem .6rem;
+  border-radius: 999px;
+  border: 1.5px solid var(--color-border);
+  background: var(--color-surface);
+  transition: color .3s, border-color .3s, background .3s;
+  user-select: none;
+}
+.timerUrgent {
+  color: #dc2626;
+  border-color: #fca5a5;
+  background: #fff1f2;
+  animation: timerPulse 1s ease-in-out infinite;
+}
+.timerExpired {
+  color: #dc2626;
+  border-color: #dc2626;
+  background: #fff1f2;
+  animation: none;
+}
+.timerExpiredLabel {
+  font-size: .75rem; font-weight: 500; margin-left: .25rem;
+}
+
+/* ── Timed-out banner ────────────────────────────────────────────────────── */
+.timedOutBanner {
+  display: flex; align-items: flex-start; gap: .6rem;
+  background: #fff1f2; border: 1.5px solid #fca5a5;
+  border-radius: var(--radius-lg); padding: .9rem 1.1rem;
+  color: #dc2626; font-size: .875rem; font-weight: 500;
+  margin-top: 1rem;
+}
+
 /* ════ START SCREEN ════════════════════════════════════════════════════════ */
 .startPage { max-width: 680px; margin: 0 auto; padding: 2rem 1.5rem; display: flex; flex-direction: column; gap: 1.25rem; }
 .assignTitle { font-size: 1.6rem; font-weight: 800; letter-spacing: -.02em; line-height: 1.25; }

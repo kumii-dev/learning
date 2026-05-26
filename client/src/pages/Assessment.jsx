@@ -8,7 +8,7 @@
  *  3. "results" – green grade banner + reviewed questions
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import FeatherIcon from 'feather-icons-react';
 import apiClient from '../lib/apiClient';
@@ -43,6 +43,12 @@ export default function Assessment() {
   const [submitting,  setSubmitting]  = useState(false);
   const [error,       setError]       = useState(null);
 
+  /* ── 5-minute countdown timer ──────────────────────────────────────────── */
+  const TIMER_SECONDS = 5 * 60; // 300 s
+  const [timeLeft,    setTimeLeft]    = useState(TIMER_SECONDS);
+  const [timedOut,    setTimedOut]    = useState(false);
+  const timerRef = useRef(null);
+
   useEffect(() => {
     apiClient.get(`/assessments/${id}`)
       .then((res) => setAssessment(res.data.data))
@@ -50,20 +56,44 @@ export default function Assessment() {
       .finally(() => setLoading(false));
   }, [id]);
 
+  /* ── Start / stop the timer whenever the screen changes ──────────────── */
+  useEffect(() => {
+    if (screen === 'taking') {
+      // Reset on every new attempt
+      setTimeLeft(TIMER_SECONDS);
+      setTimedOut(false);
+      timerRef.current = setInterval(() => {
+        setTimeLeft((prev) => {
+          if (prev <= 1) {
+            clearInterval(timerRef.current);
+            setTimedOut(true);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    } else {
+      clearInterval(timerRef.current);
+    }
+    return () => clearInterval(timerRef.current);
+  }, [screen]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const setAnswer = (qIndex, value) =>
     setAnswers((prev) => ({ ...prev, [qIndex]: value }));
 
-  const submit = async (e) => {
-    e.preventDefault();
-    if (!honor) return;
+  /* ── Core submit — used by both the button and the auto-submit ────────── */
+  const submitAnswers = useCallback(async (currentAnswers, forced = false) => {
+    if (submitting) return;
     setSubmitting(true);
     try {
-      // Convert { [q.id]: value } map → [{ questionId, answer }] array expected by the API
-    const formatted = Object.entries(answers).map(([qId, answer]) => ({
-      questionId: Number(qId),
-      answer,
-    }));
-    const res  = await apiClient.post(`/assessments/${id}/submit`, { answers: formatted });
+      const questions = assessment?.questions ?? [];
+      // Build the answer array; unanswered questions get '' (scores zero server-side)
+      const formatted = questions.map((q, idx) => {
+        const nq  = { ...q, type: q.type === 'multi' ? 'multi_select' : (q.type ?? 'multiple_choice') };
+        const ans = currentAnswers[nq.id] ?? currentAnswers[idx] ?? '';
+        return { questionId: Number(nq.id ?? idx), answer: ans };
+      });
+      const res  = await apiClient.post(`/assessments/${id}/submit`, { answers: formatted });
       const data = res.data.data;
       setResult(data);
       setScreen('results');
@@ -73,6 +103,19 @@ export default function Assessment() {
     } finally {
       setSubmitting(false);
     }
+  }, [submitting, assessment, id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  /* ── Auto-submit when timer hits zero ────────────────────────────────── */
+  useEffect(() => {
+    if (timedOut && screen === 'taking' && !submitting) {
+      submitAnswers(answers, true);
+    }
+  }, [timedOut]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const submit = async (e) => {
+    e.preventDefault();
+    if (!honor) return;
+    await submitAnswers(answers, false);
   };
 
   if (loading) return <p className={styles.state}>Loading assessment…</p>;
@@ -81,6 +124,14 @@ export default function Assessment() {
   const questions = assessment?.questions ?? [];
   const due       = fmtDue(assessment?.due_at);
   const courseId  = assessment?.course_id ?? '';
+
+  /* Format mm:ss for the timer display */
+  function fmtTimer(secs) {
+    const m = String(Math.floor(secs / 60)).padStart(2, '0');
+    const s = String(secs % 60).padStart(2, '0');
+    return `${m}:${s}`;
+  }
+  const timerUrgent = timeLeft <= 60; // last 60 s → red pulsing
 
   /** Normalise a question so the rest of the component uses one vocabulary */
   function norm(q) {
@@ -192,9 +243,14 @@ export default function Assessment() {
           <button type="button" className={styles.backBtn} onClick={() => setScreen('start')}><FeatherIcon icon="arrow-left" size={16} /> Back</button>
           <div className={styles.subHeaderMid}>
             <span className={styles.subTitle}>{assessment.title}</span>
-            <span className={styles.subMeta}>Practice Assignment · {assessment.duration_min ?? 10} min</span>
+            <span className={styles.subMeta}>Practice Assignment · {assessment.duration_min ?? 5} min</span>
           </div>
-          {due && <span className={styles.dueLabel}><FeatherIcon icon="calendar" size={14} /> Due {due}</span>}
+          {/* ── Countdown timer ── */}
+          <div className={`${styles.timer} ${timerUrgent ? styles.timerUrgent : ''} ${timedOut ? styles.timerExpired : ''}`}>
+            <FeatherIcon icon="clock" size={14} />
+            <span>{timedOut ? '00:00' : fmtTimer(timeLeft)}</span>
+            {timedOut && <span className={styles.timerExpiredLabel}>Time's up — submitting…</span>}
+          </div>
         </div>
 
         <div className={styles.takingBody}>
@@ -255,34 +311,45 @@ export default function Assessment() {
             );
           })}
 
-          {/* Honor code */}
-          <div className={`${styles.honorBox} ${honor ? styles.honorChecked : ''}`}>
-            <p className={styles.honorTitle}>Coursera Honor Code</p>
-            <p className={styles.honorText}>
-              By clicking Submit, you confirm this work is your own. Submitting work created with AI tools
-              may result in course failure or account deactivation according to the{' '}
-              <a href="#" className={styles.honorLink}>Coursera Honor Code policy.</a>
-            </p>
-            <label className={styles.honorLabel}>
-              <input
-                type="checkbox"
-                checked={honor}
-                onChange={(e) => setHonor(e.target.checked)}
-              />
-              <span>I, <strong>{fullName}</strong>, understand and agree.</span>
-            </label>
-            {!honor && (
-              <p className={styles.honorWarn}>You must select the checkbox in order to submit the assignment</p>
-            )}
-          </div>
+          {/* Honor code — hidden when timer already expired (auto-submitted) */}
+          {!timedOut && (
+            <div className={`${styles.honorBox} ${honor ? styles.honorChecked : ''}`}>
+              <p className={styles.honorTitle}>Coursera Honor Code</p>
+              <p className={styles.honorText}>
+                By clicking Submit, you confirm this work is your own. Submitting work created with AI tools
+                may result in course failure or account deactivation according to the{' '}
+                <a href="#" className={styles.honorLink}>Coursera Honor Code policy.</a>
+              </p>
+              <label className={styles.honorLabel}>
+                <input
+                  type="checkbox"
+                  checked={honor}
+                  onChange={(e) => setHonor(e.target.checked)}
+                />
+                <span>I, <strong>{fullName}</strong>, understand and agree.</span>
+              </label>
+              {!honor && (
+                <p className={styles.honorWarn}>You must select the checkbox in order to submit the assignment</p>
+              )}
+            </div>
+          )}
+
+          {timedOut && (
+            <div className={styles.timedOutBanner}>
+              <FeatherIcon icon="alert-circle" size={18} />
+              <span>Time's up! Your answers have been automatically submitted. Unanswered questions have been marked as zero.</span>
+            </div>
+          )}
 
           <div className={styles.takingActions}>
-            <button type="submit" className={styles.submitBtn} disabled={submitting || !honor}>
+            <button type="submit" className={styles.submitBtn} disabled={submitting || !honor || timedOut}>
               {submitting ? 'Submitting…' : 'Submit'}
             </button>
-            <button type="button" className={styles.draftBtn} onClick={() => setScreen('start')}>
-              Save draft
-            </button>
+            {!timedOut && (
+              <button type="button" className={styles.draftBtn} onClick={() => setScreen('start')}>
+                Save draft
+              </button>
+            )}
           </div>
         </div>
       </form>
