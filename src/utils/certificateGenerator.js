@@ -256,19 +256,22 @@ async function generateCertificatePdf({
     const logoY    = LOGO_ZONE_TOP + (LOGO_ZONE_H - logoMaxH) / 2;
 
     /* Partner logo — left
-       Width-only constraint: PDFKit scales height naturally from the image's
-       aspect ratio. No bounding-box / align / valign needed — those options
-       trigger a re-positioning pass that re-draws the image (duplication bug). */
+       Height-only constraint: every logo renders at exactly LOGO_H points tall;
+       width scales naturally from the image's own aspect ratio.
+       Using height-only avoids PDFKit's bounding-box re-draw (duplication) bug. */
     if (logoLeftBuf) {
       try {
-        doc.image(logoLeftBuf, PAD, logoY, { width: logoMaxW });
+        doc.image(logoLeftBuf, PAD, logoY, { height: logoMaxH });
       } catch (_) { /* skip on decode error */ }
     }
 
     /* Partner logo — right  /  fallback award seal */
     if (logoRightBuf) {
       try {
-        doc.image(logoRightBuf, W - PAD - logoMaxW, logoY, { width: logoMaxW });
+        // Right-anchor: pre-measure scaled width so the right edge sits at W-PAD.
+        // PDFKit doesn't expose image dimensions before drawing, so we use a
+        // generous fixed offset; the height guarantee is what matters visually.
+        doc.image(logoRightBuf, W - PAD - 180, logoY, { height: logoMaxH });
       } catch (_) { /* skip on decode error */ }
     } else {
       /* Programmatic award seal (only when no right logo supplied) */
@@ -364,7 +367,7 @@ async function generateCertificatePdf({
 
     /* ── Kumii logo — bottom left ───────────────────────────────────── */
     try {
-      doc.image(LOGO_PATH, PAD, BOTTOM_ZONE_Y, { width: 90 });
+      doc.image(LOGO_PATH, PAD, BOTTOM_ZONE_Y, { height: 24 });
     } catch (_) {
       doc.font('Helvetica-Bold').fontSize(11).fillColor(C.navy)
          .text('KUMII', PAD, BOTTOM_ZONE_Y + 4);
