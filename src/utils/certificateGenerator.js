@@ -62,11 +62,14 @@ function fmtDate(iso) {
   });
 }
 
-async function getPersonalisedMessage(learnerName, courseTitle, category) {
+async function getPersonalisedMessage(learnerName, courseTitle, category, partnerHint) {
   try {
     const timeout = new Promise((_, reject) =>
       setTimeout(() => reject(new Error('OpenAI timeout')), 7_000)
     );
+    const partnerLine = partnerHint
+      ? ` The certificate is co-issued with ${partnerHint}.`
+      : '';
     const chat = await Promise.race([
       getOpenAI().chat.completions.create({
         model: 'gpt-4o-mini',
@@ -82,7 +85,8 @@ async function getPersonalisedMessage(learnerName, courseTitle, category) {
             role: 'user',
             content:
               `Write a one-sentence congratulatory message for ${learnerName} who just completed ` +
-              `"${courseTitle}" in the ${category || 'professional development'} category.`,
+              `"${courseTitle}" in the ${category || 'professional development'} category.` +
+              partnerLine,
           },
         ],
       }),
@@ -119,7 +123,27 @@ async function generateCertificatePdf({
   logoLeftUrl  = null,
   logoRightUrl = null,
 }) {
-  const message = await getPersonalisedMessage(learnerName, courseTitle, category);
+  // Derive a human-readable partner hint from logo filenames / URLs so OpenAI
+  // can mention the issuing organisation in its congratulatory message.
+  // e.g. "transnet-logo.png" → "Transnet"
+  //      "22-on-sloane.png"  → "22 On Sloane"
+  function partnerNameFromUrl(url) {
+    if (!url) return null;
+    try {
+      const filename = url.split('/').pop().split('?')[0];          // last path segment
+      const stem = filename.replace(/\.[^.]+$/, '');                // strip extension
+      return stem
+        .replace(/[-_]+/g, ' ')                                     // hyphens → spaces
+        .replace(/\b\w/g, (c) => c.toUpperCase())                   // title-case
+        .trim();
+    } catch { return null; }
+  }
+
+  const leftPartner  = partnerNameFromUrl(logoLeftUrl);
+  const rightPartner = partnerNameFromUrl(logoRightUrl);
+  const partnerHint  = [leftPartner, rightPartner].filter(Boolean).join(' and ') || null;
+
+  const message = await getPersonalisedMessage(learnerName, courseTitle, category, partnerHint);
 
   // Pre-fetch partner logo buffers (they are remote URLs).
   // Follows up to 5 redirects, validates HTTP 200, and returns null on any failure.
