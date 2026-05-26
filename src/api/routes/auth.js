@@ -68,19 +68,42 @@ router.post('/sync', async (req, res) => {
   }
 
   // ── Resolve name fields ────────────────────────────────────────────────────
+  // Log ALL keys in the profile payload so we can see exactly what Kumii sends.
+  if (profile && typeof profile === 'object') {
+    logger.info('[HUB:SYNC] profile payload keys', {
+      keys:   Object.keys(profile),
+      // Log name-related values directly (not sensitive)
+      first_name:   profile.first_name   ?? '(missing)',
+      firstName:    profile.firstName    ?? '(missing)',
+      last_name:    profile.last_name    ?? '(missing)',
+      lastName:     profile.lastName     ?? '(missing)',
+      surname:      profile.surname      ?? '(missing)',
+      family_name:  profile.family_name  ?? '(missing)',
+      familyName:   profile.familyName   ?? '(missing)',
+      lname:        profile.lname        ?? '(missing)',
+      full_name:    profile.full_name    ?? '(missing)',
+      fullName:     profile.fullName     ?? '(missing)',
+      name:         profile.name         ?? '(missing)',
+      displayName:  profile.displayName  ?? '(missing)',
+    });
+  }
+
   // Kumii may send the name in several different shapes; try them all.
   function toTitleCase(str) {
     if (!str) return '';
     return str.replace(/\w\S*/g, (w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
   }
 
-  // Explicit separate fields from Kumii
-  const rawFirst = profile?.first_name || profile?.firstName || null;
-  const rawLast  = profile?.last_name  || profile?.lastName  || null;
+  // Explicit separate fields — try every casing/alias Kumii might use
+  const rawFirst = profile?.first_name  || profile?.firstName  || null;
+  const rawLast  = profile?.last_name   || profile?.lastName
+                || profile?.surname     || profile?.family_name
+                || profile?.familyName  || profile?.lname
+                || null;
 
   // Combined name field — try every key Kumii might use
-  const rawFull  = profile?.full_name  || profile?.fullName
-                || profile?.name       || profile?.displayName
+  const rawFull  = profile?.full_name   || profile?.fullName
+                || profile?.name        || profile?.displayName
                 || null;
 
   // Derive first/last if Kumii only sent a combined name
