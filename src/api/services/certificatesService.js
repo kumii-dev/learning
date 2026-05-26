@@ -64,6 +64,7 @@ async function issueCertificate(userId, courseId) {
 
   const certId      = uuidv4();
   const issuedAt    = new Date().toISOString();
+  // Prefer first_name + last_name (added by migration 021); fall back to full_name then email prefix
   const learnerName =
     (`${user?.first_name ?? ''} ${user?.last_name ?? ''}`).trim()
     || user?.full_name?.trim()
@@ -182,7 +183,7 @@ async function getUserCertificates(userId) {
 async function getCertificateById(certificateId) {
   const { data, error } = await supabaseAdmin
     .from('certificates')
-    .select('*, courses(title), profiles(full_name, first_name, last_name, email)')
+    .select('*, courses(title), profiles(full_name, email)')
     .eq('id', certificateId)
     .single();
 
@@ -213,6 +214,7 @@ async function regeneratePdf(certificateId, userId) {
     const e = new Error('Forbidden'); e.status = 403; throw e;
   }
 
+  // Prefer first_name + last_name (added by migration 021); fall back to full_name then email prefix
   const learnerName =
     (`${cert.profiles?.first_name ?? ''} ${cert.profiles?.last_name ?? ''}`).trim()
     || cert.profiles?.full_name?.trim()

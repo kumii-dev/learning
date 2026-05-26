@@ -93,6 +93,8 @@ router.post('/sync', async (req, res) => {
       profile_completion_pct:      profile.profile_completion_percentage  ?? null,
       linkedin_url:                profile.linkedin_url                  ?? null,
       twitter_url:                 profile.twitter_url                   ?? null,
+      first_name:                  profile.first_name                    ?? null,
+      last_name:                   profile.last_name                     ?? null,
     }),
     ...(startup && {
       startup_company_name:  startup.company_name          ?? null,
