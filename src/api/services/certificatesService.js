@@ -64,12 +64,20 @@ async function issueCertificate(userId, courseId) {
 
   const certId      = uuidv4();
   const issuedAt    = new Date().toISOString();
-  // Prefer first_name + last_name (added by migration 021); fall back to full_name then email prefix
-  const learnerName =
+
+  // Title-case helper — ensures "khulekani mncube" → "Khulekani Mncube"
+  function toTitleCase(str) {
+    if (!str) return '';
+    return str.replace(/\w\S*/g, (w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
+  }
+
+  // Prefer first_name + last_name (migration 021); fall back to full_name then email prefix
+  const rawName =
     (`${user?.first_name ?? ''} ${user?.last_name ?? ''}`).trim()
     || user?.full_name?.trim()
     || user?.email?.split('@')[0]
     || 'Learner';
+  const learnerName = toTitleCase(rawName);
 
   // ── Generate PDF ─────────────────────────────────────────────────────
   // Append a cache-buster so Supabase CDN never serves a stale logo.
@@ -215,11 +223,18 @@ async function regeneratePdf(certificateId, userId) {
   }
 
   // Prefer first_name + last_name (added by migration 021); fall back to full_name then email prefix
-  const learnerName =
-    (`${cert.profiles?.first_name ?? ''} ${cert.profiles?.last_name ?? ''}`).trim()
-    || cert.profiles?.full_name?.trim()
-    || cert.profiles?.email?.split('@')[0]
-    || 'Learner';
+  const learnerName = (() => {
+    function toTitleCase(str) {
+      if (!str) return '';
+      return str.replace(/\w\S*/g, (w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
+    }
+    const raw =
+      (`${cert.profiles?.first_name ?? ''} ${cert.profiles?.last_name ?? ''}`).trim()
+      || cert.profiles?.full_name?.trim()
+      || cert.profiles?.email?.split('@')[0]
+      || 'Learner';
+    return toTitleCase(raw);
+  })();
   const course      = cert.courses ?? {};
 
   // Fetch the most recently updated template for this course.

@@ -67,19 +67,53 @@ router.post('/sync', async (req, res) => {
     return res.status(500).json({ error: 'Server misconfiguration: missing JWT secret' });
   }
 
-  const name = profile?.first_name && profile?.last_name
-    ? `${profile.first_name} ${profile.last_name}`.trim()
-    : profile?.first_name
-   || email.split('@')[0];
+  // ── Resolve name fields ────────────────────────────────────────────────────
+  // Kumii may send the name in several different shapes; try them all.
+  function toTitleCase(str) {
+    if (!str) return '';
+    return str.replace(/\w\S*/g, (w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
+  }
+
+  // Explicit separate fields from Kumii
+  const rawFirst = profile?.first_name || profile?.firstName || null;
+  const rawLast  = profile?.last_name  || profile?.lastName  || null;
+
+  // Combined name field — try every key Kumii might use
+  const rawFull  = profile?.full_name  || profile?.fullName
+                || profile?.name       || profile?.displayName
+                || null;
+
+  // Derive first/last if Kumii only sent a combined name
+  let resolvedFirst = rawFirst ? toTitleCase(rawFirst.trim()) : null;
+  let resolvedLast  = rawLast  ? toTitleCase(rawLast.trim())  : null;
+
+  if ((!resolvedFirst || !resolvedLast) && rawFull && rawFull.trim().includes(' ')) {
+    const parts = rawFull.trim().split(/\s+/);
+    resolvedFirst = resolvedFirst || toTitleCase(parts[0]);
+    resolvedLast  = resolvedLast  || toTitleCase(parts.slice(1).join(' '));
+  }
+
+  // Build full_name: prefer combined from resolved parts; fall back to rawFull; last resort email prefix
+  const resolvedFull =
+    (resolvedFirst && resolvedLast ? `${resolvedFirst} ${resolvedLast}` : null)
+    || (resolvedFirst ? resolvedFirst : null)
+    || (rawFull ? toTitleCase(rawFull.trim()) : null)
+    || toTitleCase(email.split('@')[0]);
+
+  logger.info('[HUB:SYNC] resolved name', {
+    resolvedFirst, resolvedLast, resolvedFull,
+  });
 
   // ── Upsert into hub's profiles table ──────────────────────────────────────
   const upsertRow = {
     id:          userId,
     email,
-    full_name:   name,
+    full_name:   resolvedFull,
     kumii_id:    userId,
     role:        kumiiIsAdmin === true ? 'platform_admin' : 'user',
     updated_at:  new Date().toISOString(),
+    first_name:  resolvedFirst,
+    last_name:   resolvedLast,
     ...(profile && {
       phone:                       profile.phone                         ?? null,
       location:                    profile.location                      ?? null,
@@ -93,8 +127,6 @@ router.post('/sync', async (req, res) => {
       profile_completion_pct:      profile.profile_completion_percentage  ?? null,
       linkedin_url:                profile.linkedin_url                  ?? null,
       twitter_url:                 profile.twitter_url                   ?? null,
-      first_name:                  profile.first_name                    ?? null,
-      last_name:                   profile.last_name                     ?? null,
     }),
     ...(startup && {
       startup_company_name:  startup.company_name          ?? null,
