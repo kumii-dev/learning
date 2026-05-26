@@ -67,6 +67,13 @@ async function issueCertificate(userId, courseId) {
   const learnerName = user?.full_name?.trim() || user?.email?.split('@')[0] || 'Learner';
 
   // ── Generate PDF ─────────────────────────────────────────────────────
+  // Append a cache-buster so Supabase CDN never serves a stale logo.
+  function bustCache(url) {
+    if (!url) return null;
+    const sep = url.includes('?') ? '&' : '?';
+    return `${url}${sep}t=${Date.now()}`;
+  }
+
   let pdfUrl = null;
   try {
     const pdfBuffer = await generateCertificatePdf({
@@ -76,8 +83,8 @@ async function issueCertificate(userId, courseId) {
       estimatedHours:  course?.estimated_hours ?? null,
       issuedAt,
       certificateId:   certId,
-      logoLeftUrl:     template?.logo_left_url  ?? null,
-      logoRightUrl:    template?.logo_right_url ?? null,
+      logoLeftUrl:     bustCache(template?.logo_left_url  ?? null),
+      logoRightUrl:    bustCache(template?.logo_right_url ?? null),
     });
 
     const filePath = `certificates/${certId}.pdf`;
@@ -205,12 +212,25 @@ async function regeneratePdf(certificateId, userId) {
   const learnerName = cert.profiles?.full_name?.trim() || cert.profiles?.email?.split('@')[0] || 'Learner';
   const course      = cert.courses ?? {};
 
-  // Fetch logo URLs from certificate_templates for this course
-  const { data: template } = await supabaseAdmin
+  // Fetch the most recently updated template for this course.
+  // Using order+limit(1) instead of maybeSingle() so we get the freshest row
+  // even if the UNIQUE constraint migration hasn't been applied yet.
+  const { data: templates } = await supabaseAdmin
     .from('certificate_templates')
     .select('logo_left_url, logo_right_url')
     .eq('course_id', cert.course_id)
-    .maybeSingle();
+    .order('updated_at', { ascending: false })
+    .limit(1);
+
+  const template = templates?.[0] ?? null;
+
+  // Append a cache-buster to logo URLs so Supabase/CDN always serves the
+  // latest uploaded file and not a stale cached version.
+  function bustCache(url) {
+    if (!url) return null;
+    const sep = url.includes('?') ? '&' : '?';
+    return `${url}${sep}t=${Date.now()}`;
+  }
 
   const pdfBuffer = await generateCertificatePdf({
     learnerName,
@@ -219,13 +239,16 @@ async function regeneratePdf(certificateId, userId) {
     estimatedHours: course.estimated_hours ?? null,
     issuedAt:       cert.issued_at,
     certificateId,
-    logoLeftUrl:    template?.logo_left_url  ?? null,
-    logoRightUrl:   template?.logo_right_url ?? null,
+    logoLeftUrl:    bustCache(template?.logo_left_url  ?? null),
+    logoRightUrl:   bustCache(template?.logo_right_url ?? null),
   });
 
-  const filePath = `certificates/${certificateId}.pdf`;
+  // Use a versioned filename so Supabase CDN never serves the old cached PDF.
+  // The previous path is left in storage (orphaned) — acceptable trade-off.
+  const version  = Date.now();
+  const filePath = `certificates/${certificateId}-v${version}.pdf`;
   await supabaseAdmin.storage.from('course-content').upload(filePath, pdfBuffer, {
-    contentType: 'application/pdf', upsert: true,
+    contentType: 'application/pdf', upsert: false,
   });
 
   const { data: { publicUrl } } = supabaseAdmin.storage
