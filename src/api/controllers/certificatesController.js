@@ -22,9 +22,7 @@ const verify = async (req, res, next) => {
 
 const downloadCertificate = async (req, res, next) => {
   try {
-    const cert = await certificatesService.getCertificateById(req.params.id);
-    if (cert.pdf_url) return res.json({ url: cert.pdf_url });
-    // PDF missing — generate on demand
+    // Always regenerate so the downloaded PDF reflects the latest template logos.
     const updated = await certificatesService.regeneratePdf(req.params.id, req.user.id);
     res.json({ url: updated.pdf_url });
   } catch (err) { next(err); }
