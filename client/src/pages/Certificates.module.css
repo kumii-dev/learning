@@ -153,7 +153,21 @@
   font-size: .9rem; font-weight: 700; cursor: pointer;
   transition: background .15s;
 }
-.btnDownload:hover { background: var(--color-surface); }
+.btnDownload:hover:not(:disabled) { background: var(--color-surface); }
+.btnDownload:disabled { opacity: .65; cursor: not-allowed; }
+
+/* ── Download spinner ─────────────────────────────────────── */
+@keyframes spin { to { transform: rotate(360deg); } }
+.spinner {
+  display: inline-block;
+  width: 14px; height: 14px;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin .7s linear infinite;
+  vertical-align: middle;
+  margin-right: 6px;
+}
 
 
 .list { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 1rem; }

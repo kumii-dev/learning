@@ -26,8 +26,9 @@ export default function Certificates() {
   const [certs,   setCerts]   = useState([]);
   const [profile, setProfile] = useState(null);
   const [active,  setActive]  = useState(0);   // index of selected cert
-  const [loading, setLoading] = useState(true);
-  const [error,   setError]   = useState(null);
+  const [loading,     setLoading]     = useState(true);
+  const [error,       setError]       = useState(null);
+  const [downloading, setDownloading] = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -81,10 +82,13 @@ export default function Certificates() {
 
   async function handleDownload(certId) {
     try {
+      setDownloading(true);
       const res = await apiClient.get(`/certificates/${certId}/download`);
       window.open(res.data.url, '_blank');
     } catch {
       alert('Could not generate certificate PDF. Please try again.');
+    } finally {
+      setDownloading(false);
     }
   }
 
@@ -204,8 +208,18 @@ export default function Certificates() {
             >
               Share Certificate <FeatherIcon icon="external-link" size={14} />
             </button>
-            <button className={styles.btnDownload} onClick={() => handleDownload(cert.id)}>
-              Download Certificate <FeatherIcon icon="download" size={14} />
+            <button
+              className={styles.btnDownload}
+              onClick={() => handleDownload(cert.id)}
+              disabled={downloading}
+            >
+              {downloading ? (
+                <>
+                  <span className={styles.spinner} aria-hidden="true" /> Generating…
+                </>
+              ) : (
+                <>Download Certificate <FeatherIcon icon="download" size={14} /></>
+              )}
             </button>
           </div>
         </section>
