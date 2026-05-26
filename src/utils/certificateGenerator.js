@@ -255,17 +255,20 @@ async function generateCertificatePdf({
     const logoMaxW = 180;
     const logoY    = LOGO_ZONE_TOP + (LOGO_ZONE_H - logoMaxH) / 2;
 
-    /* Partner logo — left */
+    /* Partner logo — left
+       `fit` constrains to the bounding box while preserving the image's natural
+       aspect ratio. Never pass both `width` and `height` — PDFKit renders the
+       image twice (once per axis) when both are supplied, causing duplication. */
     if (logoLeftBuf) {
       try {
-        doc.image(logoLeftBuf, PAD, logoY, { width: logoMaxW, height: logoMaxH });
+        doc.image(logoLeftBuf, PAD, logoY, { fit: [logoMaxW, logoMaxH], align: 'left', valign: 'center' });
       } catch (_) { /* skip on decode error */ }
     }
 
     /* Partner logo — right  /  fallback award seal */
     if (logoRightBuf) {
       try {
-        doc.image(logoRightBuf, W - PAD - logoMaxW, logoY, { width: logoMaxW, height: logoMaxH });
+        doc.image(logoRightBuf, W - PAD - logoMaxW, logoY, { fit: [logoMaxW, logoMaxH], align: 'right', valign: 'center' });
       } catch (_) { /* skip on decode error */ }
     } else {
       /* Programmatic award seal (only when no right logo supplied) */
@@ -361,7 +364,7 @@ async function generateCertificatePdf({
 
     /* ── Kumii logo — bottom left ───────────────────────────────────── */
     try {
-      doc.image(LOGO_PATH, PAD, BOTTOM_ZONE_Y, { height: 24, width: 90 });
+      doc.image(LOGO_PATH, PAD, BOTTOM_ZONE_Y, { fit: [90, 24] });
     } catch (_) {
       doc.font('Helvetica-Bold').fontSize(11).fillColor(C.navy)
          .text('KUMII', PAD, BOTTOM_ZONE_Y + 4);
