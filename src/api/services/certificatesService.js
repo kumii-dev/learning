@@ -51,7 +51,7 @@ async function issueCertificate(userId, courseId) {
   // Fetch user profile — users are stored in profiles, not public.users
   const { data: user } = await supabaseAdmin
     .from('profiles')
-    .select('email, full_name')
+    .select('email, full_name, first_name, last_name')
     .eq('id', userId)
     .single();
 
@@ -64,7 +64,11 @@ async function issueCertificate(userId, courseId) {
 
   const certId      = uuidv4();
   const issuedAt    = new Date().toISOString();
-  const learnerName = user?.full_name?.trim() || user?.email?.split('@')[0] || 'Learner';
+  const learnerName =
+    (`${user?.first_name ?? ''} ${user?.last_name ?? ''}`).trim()
+    || user?.full_name?.trim()
+    || user?.email?.split('@')[0]
+    || 'Learner';
 
   // ── Generate PDF ─────────────────────────────────────────────────────
   // Append a cache-buster so Supabase CDN never serves a stale logo.
@@ -178,7 +182,7 @@ async function getUserCertificates(userId) {
 async function getCertificateById(certificateId) {
   const { data, error } = await supabaseAdmin
     .from('certificates')
-    .select('*, courses(title), profiles(full_name, email)')
+    .select('*, courses(title), profiles(full_name, first_name, last_name, email)')
     .eq('id', certificateId)
     .single();
 
@@ -197,7 +201,7 @@ async function getCertificateById(certificateId) {
 async function regeneratePdf(certificateId, userId) {
   const { data: cert, error } = await supabaseAdmin
     .from('certificates')
-    .select('*, courses(title, category, estimated_hours), profiles(full_name, email)')
+    .select('*, courses(title, category, estimated_hours), profiles(full_name, first_name, last_name, email)')
     .eq('id', certificateId)
     .single();
 
@@ -209,7 +213,11 @@ async function regeneratePdf(certificateId, userId) {
     const e = new Error('Forbidden'); e.status = 403; throw e;
   }
 
-  const learnerName = cert.profiles?.full_name?.trim() || cert.profiles?.email?.split('@')[0] || 'Learner';
+  const learnerName =
+    (`${cert.profiles?.first_name ?? ''} ${cert.profiles?.last_name ?? ''}`).trim()
+    || cert.profiles?.full_name?.trim()
+    || cert.profiles?.email?.split('@')[0]
+    || 'Learner';
   const course      = cert.courses ?? {};
 
   // Fetch the most recently updated template for this course.
