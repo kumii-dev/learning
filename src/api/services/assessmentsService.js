@@ -25,7 +25,34 @@ async function getAssessmentById(assessmentId) {
     .eq('id', assessmentId)
     .single();
 
-  if (error || !data) {
+  if (error) {
+    // PGRST116 = "no rows" → genuine 404
+    // Any other code (e.g. column not found) → surface the real error
+    if (error.code === 'PGRST116' || error.status === 406) {
+      const err = new Error('Assessment not found');
+      err.status = 404;
+      throw err;
+    }
+    // Schema / column error — fall back to query without timer_minutes
+    const { data: fallback, error: fbErr } = await supabaseAdmin
+      .from('assessments')
+      .select('id, title, type, pass_mark, course_id, courses(id, title), questions')
+      .eq('id', assessmentId)
+      .single();
+    if (fbErr || !fallback) {
+      const err = new Error('Assessment not found');
+      err.status = 404;
+      throw err;
+    }
+    const safe = {
+      ...fallback,
+      timer_minutes: 5, // default until migration is applied
+      questions: (fallback.questions ?? []).map(({ answer: _a, ...q }) => q),
+    };
+    return safe;
+  }
+
+  if (!data) {
     const err = new Error('Assessment not found');
     err.status = 404;
     throw err;
@@ -34,6 +61,7 @@ async function getAssessmentById(assessmentId) {
   // Strip answer keys from questions before returning to the client
   const safe = {
     ...data,
+    timer_minutes: data.timer_minutes ?? 5,
     questions: (data.questions ?? []).map(({ answer: _a, ...q }) => q),
   };
   return safe;
