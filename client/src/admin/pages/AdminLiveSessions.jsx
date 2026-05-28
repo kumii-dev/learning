@@ -503,13 +503,20 @@ export default function AdminLiveSessions() {
   );
 
   const now       = new Date();
-  const upcoming  = sessions.filter((s) => new Date(s.scheduled_at) > now && s.status !== 'cancelled').length;
-  const liveNow   = sessions.filter((s) => {
+
+  // Derive effective status from time when DB status hasn't been updated yet
+  const effectiveStatus = (s) => {
+    if (s.status === 'cancelled') return 'cancelled';
     const start = new Date(s.scheduled_at);
     const end   = new Date(start.getTime() + (s.duration_min ?? 60) * 60000);
-    return now >= start && now <= end;
-  }).length;
-  const ended     = sessions.filter((s) => s.status === 'ended').length;
+    if (now >= start && now <= end) return 'live';
+    if (now > end)                  return 'ended';
+    return 'upcoming';
+  };
+
+  const upcoming  = sessions.filter((s) => effectiveStatus(s) === 'upcoming').length;
+  const liveNow   = sessions.filter((s) => effectiveStatus(s) === 'live').length;
+  const ended     = sessions.filter((s) => effectiveStatus(s) === 'ended').length;
   const totalRsvp = sessions.reduce((acc, s) => acc + (s.rsvp_count ?? 0), 0);
 
   return (
@@ -581,9 +588,9 @@ export default function AdminLiveSessions() {
                   <td>
                     <span
                       className={styles.statusBadge}
-                      style={{ background: STATUS_COLOURS[s.status] ?? '#6b7280' }}
+                      style={{ background: STATUS_COLOURS[effectiveStatus(s)] ?? '#6b7280' }}
                     >
-                      {s.status ?? 'scheduled'}
+                      {effectiveStatus(s)}
                     </span>
                   </td>
                   <td>{s.rsvp_count ?? 0}</td>
