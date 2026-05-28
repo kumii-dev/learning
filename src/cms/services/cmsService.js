@@ -192,12 +192,13 @@ async function upsertAssessment(courseId, payload) {
     .maybeSingle();
 
   const fields = {
-    course_id:  courseId,
-    type:       payload.type ?? 'quiz',
-    title:      payload.title ?? 'Course Assessment',
-    pass_mark:  payload.passMark ?? 70,
-    questions:  payload.questions ?? [],
-    updated_at: new Date().toISOString(),
+    course_id:     courseId,
+    type:          payload.type ?? 'quiz',
+    title:         payload.title ?? 'Course Assessment',
+    pass_mark:     payload.passMark ?? 70,
+    timer_minutes: payload.timerMinutes != null ? Number(payload.timerMinutes) : 5,
+    questions:     payload.questions ?? [],
+    updated_at:    new Date().toISOString(),
   };
 
   let assessment;

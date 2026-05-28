@@ -43,8 +43,8 @@ export default function Assessment() {
   const [submitting,  setSubmitting]  = useState(false);
   const [error,       setError]       = useState(null);
 
-  /* ── 5-minute countdown timer ──────────────────────────────────────────── */
-  const TIMER_SECONDS = 5 * 60; // 300 s
+  /* ── Countdown timer — duration driven by assessment.timer_minutes ──────── */
+  const TIMER_SECONDS = (assessment?.timer_minutes ?? 5) * 60;
   const [timeLeft,    setTimeLeft]    = useState(TIMER_SECONDS);
   const [timedOut,    setTimedOut]    = useState(false);
   const timerRef = useRef(null);

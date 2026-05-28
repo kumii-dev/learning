@@ -322,6 +322,12 @@ function AssessmentStep({ assessment, setAssessment }) {
           <input className={styles.input} type="number" min="0" max="100" value={assessment.passMark}
             onChange={(e) => setAssessment((a) => ({ ...a, passMark: e.target.value }))} />
         </div>
+        <div className={styles.field}>
+          <label className={styles.label}>Timer (minutes)</label>
+          <input className={styles.input} type="number" min="1" max="180" value={assessment.timerMinutes ?? 5}
+            onChange={(e) => setAssessment((a) => ({ ...a, timerMinutes: Math.max(1, parseInt(e.target.value, 10) || 5) }))}
+            placeholder="e.g. 5" />
+        </div>
       </div>
 
       {/* ── Certificate logos ───────────────────────────────────────── */}
@@ -471,7 +477,7 @@ function ReviewStep({ form, modules, assessment, courseId, onPublish, publishing
       </div>
       <div className={styles.reviewSection}>
         <h3 className={styles.reviewTitle}>Assessment: {assessment.title}</h3>
-        <p className={styles.reviewMeta}>{assessment.questions.length} questions · Pass: {assessment.passMark}%</p>
+        <p className={styles.reviewMeta}>{assessment.questions.length} questions · Pass: {assessment.passMark}% · Timer: {assessment.timerMinutes ?? 5} min</p>
       </div>
       {!courseId && (
         <div className={styles.publishBox}>
@@ -515,7 +521,7 @@ export default function AdminCourseEditor() {
   });
   const [modules,    setModules]    = useState([BLANK_MODULE()]);
   const [assessment, setAssessment] = useState({
-    title: 'Course Assessment', passMark: 70, questions: [BLANK_QUESTION()],
+    title: 'Course Assessment', passMark: 70, timerMinutes: 5, questions: [BLANK_QUESTION()],
     logoLeftUrl: '', logoRightUrl: '',
   });
 
@@ -556,6 +562,7 @@ export default function AdminCourseEditor() {
         setAssessment({
           title:        firstAssessment.title ?? 'Course Assessment',
           passMark:     firstAssessment.pass_mark ?? 70,
+          timerMinutes: firstAssessment.timer_minutes ?? 5,
           questions:    firstAssessment.questions ?? [BLANK_QUESTION()],
           logoLeftUrl:  certTemplate?.logo_left_url  ?? '',
           logoRightUrl: certTemplate?.logo_right_url ?? '',
@@ -601,6 +608,7 @@ export default function AdminCourseEditor() {
         await apiClient.put('/cms/assessments', {
           courseId,
           ...assessment,
+          timerMinutes: Number(assessment.timerMinutes) || 5,
           logoLeftUrl:  assessment.logoLeftUrl  || null,
           logoRightUrl: assessment.logoRightUrl || null,
           questions: assessment.questions
