@@ -27,6 +27,38 @@ function pct(done, total) {
   return total === 0 ? 0 : Math.round((done / total) * 100);
 }
 
+/**
+ * Given a video URL, returns:
+ *   { type: 'embed', src: '<iframe-safe embed URL>' }  — for YouTube / Vimeo
+ *   { type: 'file',  src: '<original URL>' }           — for direct .mp4 / .webm / etc.
+ */
+function resolveVideoEmbed(url) {
+  if (!url) return null;
+
+  // YouTube — handles watch?v=, youtu.be/, shorts/, embed/ formats
+  const ytMatch = url.match(
+    /(?:youtube\.com\/(?:watch\?v=|shorts\/|embed\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/
+  );
+  if (ytMatch) {
+    return {
+      type: 'embed',
+      src:  `https://www.youtube.com/embed/${ytMatch[1]}?rel=0&modestbranding=1`,
+    };
+  }
+
+  // Vimeo — handles vimeo.com/<id> and player.vimeo.com/video/<id>
+  const vimeoMatch = url.match(/vimeo\.com\/(?:video\/)?(\d+)/);
+  if (vimeoMatch) {
+    return {
+      type: 'embed',
+      src:  `https://player.vimeo.com/video/${vimeoMatch[1]}`,
+    };
+  }
+
+  // Direct file — mp4, webm, ogg, or a Supabase storage URL
+  return { type: 'file', src: url };
+}
+
 /* ── Sidebar module row ──────────────────────────────────────────────────── */
 function ModuleRow({ mod, index, active, done, onClick }) {
   return (
@@ -221,12 +253,27 @@ export default function CoursePlayer() {
         ) : activeMod ? (
           <>
             {/* Video (if video_url exists) */}
-            {activeMod.video_url && (
-              <div className={styles.videoWrap}>
-                <video key={activeMod.id} controls className={styles.video}
-                  src={activeMod.video_url} poster={course.thumbnail_url ?? undefined} />
-              </div>
-            )}
+            {activeMod.video_url && (() => {
+              const embed = resolveVideoEmbed(activeMod.video_url);
+              return (
+                <div className={styles.videoWrap}>
+                  {embed?.type === 'embed' ? (
+                    <iframe
+                      key={activeMod.id}
+                      src={embed.src}
+                      title={activeMod.title}
+                      className={styles.video}
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+                      allowFullScreen
+                      style={{ border: 'none' }}
+                    />
+                  ) : (
+                    <video key={activeMod.id} controls className={styles.video}
+                      src={activeMod.video_url} poster={course.thumbnail_url ?? undefined} />
+                  )}
+                </div>
+              );
+            })()}
 
             {/* PDF viewer */}
             {!activeMod.video_url && activeMod.pdf_url && (

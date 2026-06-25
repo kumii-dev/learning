@@ -32,7 +32,7 @@
       "headers": [
         {
           "key": "Content-Security-Policy",
-          "value": "frame-ancestors 'self' https://kumii.africa https://www.kumii.africa https://*.lovable.app https://*.lovableproject.com"
+          "value": "frame-ancestors 'self' https://kumii.africa https://www.kumii.africa https://*.lovable.app https://*.lovableproject.com; frame-src 'self' https://www.youtube.com https://player.vimeo.com https://kumii.daily.co"
         },
         {
           "key": "X-Frame-Options",
