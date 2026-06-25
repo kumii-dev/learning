@@ -413,9 +413,14 @@ function SessionModal({ initial, onSave, onClose, loading }) {
             </label>
             <label>Duration (min)
               <select value={form.durationMin} onChange={(e) => set('durationMin', e.target.value)}>
-                {[30, 45, 60, 90, 120].map((v) => (
-                  <option key={v} value={v}>{v} min</option>
-                ))}
+                {[30, 45, 60, 90, 120, 150, 180, 210, 240, 270, 300, 360, 420, 480].map((v) => {
+                  const h = Math.floor(v / 60);
+                  const m = v % 60;
+                  const label = h > 0
+                    ? (m > 0 ? `${h}h ${m}min` : `${h}h`)
+                    : `${m} min`;
+                  return <option key={v} value={v}>{label}</option>;
+                })}
               </select>
             </label>
           </div>
