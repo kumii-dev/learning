@@ -7,7 +7,7 @@
 
 const { v4: uuid }          = require('uuid');
 const { supabaseAdmin }     = require('../../integrations/supabase');
-const { createDailyRoom, deleteDailyRoom, getRoomRecordings,
+const { createDailyRoom, deleteDailyRoom, getRoomRecordings, getRecordingAccessLink,
         getSessionTranscripts, getDailyTranscriptText } = require('../../integrations/videoProvider');
 const { sendRecordingEmail }  = require('../../utils/emailService');
 const { transcribeAudio, summariseTranscript } = require('../../integrations/openai');
@@ -199,19 +199,27 @@ async function getSessionRecordings(sessionId) {
 
   const recordings = await getRoomRecordings(session.room_name);
 
-  // Sync the most recent recording URL back to the DB row
-  if (recordings.length > 0) {
-    const latest = recordings[0];
-    const downloadUrl = latest.download_link ?? latest.s3_key ?? null;
-    if (downloadUrl && downloadUrl !== session.recording_url) {
-      await supabaseAdmin
-        .from('live_sessions')
-        .update({ recording_url: downloadUrl, status: 'ended', updated_at: new Date().toISOString() })
-        .eq('id', sessionId);
-    }
+  // Enrich each finished recording with a presigned download link.
+  // Daily's list API does NOT include download_link — requires a separate
+  // GET /recordings/{id}/access-link call per recording.
+  const enriched = await Promise.all(
+    recordings.map(async (r) => {
+      if (r.status !== 'finished' && r.status !== 'completed') return r;
+      const link = await getRecordingAccessLink(r.id);
+      return link ? { ...r, download_link: link } : r;
+    }),
+  );
+
+  // Sync the most recent finished recording URL back to the DB row
+  const latestFinished = enriched.find((r) => r.download_link);
+  if (latestFinished?.download_link && latestFinished.download_link !== session.recording_url) {
+    await supabaseAdmin
+      .from('live_sessions')
+      .update({ recording_url: latestFinished.download_link, status: 'ended', updated_at: new Date().toISOString() })
+      .eq('id', sessionId);
   }
 
-  return recordings;
+  return enriched;
 }
 
 module.exports = { getLiveSessions, createSession, updateSession, deleteSession, toggleRsvp, getSessionRecordings, emailRecordingToParticipants, generateTranscriptAndSummary };
@@ -271,12 +279,17 @@ async function generateTranscriptAndSummary(sessionId) {
     // ── Step 2: Fallback to Whisper ───────────────────────────────────────
     if (!transcriptText && session.room_name) {
       const recordings = await getRoomRecordings(session.room_name);
-      const rec = recordings.find((r) => r.download_link) ?? null;
-      if (rec?.download_link) {
-        const whisperText = await transcribeAudio(rec.download_link, `session-${sessionId}.mp4`);
-        if (whisperText) {
-          transcriptText   = whisperText;
-          transcriptStatus = 'done';
+      // Daily's list API never includes download_link — must call access-link per recording
+      const finished = recordings.find((r) => r.status === 'finished' || r.status === 'completed')
+                    ?? recordings[0];
+      if (finished?.id) {
+        const downloadUrl = await getRecordingAccessLink(finished.id);
+        if (downloadUrl) {
+          const whisperText = await transcribeAudio(downloadUrl, `session-${sessionId}.mp4`);
+          if (whisperText) {
+            transcriptText   = whisperText;
+            transcriptStatus = 'done';
+          }
         }
       }
     }

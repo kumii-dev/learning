@@ -153,13 +153,17 @@ async function transcribeAudio(downloadUrl, filename = 'recording.mp4') {
       type: response.headers['content-type'] ?? 'video/mp4',
     });
 
-    // 3. Send to Whisper
-    const transcription = await ai.audio.transcriptions.create({
-      file:            fileObj,
-      model:           'whisper-1',
-      response_format: 'text',
-      language:        'en',
-    });
+    // 3. Send to Whisper — override the default 8 s client timeout;
+    //    a 2–3 minute recording typically takes 30–90 s to transcribe.
+    const transcription = await ai.audio.transcriptions.create(
+      {
+        file:            fileObj,
+        model:           'whisper-1',
+        response_format: 'text',
+        language:        'en',
+      },
+      { timeout: 180_000 },   // 3-minute cap; overrides the 8 s client default
+    );
 
     return typeof transcription === 'string'
       ? transcription.trim()

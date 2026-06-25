@@ -41,8 +41,12 @@ async function createDailyRoom(sessionId, scheduledAt, maxParticipants) {
     enable_screenshare: true,
 
     // ── Cloud recording ────────────────────────────────────────────
-    enable_recording:   'cloud',  // 'cloud' | 'local' | 'raw-tracks'
-    enable_network_ui:  true,     // network quality indicator in UI
+    enable_recording:    'cloud',  // 'cloud' | 'local' | 'raw-tracks'
+    enable_network_ui:   true,     // network quality indicator in UI
+
+    // ── Transcription — Daily.co built-in (Business/Enterprise plans)
+    // Required for the AI Transcript feature to use Daily's native transcripts.
+    enable_transcription: 'deepgram',
 
     // ── Chat ───────────────────────────────────────────────────────
     enable_chat:        true,
@@ -126,7 +130,31 @@ async function getRoomRecordings(roomName) {
   }
 }
 
-module.exports = { createDailyRoom, deleteDailyRoom, getRoomRecordings, getSessionTranscripts, getDailyTranscriptText };
+/**
+ * Get a presigned download link for a single Daily.co recording.
+ * The link expires in ~1 hour.
+ *
+ * Docs: https://docs.daily.co/reference/rest-api/recordings/get-recording-link
+ *
+ * @param {string} recordingId  Daily.co recording ID
+ * @returns {Promise<string|null>}  presigned download URL or null
+ */
+async function getRecordingAccessLink(recordingId) {
+  const apiKey = process.env.DAILY_API_KEY;
+  if (!apiKey || !recordingId) return null;
+  try {
+    const { data } = await axios.get(`${DAILY_API_BASE}/recordings/${recordingId}/access-link`, {
+      headers: { Authorization: `Bearer ${apiKey}` },
+      timeout: 10_000,
+    });
+    return data?.download_link ?? null;
+  } catch (err) {
+    console.error('[Daily] getRecordingAccessLink error:', err.response?.data ?? err.message);
+    return null;
+  }
+}
+
+module.exports = { createDailyRoom, deleteDailyRoom, getRoomRecordings, getRecordingAccessLink, getSessionTranscripts, getDailyTranscriptText };
 
 /**
  * Fetch Daily.co transcripts for a room.
