@@ -88,19 +88,34 @@ function ModulesStep({ modules, setModules }) {
     upd(i, '_uploadPct', 0);
     upd(i, '_uploadErr', null);
     try {
-      const form = new FormData();
-      form.append('file', file);
-      const { data } = await apiClient.post('/cms/upload', form, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-        onUploadProgress: (e) => {
+      // Step 1 — ask the backend for a Supabase signed upload URL.
+      // This tiny JSON request is well within Vercel's 4.5 MB body limit.
+      const { data: urlData } = await apiClient.post('/cms/upload-url', {
+        filename: file.name,
+        mimeType: file.type,
+      });
+
+      // Step 2 — PUT the file directly to Supabase Storage using XHR so we
+      // can track upload progress without routing bytes through the server.
+      await new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('PUT', urlData.signedUrl);
+        xhr.setRequestHeader('Content-Type', file.type);
+        xhr.upload.onprogress = (e) => {
           const pct = e.total ? Math.round((e.loaded / e.total) * 100) : 0;
           setModules((m) => m.map((mod, j) => j === i ? { ...mod, _uploadPct: pct } : mod));
-        },
+        };
+        xhr.onload  = () => xhr.status < 400 ? resolve() : reject(new Error(`Upload failed (${xhr.status})`));
+        xhr.onerror = () => reject(new Error('Network error during upload'));
+        xhr.send(file);
       });
+
+      // Step 3 — use the public URL returned alongside the signed URL
+      const publicUrl = urlData.publicUrl;
       if (type === 'pdf') {
-        upd(i, 'pdfUrl', data.url);
+        upd(i, 'pdfUrl', publicUrl);
       } else {
-        upd(i, 'videoUrl', data.url);
+        upd(i, 'videoUrl', publicUrl);
       }
       upd(i, '_uploadPct', null);
     } catch (e) {

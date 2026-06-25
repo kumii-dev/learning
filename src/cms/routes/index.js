@@ -23,6 +23,9 @@ router.post('/courses/:id/unpublish',    ...adminOnly, ctrl.unpublishCourse);
 
 /* ── File upload ─────────────────────────────────────────────────────────── */
 router.post('/upload',                   ...adminOnly, ctrl.uploadFile);
+// Large files (videos, PDFs > 4.5 MB) must bypass Vercel via a signed URL.
+// Browser fetches a presigned Supabase upload URL, then PUTs directly to Storage.
+router.post('/upload-url',               ...adminOnly, ctrl.getUploadUrl);
 
 /* ── Modules ─────────────────────────────────────────────────────────────── */
 router.post('/modules',                  ...adminOnly, ctrl.addModule);

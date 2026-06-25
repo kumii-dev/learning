@@ -63,6 +63,50 @@ const uploadFile = (req, res, next) => {
   });
 };
 
+/**
+ * Issue a Supabase signed upload URL so the browser can PUT large files
+ * (videos, PDFs) directly to Supabase Storage — bypassing the Vercel 4.5 MB
+ * request body limit entirely.
+ *
+ * POST /cms/upload-url
+ * Body: { filename: 'foo.mp4', mimeType: 'video/mp4' }
+ * Returns: { signedUrl, token, path, publicUrl }
+ */
+const getUploadUrl = async (req, res, next) => {
+  try {
+    const { filename, mimeType } = req.body ?? {};
+    if (!filename || !mimeType) {
+      return res.status(400).json({ error: 'filename and mimeType are required' });
+    }
+    if (!ALLOWED_MIME.has(mimeType)) {
+      return res.status(400).json({ error: `Unsupported file type: ${mimeType}` });
+    }
+
+    const ext      = path.extname(filename) || '';
+    const folder   = IMAGE_MIME.has(mimeType) ? 'logos' : 'modules';
+    const filePath = `${folder}/${uuid()}${ext}`;
+
+    const { data, error } = await supabaseAdmin.storage
+      .from('course-content')
+      .createSignedUploadUrl(filePath);
+
+    if (error) throw error;
+
+    const { data: { publicUrl } } = supabaseAdmin.storage
+      .from('course-content')
+      .getPublicUrl(filePath);
+
+    res.json({
+      signedUrl: data.signedUrl,
+      token:     data.token,
+      path:      filePath,
+      publicUrl,
+    });
+  } catch (e) {
+    next(e);
+  }
+};
+
 /* ── Courses ──────────────────────────────────────────────────────────────── */
 
 const listCourses = async (req, res, next) => {
@@ -246,6 +290,6 @@ module.exports = {
   analyticsOverview, analyticsCourse,
   listLearners,
   listAssessmentResults,
-  uploadFile,
+  uploadFile, getUploadUrl,
   listAdminSessions, createAdminSession, updateAdminSession, deleteAdminSession,
 };
