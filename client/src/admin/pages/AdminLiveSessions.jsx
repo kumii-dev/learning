@@ -157,21 +157,57 @@ function RecordingsPanel({ session, onClose }) {
     setTxError(null);
     setTxStatus('processing');
     setSumStatus('processing');
+
+    // Start polling every 12 s as a fallback — if the POST completes before
+    // the poll, the poll is cancelled; if the POST times out (Vercel limit),
+    // polling will catch the DB result when the server finishes.
+    let pollInterval = null;
+    const startPolling = () => {
+      pollInterval = setInterval(async () => {
+        try {
+          const poll = await apiClient.get(`${API}/${session.id}/transcript-status`);
+          const s = poll.data;
+          if (s.transcript_status && s.transcript_status !== 'processing') {
+            clearInterval(pollInterval);
+            pollInterval = null;
+            setTxStatus(s.transcript_status);
+            setTxText(s.transcript_text ?? null);
+            setSumStatus(s.summary_status ?? 'failed');
+            setSumText(s.summary_text ?? null);
+            if (s.transcript_status === 'done') setSumExpanded(true);
+            setTxGenerating(false);
+          }
+        } catch (_) { /* polling errors are non-fatal */ }
+      }, 12_000);
+    };
+
     try {
       // Whisper + GPT-4o can take 60–180 s for a typical session recording.
       // Override the default 15 s apiClient timeout for this one call.
+      startPolling();
       const res = await apiClient.post(`${API}/${session.id}/transcript`, {}, { timeout: 300_000 });
+      clearInterval(pollInterval);
+      pollInterval = null;
       setTxStatus(res.data.transcriptStatus);
       setTxText(res.data.transcriptText ?? null);
       setSumStatus(res.data.summaryStatus);
       setSumText(res.data.summaryText ?? null);
+      // Surface the real error returned by the server (e.g. file too large, Whisper error)
+      if (res.data.errorDetails) setTxError(res.data.errorDetails);
       if (res.data.transcriptStatus === 'done') setSumExpanded(true);
     } catch (e) {
-      setTxError(e?.response?.data?.error ?? e?.message ?? 'Failed to generate transcript');
-      setTxStatus('failed');
-      setSumStatus('failed');
-    } finally {
-      setTxGenerating(false);
+      // POST timed out or errored — polling will handle the result
+      // Only stop polling if it's a non-timeout error
+      const isTimeout = e?.code === 'ECONNABORTED' || e?.message?.includes('timeout');
+      if (!isTimeout) {
+        clearInterval(pollInterval);
+        pollInterval = null;
+        setTxError(e?.response?.data?.error ?? e?.message ?? 'Failed to generate transcript');
+        setTxStatus('failed');
+        setSumStatus('failed');
+        setTxGenerating(false);
+      }
+      // If it IS a timeout, leave the spinner up and let polling finish the job
     }
   };
 

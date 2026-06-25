@@ -18,5 +18,6 @@ router.post('/:id/rsvp',             authenticate,   ctrl.rsvpLiveSession);
 router.get('/:id/recordings',        ...adminOnly,    ctrl.getSessionRecordings);
 router.post('/:id/email-recording',  ...adminOnly,    ctrl.emailRecordingParticipants);
 router.post('/:id/transcript',       ...adminOnly,    ctrl.generateTranscript);
+router.get('/:id/transcript-status', ...adminOnly,    ctrl.getTranscriptStatus);
 
 module.exports = router;

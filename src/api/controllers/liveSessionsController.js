@@ -64,6 +64,19 @@ const generateTranscript = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
+const getTranscriptStatus = async (req, res, next) => {
+  try {
+    const { supabaseAdmin } = require('../../integrations/supabase');
+    const { data, error } = await supabaseAdmin
+      .from('live_sessions')
+      .select('transcript_status, summary_status, transcript_text, summary_text')
+      .eq('id', req.params.id)
+      .maybeSingle();
+    if (error || !data) return res.status(404).json({ error: 'Session not found' });
+    res.json(data);
+  } catch (err) { next(err); }
+};
+
 module.exports = {
   listLiveSessions,
   createLiveSession,
@@ -73,4 +86,5 @@ module.exports = {
   getSessionRecordings,
   emailRecordingParticipants,
   generateTranscript,
+  getTranscriptStatus,
 };

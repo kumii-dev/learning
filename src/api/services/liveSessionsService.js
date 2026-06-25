@@ -10,7 +10,7 @@ const { supabaseAdmin }     = require('../../integrations/supabase');
 const { createDailyRoom, deleteDailyRoom, getRoomRecordings, getRecordingAccessLink,
         getSessionTranscripts, getDailyTranscriptText } = require('../../integrations/videoProvider');
 const { sendRecordingEmail }  = require('../../utils/emailService');
-const { transcribeAudio, summariseTranscript } = require('../../integrations/openai');
+const { transcribeAudio, transcribeAudioDirect, summariseTranscript } = require('../../integrations/openai');
 
 const SESSION_FIELDS =
   'id, title, topic, description, instructor, scheduled_at, end_time, ' +
@@ -257,13 +257,13 @@ async function generateTranscriptAndSummary(sessionId) {
   let transcriptStatus = 'failed';
   let summaryText  = null;
   let summaryStatus = 'failed';
+  let errorDetails  = null;  // surfaced to the API response for debugging
 
   try {
     // ── Step 1: Try Daily.co transcripts ──────────────────────────────────
     if (session.room_name) {
       const dailyTranscripts = await getSessionTranscripts(session.room_name);
       if (dailyTranscripts.length > 0) {
-        // Pick the first completed transcript
         const ready = dailyTranscripts.find((t) =>
           t.status === 'finished' || t.status === 'completed' || !t.status
         ) ?? dailyTranscripts[0];
@@ -277,18 +277,27 @@ async function generateTranscriptAndSummary(sessionId) {
     }
 
     // ── Step 2: Fallback to Whisper ───────────────────────────────────────
+    // Use transcribeAudioDirect (throws on error) so we get a real error message
+    // instead of safeAI silently returning null.
     if (!transcriptText && session.room_name) {
       const recordings = await getRoomRecordings(session.room_name);
-      // Daily's list API never includes download_link — must call access-link per recording
       const finished = recordings.find((r) => r.status === 'finished' || r.status === 'completed')
                     ?? recordings[0];
-      if (finished?.id) {
+
+      if (!finished?.id) {
+        errorDetails = 'No finished recording found in Daily.co for this session.';
+      } else {
         const downloadUrl = await getRecordingAccessLink(finished.id);
-        if (downloadUrl) {
-          const whisperText = await transcribeAudio(downloadUrl, `session-${sessionId}.mp4`);
-          if (whisperText) {
+        if (!downloadUrl) {
+          errorDetails = 'Daily.co did not return a download URL for the recording. The presigned link may have expired — try again.';
+        } else {
+          try {
+            const whisperText = await transcribeAudioDirect(downloadUrl, `session-${sessionId}.mp4`);
             transcriptText   = whisperText;
             transcriptStatus = 'done';
+          } catch (whisperErr) {
+            console.error('[transcript] Whisper failed:', whisperErr.message);
+            errorDetails = whisperErr.message;
           }
         }
       }
@@ -309,6 +318,7 @@ async function generateTranscriptAndSummary(sessionId) {
     }
   } catch (err) {
     console.error('[transcript] generateTranscriptAndSummary error:', err.message);
+    errorDetails = errorDetails ?? err.message;
   }
 
   // Persist results
@@ -323,7 +333,7 @@ async function generateTranscriptAndSummary(sessionId) {
     })
     .eq('id', sessionId);
 
-  return { transcriptStatus, summaryStatus, transcriptText, summaryText };
+  return { transcriptStatus, summaryStatus, transcriptText, summaryText, errorDetails };
 }
 
 /**

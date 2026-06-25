@@ -122,7 +122,7 @@ async function generateAssessmentFeedback(submission) {
   });
 }
 
-module.exports = { getCourseRecommendations, analyseSkillGap, generateAssessmentFeedback, transcribeAudio, summariseTranscript };
+module.exports = { getCourseRecommendations, analyseSkillGap, generateAssessmentFeedback, transcribeAudio, transcribeAudioDirect, summariseTranscript };
 
 /* ── Audio Transcription (Whisper) ─────────────────────────────────────────── */
 
@@ -153,8 +153,7 @@ async function transcribeAudio(downloadUrl, filename = 'recording.mp4') {
       type: response.headers['content-type'] ?? 'video/mp4',
     });
 
-    // 3. Send to Whisper — override the default 8 s client timeout;
-    //    a 2–3 minute recording typically takes 30–90 s to transcribe.
+    // 3. Send to Whisper
     const transcription = await ai.audio.transcriptions.create(
       {
         file:            fileObj,
@@ -169,6 +168,80 @@ async function transcribeAudio(downloadUrl, filename = 'recording.mp4') {
       ? transcription.trim()
       : (transcription?.text?.trim() ?? null);
   });
+}
+
+/**
+ * Same as transcribeAudio but THROWS on failure instead of returning null.
+ * Use this in the transcript pipeline where you need to surface the real error.
+ *
+ * @param {string} downloadUrl  Pre-signed URL to the recording
+ * @param {string} [filename]   Filename hint for MIME detection
+ * @returns {Promise<string>}   Plain-text transcript (always non-empty)
+ * @throws {Error}              With a descriptive message
+ */
+async function transcribeAudioDirect(downloadUrl, filename = 'recording.mp4') {
+  if (!downloadUrl) throw new Error('No recording download URL was returned by Daily.co');
+
+  const MAX_WHISPER_BYTES = 25 * 1024 * 1024; // 25 MB Whisper limit
+
+  // Check file size first via HEAD — avoids downloading a file that's too large.
+  // Some presigned URLs don't support HEAD; if that fails we proceed and let
+  // Whisper itself reject oversized files.
+  try {
+    const head = await axios.head(downloadUrl, { timeout: 10_000 });
+    const size = parseInt(head.headers['content-length'] ?? '0', 10);
+    if (size > MAX_WHISPER_BYTES) {
+      throw new Error(
+        `Recording is ${(size / 1024 / 1024).toFixed(1)} MB and exceeds OpenAI Whisper's ` +
+        `25 MB limit. Enable Daily.co built-in transcription (Deepgram) on future rooms, ` +
+        `or trim the recording before generating a transcript.`
+      );
+    }
+  } catch (headErr) {
+    if (headErr.message?.includes('exceeds OpenAI Whisper')) throw headErr;
+    // HEAD not supported on this URL — continue and let Whisper handle it
+    logger.warn('[Whisper] HEAD size check failed (proceeding anyway):', headErr.message);
+  }
+
+  const ai = getClient();
+
+  // Download as arraybuffer — more reliable than streams in serverless environments
+  // where stream timeouts can silently produce an empty file.
+  const response = await axios.get(downloadUrl, {
+    responseType: 'arraybuffer',
+    timeout:      120_000,
+  });
+
+  const buffer  = Buffer.from(response.data);
+  logger.info(`[Whisper] Downloaded ${(buffer.length / 1024 / 1024).toFixed(2)} MB for ${filename}`);
+
+  if (buffer.length > MAX_WHISPER_BYTES) {
+    throw new Error(
+      `Recording is ${(buffer.length / 1024 / 1024).toFixed(1)} MB and exceeds ` +
+      `OpenAI Whisper's 25 MB limit.`
+    );
+  }
+
+  const fileObj = await toFile(buffer, filename, {
+    type: response.headers['content-type'] ?? 'video/mp4',
+  });
+
+  const transcription = await ai.audio.transcriptions.create(
+    {
+      file:            fileObj,
+      model:           'whisper-1',
+      response_format: 'text',
+      language:        'en',
+    },
+    { timeout: 180_000 }, // override 8s client default
+  );
+
+  const text = typeof transcription === 'string'
+    ? transcription.trim()
+    : (transcription?.text?.trim() ?? null);
+
+  if (!text) throw new Error('Whisper returned an empty transcript — the recording may contain no speech.');
+  return text;
 }
 
 /* ── Transcript Summary (GPT-4o) ───────────────────────────────────────────── */
