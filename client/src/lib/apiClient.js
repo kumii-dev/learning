@@ -51,10 +51,15 @@ export function classifyError(err) {
   // Network / timeout — no response received at all
   if (!err.response) {
     const isSlow = err.code === 'ECONNABORTED' || err.message?.includes('timeout');
+    // Check if the caller set a large timeout (≥ 60s) — that means it's a known
+    // long-running job (e.g. AI transcript), not a bad connection.
+    const isLongJob = isSlow && (err.config?.timeout ?? 0) >= 60_000;
     return {
-      message:   isSlow
-        ? 'Your network is slow — the request timed out. Please check your connection and try again.'
-        : 'Unable to reach the server. Please check your internet connection.',
+      message: isLongJob
+        ? 'The AI transcript is taking longer than expected. The server may still be processing — please wait a moment and try again.'
+        : isSlow
+          ? 'Your network is slow — the request timed out. Please check your connection and try again.'
+          : 'Unable to reach the server. Please check your internet connection.',
       detail:    err.message ?? '',
       status:    null,
       isNetwork: true,

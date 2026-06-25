@@ -158,7 +158,9 @@ function RecordingsPanel({ session, onClose }) {
     setTxStatus('processing');
     setSumStatus('processing');
     try {
-      const res = await apiClient.post(`${API}/${session.id}/transcript`);
+      // Whisper + GPT-4o can take 60–180 s for a typical session recording.
+      // Override the default 15 s apiClient timeout for this one call.
+      const res = await apiClient.post(`${API}/${session.id}/transcript`, {}, { timeout: 300_000 });
       setTxStatus(res.data.transcriptStatus);
       setTxText(res.data.transcriptText ?? null);
       setSumStatus(res.data.summaryStatus);

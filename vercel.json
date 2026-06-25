@@ -1,5 +1,10 @@
 {
   "version": 2,
+  "functions": {
+    "server.js": {
+      "maxDuration": 300
+    }
+  },
   "builds": [
     {
       "src": "package.json",
@@ -10,10 +15,7 @@
     },
     {
       "src": "server.js",
-      "use": "@vercel/node",
-      "config": {
-        "maxDuration": 300
-      }
+      "use": "@vercel/node"
     }
   ],
   "rewrites": [
